@@ -755,7 +755,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </button>
                 <button
                   onClick={() => {
-                    const fieldId = showDeleteConfirm.replace('field-', '');
+                    const fieldId = parseInt(showDeleteConfirm.replace('field-', ''));
                     const updatedFields = (data.extraFields || []).filter(f => f.id !== fieldId);
                     updateField('extraFields', updatedFields);
                     setShowDeleteConfirm(null);
@@ -804,7 +804,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 updateField('extraFields', updatedFields);
               }}
               onDelete={() => {
-                setShowDeleteConfirm(`field-${field.id}`);
+                setShowDeleteConfirm(`field-${field.id.toString()}`);
               }}
             />
           ))}
