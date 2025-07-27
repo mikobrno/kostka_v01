@@ -37,6 +37,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [content, setContent] = useState<DynamicSectionContent>(section.content);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'notes' | 'parameters' | 'files' | 'fields'>('notes');
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -330,54 +331,87 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               <div className="space-y-3">
                 {(content.links || []).map((link) => (
                   <div key={link.id} className="bg-gray-50 rounded-lg p-4 border">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          URL
-                        </label>
-                        <div className="flex">
-                          <input
-                            type="url"
-                            value={link.url}
-                            onChange={(e) => updateLink(link.id, 'url', e.target.value)}
-                            className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                            placeholder="https://example.com"
-                          />
-                          <CopyButton text={link.url} />
+                    {editingLinkId === link.id ? (
+                      // Editing mode
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              URL
+                            </label>
+                            <div className="flex">
+                              <input
+                                type="url"
+                                value={link.url}
+                                onChange={(e) => updateLink(link.id, 'url', e.target.value)}
+                                className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                placeholder="https://example.com"
+                              />
+                              <CopyButton text={link.url} />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Název (volitelný)
+                            </label>
+                            <input
+                              type="text"
+                              value={link.title || ''}
+                              onChange={(e) => updateLink(link.id, 'title', e.target.value)}
+                              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                              placeholder="Popis odkazu"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-3">
+                          <button
+                            onClick={() => setEditingLinkId(null)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                          >
+                            <Save className="w-3 h-3 mr-1" />
+                            Uložit
+                          </button>
+                          <button
+                            onClick={() => setEditingLinkId(null)}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Zrušit
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      // Display mode - only show link title/name, hide URL
+                      <div className="flex items-center justify-between">
+                        {link.url && (
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            <LinkIcon className="w-4 h-4 mr-2" />
+                            {link.title || 'Odkaz bez názvu'}
+                          </a>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setEditingLinkId(link.id)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Upravit odkaz"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => removeLink(link.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Smazat odkaz"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Název (volitelný)
-                        </label>
-                        <input
-                          type="text"
-                          value={link.title || ''}
-                          onChange={(e) => updateLink(link.id, 'title', e.target.value)}
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                          placeholder="Popis odkazu"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      {link.url && (
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          {link.title || new URL(link.url).hostname}
-                        </a>
-                      )}
-                      <button
-                        onClick={() => removeLink(link.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    )}
                   </div>
                 ))}
 
@@ -424,7 +458,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   placeholder="1500000"
                   min="0"
                 />
-                <CopyButton text={content.basicParameters?.requestedLoanAmount?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.requestedLoanAmount ? content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ') : ''} />
               </div>
             </div>
 
@@ -441,7 +475,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   placeholder="2000000"
                   min="0"
                 />
-                <CopyButton text={content.basicParameters?.propertyValue?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.propertyValue ? content.basicParameters.propertyValue.toLocaleString('cs-CZ') : ''} />
               </div>
             </div>
 
@@ -459,7 +493,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="50"
                 />
-                <CopyButton text={content.basicParameters?.maturityYears?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.maturityYears || ''} />
               </div>
             </div>
 
@@ -477,7 +511,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="30"
                 />
-                <CopyButton text={content.basicParameters?.preferredFixationYears?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.preferredFixationYears || ''} />
               </div>
             </div>
 

@@ -98,38 +98,67 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   const calculateAgeFromBirthNumber = (birthNumber: string) => {
     if (birthNumber.length !== 10) return null;
     
-    const year = parseInt(birthNumber.substr(0, 2));
-    const month = parseInt(birthNumber.substr(2, 2));
+    let year = parseInt(birthNumber.substring(0, 2));
+    let month = parseInt(birthNumber.substring(2, 4));
+    let day = parseInt(birthNumber.substring(4, 6));
     
-    // Určení století
-    let fullYear = year;
+    // Adjust month for women (month - 50)
     if (month > 50) {
-      fullYear = 1900 + year; // žena
-    } else if (month > 20) {
-      fullYear = 2000 + year; // muž po roce 2000
-    } else {
-      fullYear = 1900 + year; // muž před rokem 2000
+      month -= 50;
     }
     
-    const currentYear = new Date().getFullYear();
-    const age = currentYear - fullYear;
+    // Determine century (simplified, assumes 19xx or 20xx)
+    const currentYearFull = new Date().getFullYear();
+    let fullYear;
+    if (year <= (currentYearFull % 100)) {
+      fullYear = 2000 + year;
+    } else {
+      fullYear = 1900 + year;
+    }
     
-    return { age, birthYear: fullYear };
+    // Basic validation for month and day
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null; // Invalid month or day
+    }
+    
+    const birthDateObj = new Date(fullYear, month - 1, day); // Month is 0-indexed in Date object
+    
+    // Check if the date is valid (e.g., 31st Feb would be invalid)
+    if (birthDateObj.getFullYear() !== fullYear || birthDateObj.getMonth() !== (month - 1) || birthDateObj.getDate() !== day) {
+      return null; // Invalid date (e.g., 31st Feb)
+    }
+    
+    const today = new Date();
+    let age = today.getFullYear() - birthDateObj.getFullYear();
+    const m = today.getMonth() - birthDateObj.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+      age--;
+    }
+    
+    // Format birthDate to YYYY-MM-DD
+    const formattedBirthDate = `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return { age, birthYear: fullYear, birthDate: formattedBirthDate };
   };
 
   const updateField = (field: string, value: any) => {
     const updated = { ...data, [field]: value };
     
-    // Automatický výpočet věku z rodného čísla
+    // Auto-calculate age and birth date from birth number
     if (field === 'birthNumber') {
       const ageData = calculateAgeFromBirthNumber(value);
       if (ageData) {
         updated.age = ageData.age;
         updated.birthYear = ageData.birthYear;
+        updated.birthDate = ageData.birthDate; // Store birth date
+      } else {
+        updated.age = null;
+        updated.birthYear = null;
+        updated.birthDate = null; // Clear if invalid
       }
     }
     
-    // Automatické nastavení platnosti dokladu na +10 let
+    // Auto-set document validity to +10 years
     if (field === 'documentIssueDate' && value) {
       const issueDate = new Date(value);
       const validityDate = new Date(issueDate);
@@ -310,6 +339,23 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               {data.birthYear || 'Automaticky'}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Datum narození
+          </label>
+          <div className="flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-300">
+            <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+            <span className="text-sm text-gray-600">
+              {data.birthDate ? new Date(data.birthDate).toLocaleDateString('cs-CZ') : 'Automaticky z rodného čísla'}
+            </span>
+          </div>
+        </div>
+        <div>
+          {/* Placeholder for future field or leave empty for layout */}
         </div>
       </div>
 
