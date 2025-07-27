@@ -37,6 +37,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [content, setContent] = useState<DynamicSectionContent>(section.content);
   const [isUploading, setIsUploading] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -110,6 +112,11 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   // File handlers
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
+    await uploadFiles(files);
+  };
+
+  // Enhanced file upload function to handle both input and drag-drop
+  const uploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     // Validate each file before upload
@@ -143,6 +150,50 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       // Reset file input
       event.target.value = '';
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set drag over to false if we're leaving the drop zone entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    await uploadFiles(droppedFiles);
+  };
+
+  // Enhanced file deletion with confirmation
+  const handleFileDelete = (fileId: string) => {
+    setShowDeleteConfirm(fileId);
+  };
+
+  const confirmFileDelete = async (fileId: string) => {
+    await removeFile(fileId);
+    setShowDeleteConfirm(null);
+  };
+
+  const cancelFileDelete = () => {
+    setShowDeleteConfirm(null);
   };
 
   const renameFile = async (fileId: string, newName: string) => {
@@ -263,6 +314,41 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           >
             <Trash2 className="w-5 h-5" />
           </button>
+        </div>
+      )}
+
+      {/* File Deletion Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat soubor
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento soubor? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={cancelFileDelete}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => confirmFileDelete(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -560,17 +646,54 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           </div>
           
           <div className="space-y-6">
-            {/* File Upload */}
+            {/* File List - Now displayed ABOVE upload area */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Nahrané soubory ({(content.files || []).length})
+              </h4>
+              <div className="space-y-2">
+                {(content.files || []).map((file) => (
+                  <FileListItem
+                    key={file.id}
+                    file={file}
+                    onRename={(newName) => renameFile(file.id, newName)}
+                    onDelete={() => handleFileDelete(file.id)}
+                  />
+                ))}
+
+                {(!content.files || content.files.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p>Žádné soubory nejsou nahrány</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* File Upload Area - Now positioned at the BOTTOM */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nahrát soubory
               </label>
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+              <div
+                className={`flex items-center justify-center w-full transition-all duration-200 ${
+                  isDragOver ? 'border-purple-500 bg-purple-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+              >
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                    <Upload className={`w-8 h-8 mb-4 transition-colors ${
+                      isDragOver ? 'text-purple-600' : 'text-gray-500'
+                    }`} />
                     <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Klikněte pro nahrání</span> nebo přetáhněte soubory
+                      <span className="font-semibold">
+                        {isDragOver ? 'Pusťte soubory zde' : 'Klikněte pro nahrání'}
+                      </span>
+                      {!isDragOver && ' nebo přetáhněte soubory'}
                     </p>
                     <p className="text-xs text-gray-500">
                       Maximální velikost: 5MB na soubor
@@ -587,73 +710,11 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 </label>
               </div>
               {isUploading && (
-                <div className="mt-2 text-sm text-blue-600">
+                <div className="mt-2 text-sm text-purple-600 flex items-center">
+                  <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full mr-2" />
                   Nahrávám soubory...
                 </div>
               )}
-            </div>
-
-            {/* File List */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
-                Nahrané soubory ({(content.files || []).length})
-              </h4>
-              <div className="space-y-2">
-                {(content.files || []).map((file) => (
-                  <div key={file.id} className="bg-white rounded-lg p-3 border flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">
-                        {FileStorageService.getFileIcon(file.type)}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {file.originalName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {FileStorageService.formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('cs-CZ')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Otevřít soubor"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                      <button
-                        onClick={() => {
-                          const newName = prompt('Nový název souboru:', file.originalName);
-                          if (newName && newName.trim()) {
-                            renameFile(file.id, newName.trim());
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Přejmenovat"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => removeFile(file.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Smazat"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {(!content.files || content.files.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p>Žádné soubory nejsou nahrány</p>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
