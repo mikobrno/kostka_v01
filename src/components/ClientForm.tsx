@@ -123,7 +123,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         }
         setCurrentClient(data);
         toast?.showSuccess('Klient aktualizován', 'Údaje klienta byly úspěšně uloženy');
-        onClientSaved?.();
+        // Don't call onClientSaved to prevent navigation - user stays on current page
       } else {
         // Vytvoření nového klienta
         const { data, error } = await ClientService.createClient(formData);
@@ -132,10 +132,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         }
         setCurrentClient(data);
         toast?.showSuccess('Klient vytvořen', 'Nový klient byl úspěšně přidán do systému');
-        onClientSaved?.();
-        
-        // Po vytvoření přepneme do editačního módu
-        // Formulář zůstane vyplněný pro další úpravy
+        // Don't call onClientSaved to prevent navigation - user stays on current page
+        // After creation, we're now in edit mode with the saved client data
       }
     } catch (error) {
       console.error('Chyba při ukládání:', error);
@@ -176,6 +174,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       loan: {}
     });
     setShowPreview(false);
+    // Call onClientSaved only when explicitly creating a new client
+    // This will trigger navigation to a new client form
+    onClientSaved?.();
   };
 
   if (showPreview && (selectedClient || currentClient)) {
@@ -237,7 +238,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? (
               <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
@@ -250,7 +251,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           <button
             onClick={handleExportPDF}
             disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <FileText className="w-4 h-4 mr-2" />
             Export PDF

@@ -64,15 +64,22 @@ function App() {
   };
 
   const handleClientSaved = () => {
-    setShowClientForm(false);
-    setSelectedClient(null);
-    // Zůstaneme na aktuální záložce po uložení
+    // Only hide form and clear selection when explicitly requested
+    // This is now only called when user clicks "New Client" button
+    if (activeTab === 'newClient') {
+      setShowClientForm(false);
+      setSelectedClient(null);
+    }
+    // Refresh client list if we're on that tab
+    if (activeTab === 'clientList') {
+      handleClientListRefresh();
+    }
   };
 
   const handleClientListRefresh = () => {
-    if (activeTab === 'clientList') {
-      // ClientList komponenta se sama obnoví díky useEffect
-    }
+    // Force refresh of client list by updating a key or triggering re-render
+    // The ClientList component will refresh automatically due to useEffect
+    // This function can be used to trigger additional refresh logic if needed
   };
 
   const handleSignOut = async () => {
