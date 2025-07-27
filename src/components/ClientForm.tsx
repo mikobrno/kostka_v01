@@ -6,7 +6,7 @@ import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
-import { Save, Download, Plus, Eye, X, FileText } from 'lucide-react';
+import { Save, Download, Plus, Eye, X, FileText, User, Layers } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
@@ -30,6 +30,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentClient, setCurrentClient] = useState(selectedClient);
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic'>('basic');
 
   // Načtení dat vybraného klienta do formuláře
   React.useEffect(() => {
@@ -257,103 +258,158 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveFormTab('basic')}
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeFormTab === 'basic'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>Základní údaje</span>
+          </button>
+          <button
+            onClick={() => setActiveFormTab('dynamic')}
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeFormTab === 'dynamic'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+            disabled={!selectedClient && !currentClient}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Vlastní sekce</span>
+            {!selectedClient && !currentClient && (
+              <span className="text-xs text-gray-400">(nejprve uložte klienta)</span>
+            )}
+          </button>
+        </nav>
+      </div>
+      {/* Tab Content */}
+      {activeFormTab === 'basic' && (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+                  Žadatel
+                </h2>
+                <PersonalInfo 
+                  data={formData.applicant}
+                  onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
+                  prefix="applicant"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+                  Spolužadatel
+                </h2>
+                <PersonalInfo 
+                  data={formData.coApplicant}
+                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
+                  prefix="coApplicant"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+                Zaměstnavatel žadatele
+              </h2>
+              <EmployerInfo 
+                data={formData.applicantEmployer}
+                onChange={(data) => setFormData(prev => ({ ...prev, applicantEmployer: data }))}
+              />
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+                Zaměstnavatel spolužadatele
+              </h2>
+              <EmployerInfo 
+                data={formData.coApplicantEmployer}
+                onChange={(data) => setFormData(prev => ({ ...prev, coApplicantEmployer: data }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <PropertyInfo 
+                data={formData.applicantProperty}
+                onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
+                title="Nemovitost žadatele"
+              />
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <PropertyInfo 
+                data={formData.coApplicantProperty}
+                onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
+                title="Nemovitost spolužadatele"
+              />
+            </div>
+          </div>
+
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
-              Žadatel
-            </h2>
-            <PersonalInfo 
-              data={formData.applicant}
-              onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
-              prefix="applicant"
+            <LoanSection 
+              data={formData.loan}
+              onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
+              propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
+            />
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-6 border-b pb-3">
+              <h2 className="text-xl font-semibold text-gray-900">Závazky</h2>
+              <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                <Plus className="w-4 h-4 mr-1" />
+                Přidat závazek
+              </button>
+            </div>
+            <LiabilitiesInfo 
+              data={formData.liabilities}
+              onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
             />
           </div>
         </div>
-
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
-              Spolužadatel
-            </h2>
-            <PersonalInfo 
-              data={formData.coApplicant}
-              onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
-              prefix="coApplicant"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
-            Zaměstnavatel žadatele
-          </h2>
-          <EmployerInfo 
-            data={formData.applicantEmployer}
-            onChange={(data) => setFormData(prev => ({ ...prev, applicantEmployer: data }))}
-          />
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
-            Zaměstnavatel spolužadatele
-          </h2>
-          <EmployerInfo 
-            data={formData.coApplicantEmployer}
-            onChange={(data) => setFormData(prev => ({ ...prev, coApplicantEmployer: data }))}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <PropertyInfo 
-            data={formData.applicantProperty}
-            onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
-            title="Nemovitost žadatele"
-          />
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <PropertyInfo 
-            data={formData.coApplicantProperty}
-            onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
-            title="Nemovitost spolužadatele"
-          />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <LoanSection 
-          data={formData.loan}
-          onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
-          propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
-        />
-      </div>
-
-      {/* Dynamic Sections */}
-      {(selectedClient?.id || currentClient?.id) && (
-        <DynamicSectionManager 
-          clientId={selectedClient?.id || currentClient?.id}
-          toast={toast}
-        />
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6 border-b pb-3">
-          <h2 className="text-xl font-semibold text-gray-900">Závazky</h2>
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-            <Plus className="w-4 h-4 mr-1" />
-            Přidat závazek
-          </button>
+      {/* Dynamic Sections Tab */}
+      {activeFormTab === 'dynamic' && (
+        <div className="space-y-8">
+          {(selectedClient?.id || currentClient?.id) ? (
+            <DynamicSectionManager 
+              clientId={selectedClient?.id || currentClient?.id}
+              toast={toast}
+            />
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Vlastní sekce nejsou dostupné</h3>
+              <p className="text-gray-500 mb-6">
+                Nejprve uložte základní údaje klienta, poté budete moci přidat vlastní sekce
+              </p>
+              <button
+                onClick={() => setActiveFormTab('basic')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Přejít na základní údaje
+              </button>
+            </div>
+          )}
         </div>
-        <LiabilitiesInfo 
-          data={formData.liabilities}
-          onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
-        />
-      </div>
+      )}
     </div>
   );
 };
