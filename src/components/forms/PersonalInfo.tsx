@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { CopyButton } from '../CopyButton';
+import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressInput } from '../AddressInput';
 import { ChildrenManager } from '../ChildrenManager';
 import { Copy, Calendar, User, Plus, Trash2 } from 'lucide-react';
@@ -270,7 +271,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Jméno
           </label>
-          <div className="flex">
+          <div className="flex items-center space-x-2">
             <input
               type="text"
               value={data.firstName || ''}
@@ -286,7 +287,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Příjmení
           </label>
-          <div className="flex">
+          <div className="flex items-center space-x-2">
             <input
               type="text"
               value={data.lastName || ''}
@@ -298,6 +299,18 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         </div>
       </div>
+
+      {/* Full Name Copy Button */}
+      {(data.title || data.firstName || data.lastName) && (
+        <div className="flex justify-center">
+          <FullNameCopyButton
+            title={data.title}
+            firstName={data.firstName}
+            lastName={data.lastName}
+            className="w-auto"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -698,70 +711,161 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </button>
         </div>
         
-        {(data.extraFields || []).map((field, index) => (
-          <div key={field.id} className="bg-gray-50 rounded-lg p-4 border mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h5 className="text-sm font-medium text-gray-900">
-                Extra pole #{index + 1}
-              </h5>
-              <button
-                onClick={() => {
-                  const updatedFields = (data.extraFields || []).filter(f => f.id !== field.id);
-                  updateField('extraFields', updatedFields);
-                }}
-                className="text-red-600 hover:text-red-800 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Název pole
-                </label>
-                <input
-                  type="text"
-                  value={field.label || ''}
-                  onChange={(e) => {
-                    const updatedFields = (data.extraFields || []).map(f => 
-                      f.id === field.id ? { ...f, label: e.target.value } : f
-                    );
-                    updateField('extraFields', updatedFields);
-                  }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Např. Poznámka, Speciální požadavek..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hodnota
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={field.value || ''}
-                    onChange={(e) => {
-                      const updatedFields = (data.extraFields || []).map(f => 
-                        f.id === field.id ? { ...f, value: e.target.value } : f
-                      );
-                      updateField('extraFields', updatedFields);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="Zadejte hodnotu..."
-                  />
-                  <CopyButton text={field.value || ''} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+        <div className="space-y-3">
+          {(data.extraFields || []).map((field, index) => (
+            <ExtraFieldDisplay
+              key={field.id}
+              field={field}
+              index={index}
+              onUpdate={(updatedField) => {
+                const updatedFields = (data.extraFields || []).map(f => 
+                  f.id === field.id ? updatedField : f
+                );
+                updateField('extraFields', updatedFields);
+              }}
+              onDelete={() => {
+                const updatedFields = (data.extraFields || []).filter(f => f.id !== field.id);
+                updateField('extraFields', updatedFields);
+              }}
+            />
+          ))}
+        </div>
         
         {(!data.extraFields || data.extraFields.length === 0) && (
           <div className="text-center py-8 text-gray-500">
             <p>Žádná extra pole nejsou přidána.</p>
             <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Extra Field Display Component with Edit Functionality
+interface ExtraFieldDisplayProps {
+  field: any;
+  index: number;
+  onUpdate: (field: any) => void;
+  onDelete: () => void;
+}
+
+const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onUpdate, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(!field.label || !field.value); // Auto-edit if empty
+  const [editData, setEditData] = useState(field);
+
+  const handleSave = () => {
+    if (!editData.label.trim() || !editData.value.trim()) {
+      alert('Název pole a hodnota jsou povinné');
+      return;
+    }
+    onUpdate(editData);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditData(field);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div className="flex justify-between items-center mb-3">
+          <h5 className="text-sm font-medium text-blue-900">
+            {field.label ? 'Úprava pole' : `Nové pole #${index + 1}`}
+          </h5>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSave}
+              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+            >
+              <Save className="w-3 h-3 mr-1" />
+              Uložit
+            </button>
+            <button
+              onClick={handleCancel}
+              className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Zrušit
+            </button>
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Název pole
+            </label>
+            <input
+              type="text"
+              value={editData.label || ''}
+              onChange={(e) => setEditData({ ...editData, label: e.target.value })}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+              placeholder="Např. Poznámka, Speciální požadavek..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Hodnota
+            </label>
+            <input
+              type="text"
+              value={editData.value || ''}
+              onChange={(e) => setEditData({ ...editData, value: e.target.value })}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+              placeholder="Zadejte hodnotu..."
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Display mode - compact view with reduced width
+  return (
+    <div className="bg-gray-50 rounded-lg p-3 border">
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0 mr-4">
+          <div className="flex items-center space-x-3">
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {field.label}:
+            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700 break-words">
+                {field.value}
+              </span>
+              <CopyButton text={field.value || ''} />
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-blue-600 hover:text-blue-800 transition-colors"
+            title="Upravit pole"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-red-600 hover:text-red-800 transition-colors"
+            title="Smazat pole"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
           </div>
         )}
       </div>

@@ -273,133 +273,145 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         <div className="bg-gray-50 rounded-lg p-6 border">
           <div className="flex items-center space-x-2 mb-4">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900">Poznámky a Odkazy</h3>
+            <h3 className="text-lg font-medium text-gray-900">Poznámky</h3>
           </div>
           
-          <div className="space-y-6">
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Poznámky
+          {/* Enhanced Notes with Dynamic Height */}
+          <div>
+            <textarea
+              value={content.notes || ''}
+              onChange={(e) => updateNotes(e.target.value)}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none"
+              placeholder="Zadejte poznámky k této sekci..."
+              style={{
+                minHeight: '80px',
+                height: 'auto',
+                maxHeight: '400px'
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 400) + 'px';
+              }}
+            />
+          </div>
+        </div>
+
+        {/* 1.5. Odkazy (Links) Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border">
+          <div className="flex items-center space-x-2 mb-4">
+            <LinkIcon className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-lg font-medium text-gray-900">Odkazy</h3>
+          </div>
+          
+          <div>
+            {/* Links */}
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Webové odkazy
               </label>
-              <textarea
-                value={content.notes || ''}
-                onChange={(e) => updateNotes(e.target.value)}
-                rows={4}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="Zadejte poznámky k této sekci..."
-              />
+              <button
+                onClick={addLink}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Přidat odkaz
+              </button>
             </div>
 
-            {/* Links */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Odkazy
-                </label>
-                <button
-                  onClick={addLink}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Přidat odkaz
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {(content.links || []).map((link) => (
-                  <div key={link.id} className="bg-white rounded-lg p-4 border">
-                    {editingLinkId === link.id ? (
-                      // Editing mode
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              URL
-                            </label>
-                            <div className="flex">
-                              <input
-                                type="url"
-                                value={link.url}
-                                onChange={(e) => updateLink(link.id, 'url', e.target.value)}
-                                className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                placeholder="https://example.com"
-                              />
-                              <CopyButton text={link.url} />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Název (volitelný)
-                            </label>
+            <div className="space-y-3">
+              {(content.links || []).map((link) => (
+                <div key={link.id} className="bg-white rounded-lg p-4 border">
+                  {editingLinkId === link.id ? (
+                    // Editing mode
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            URL
+                          </label>
+                          <div className="flex">
                             <input
-                              type="text"
-                              value={link.title || ''}
-                              onChange={(e) => updateLink(link.id, 'title', e.target.value)}
-                              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                              placeholder="Popis odkazu"
+                              type="url"
+                              value={link.url}
+                              onChange={(e) => updateLink(link.id, 'url', e.target.value)}
+                              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                              placeholder="https://example.com"
                             />
+                            <CopyButton text={link.url} />
                           </div>
                         </div>
-                        <div className="flex justify-end space-x-2 mt-3">
-                          <button
-                            onClick={() => setEditingLinkId(null)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                          >
-                            <Save className="w-3 h-3 mr-1" />
-                            Uložit
-                          </button>
-                          <button
-                            onClick={() => setEditingLinkId(null)}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            Zrušit
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      // Display mode - only show link title/name, hide URL
-                      <div className="flex items-center justify-between">
-                        {link.url && (
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            <LinkIcon className="w-4 h-4 mr-2" />
-                            {link.title || 'Odkaz bez názvu'}
-                          </a>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => setEditingLinkId(link.id)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Upravit odkaz"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => removeLink(link.id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Smazat odkaz"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Název (volitelný)
+                          </label>
+                          <input
+                            type="text"
+                            value={link.title || ''}
+                            onChange={(e) => updateLink(link.id, 'title', e.target.value)}
+                            className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            placeholder="Popis odkazu"
+                          />
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex justify-end space-x-2 mt-3">
+                        <button
+                          onClick={() => setEditingLinkId(null)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Uložit
+                        </button>
+                        <button
+                          onClick={() => setEditingLinkId(null)}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Zrušit
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    // Display mode - only show link title/name, hide URL
+                    <div className="flex items-center justify-between">
+                      {link.url && (
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                        >
+                          <LinkIcon className="w-4 h-4 mr-2" />
+                          {link.title || 'Odkaz bez názvu'}
+                        </a>
+                      )}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setEditingLinkId(link.id)}
+                          className="text-indigo-600 hover:text-indigo-800"
+                          title="Upravit odkaz"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removeLink(link.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Smazat odkaz"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
 
-                {(!content.links || content.links.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p>Žádné odkazy nejsou přidány</p>
-                  </div>
-                )}
-              </div>
+              {(!content.links || content.links.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p>Žádné odkazy nejsou přidány</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -411,7 +423,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             <h3 className="text-lg font-medium text-gray-900">Základní Parametry</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Účel financování
@@ -464,6 +476,23 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vlastní prostředky (Kč)
+              </label>
+              <div className="flex">
+                <input
+                  type="number"
+                  value={content.basicParameters?.vlastniProstredky || ''}
+                  onChange={(e) => updateBasicParameter('vlastniProstredky', parseFloat(e.target.value) || 0)}
+                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="500000"
+                  min="0"
+                />
+                <CopyButton text={content.basicParameters?.vlastniProstredky ? content.basicParameters.vlastniProstredky.toLocaleString('cs-CZ') : ''} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Splatnost v letech
               </label>
               <div className="flex">
@@ -480,7 +509,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </div>
             </div>
 
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Délka fixace preferovaná (roky)
               </label>
@@ -626,75 +655,6 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 )}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* 4. Obecná pole (General Fields) Section */}
-        <div className="bg-gray-50 rounded-lg p-6 border">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <Settings className="w-5 h-5 text-orange-600" />
-              <h3 className="text-lg font-medium text-gray-900">Obecná pole</h3>
-            </div>
-            <button
-              onClick={addGeneralField}
-              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Přidat pole
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {(content.generalFields || []).map((field) => (
-              <div key={field.id} className="bg-white rounded-lg p-4 border">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Název pole
-                    </label>
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateGeneralField(field.id, 'label', e.target.value)}
-                      className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                      placeholder="Např. Poznámka, Speciální požadavek..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Hodnota
-                    </label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={field.value}
-                        onChange={(e) => updateGeneralField(field.id, 'value', e.target.value)}
-                        className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                        placeholder="Zadejte hodnotu..."
-                      />
-                      <CopyButton text={field.value} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => removeGeneralField(field.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {(!content.generalFields || content.generalFields.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <Settings className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p>Žádná obecná pole nejsou přidána</p>
-                <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
