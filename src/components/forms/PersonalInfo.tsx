@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { CopyButton } from '../CopyButton';
-import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressInput } from '../AddressInput';
 import { ChildrenManager } from '../ChildrenManager';
-import { Copy, Calendar, User, Plus, Trash2 } from 'lucide-react';
+import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit } from 'lucide-react';
 
 interface PersonalInfoProps {
   data: any;
@@ -271,7 +270,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Jméno
           </label>
-          <div className="flex items-center space-x-2">
+          <div className="flex">
             <input
               type="text"
               value={data.firstName || ''}
@@ -287,7 +286,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Příjmení
           </label>
-          <div className="flex items-center space-x-2">
+          <div className="flex">
             <input
               type="text"
               value={data.lastName || ''}
@@ -299,18 +298,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         </div>
       </div>
-
-      {/* Full Name Copy Button */}
-      {(data.title || data.firstName || data.lastName) && (
-        <div className="flex justify-center">
-          <FullNameCopyButton
-            title={data.title}
-            firstName={data.firstName}
-            lastName={data.lastName}
-            className="w-auto"
-          />
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -862,12 +849,6 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
-      </div>
-    </div>
-  );
-};
-          </div>
-        )}
       </div>
     </div>
   );
