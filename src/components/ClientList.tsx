@@ -274,9 +274,10 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
                             <button
-                              onClick={() => handleClientNameClick(client)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
-                              title="Klikněte pro náhled klienta"
+                              onClick={() => onSelectClient?.(client)}
+                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                              title="Zobrazit detail klienta"
+                              aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                             >
                               {client.applicant_first_name} {client.applicant_last_name}
                             </button>
@@ -317,8 +318,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => onSelectClient?.(client)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          className="text-blue-600 hover:text-blue-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded p-1"
                           title="Zobrazit detail"
+                          aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
