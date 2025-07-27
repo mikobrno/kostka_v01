@@ -13,6 +13,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
   const [newItem, setNewItem] = useState('');
   const [loading, setLoading] = useState(false);
   const [managedLists, setManagedLists] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{listKey: string, index: number} | null>(null);
 
   const defaultLists = {
     titles: {

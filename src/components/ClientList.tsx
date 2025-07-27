@@ -13,6 +13,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   const loadClients = async () => {
     setLoading(true);
@@ -83,9 +84,11 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
   };
 
   const handleDeleteClient = async (clientId: string) => {
-    if (!window.confirm('Opravdu chcete smazat tohoto klienta?')) {
-      return;
-    }
+    setShowDeleteConfirm(clientId);
+  };
+
+  const confirmDeleteClient = async (clientId: string) => {
+    setShowDeleteConfirm(null);
 
     try {
       const { error } = await ClientService.deleteClient(clientId);
@@ -100,6 +103,11 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
       toast?.showError('Chyba při mazání', error.message);
     }
   };
+
+  const cancelDeleteClient = () => {
+    setShowDeleteConfirm(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -109,6 +117,41 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Seznam klientů</h1>
         <p className="text-lg text-gray-600">Přehled všech zadaných klientů</p>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat klienta
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tohoto klienta? Tato akce je nevratná a smaže všechna související data.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={cancelDeleteClient}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => confirmDeleteClient(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
@@ -175,22 +218,22 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
               </p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="w-full min-w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Klient
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Kontakt
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Nemovitost
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Datum zadání
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/6 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Akce
                   </th>
                 </tr>

@@ -9,6 +9,8 @@ interface LiabilitiesInfoProps {
 }
 
 export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onChange }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+
   const [adminLists, setAdminLists] = React.useState({
     institutions: [],
     liabilityTypes: []
@@ -64,7 +66,12 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
   };
 
   const removeLiability = (id: number) => {
+    setShowDeleteConfirm(null);
     onChange(data.filter(item => item.id !== id));
+  };
+
+  const handleDeleteLiability = (id: number) => {
+    setShowDeleteConfirm(id);
   };
 
   const updateLiability = (id: number, field: string, value: any) => {
@@ -101,7 +108,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
               Závazek #{index + 1}
             </h4>
             <button
-              onClick={() => removeLiability(liability.id)}
+              onClick={() => handleDeleteLiability(liability.id)}
               className="text-red-600 hover:text-red-800 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -210,6 +217,41 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
         <Plus className="w-5 h-5 mr-2" />
         Přidat další závazek
       </button>
+
+      {/* Delete Confirmation Modal for Liabilities */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat závazek
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento závazek? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => removeLiability(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

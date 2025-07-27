@@ -15,6 +15,8 @@ interface ChildrenManagerProps {
 }
 
 export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [], onChange }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+
   const addChild = () => {
     const newChild: Child = {
       id: Date.now(),
@@ -25,7 +27,12 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
   };
 
   const removeChild = (id: number) => {
+    setShowDeleteConfirm(null);
     onChange(children.filter(child => child.id !== id));
+  };
+
+  const handleDeleteChild = (id: number) => {
+    setShowDeleteConfirm(id);
   };
 
   const updateChild = (id: number, field: string, value: string) => {
@@ -62,7 +69,7 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
               Dítě #{index + 1}
             </h5>
             <button
-              onClick={() => removeChild(child.id)}
+              onClick={() => handleDeleteChild(child.id)}
               className="text-red-600 hover:text-red-800 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -122,6 +129,41 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
         <Plus className="w-5 h-5 mr-2" />
         Přidat dítě
       </button>
+
+      {/* Delete Confirmation Modal for Children */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat dítě
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento záznam o dítěti? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => removeChild(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
