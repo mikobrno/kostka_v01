@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard } from 'lucide-react';
+import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientListProps {
