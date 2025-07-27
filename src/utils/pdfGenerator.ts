@@ -4,7 +4,7 @@ import { DynamicSectionService } from '../services/dynamicSectionService';
 
 // IMPORT NOVÉHO FONTU:
 // Předpokládá, že soubor NotoSans-Regular-normal.js je ve stejném adresáři
-import NotoSansRegular from './NotoSans-Regular-normal.js';
+import { font as NotoSansRegularFont } from './NotoSans-Regular-normal.js';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -18,7 +18,7 @@ export const generateClientPDF = async (client: any, formData: any) => {
 
   // REGISTRACE A NASTAVENÍ VLASTNÍHO FONTU PRO SPRÁVNOU DIAKRITIKU
   // První řádek přidá base64 data fontu do interního virtuálního souborového systému jsPDF
-  doc.addFileToVFS('NotoSans-Regular.ttf', NotoSansRegular.font);
+  doc.addFileToVFS('NotoSans-Regular.ttf', NotoSansRegularFont);
   // Druhý řádek zaregistruje font pod jménem 'NotoSans' a stylem 'normal'
   doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
   // Třetí řádek nastaví tento font jako výchozí pro celý dokument
