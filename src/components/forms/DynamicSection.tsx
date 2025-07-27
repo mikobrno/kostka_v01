@@ -722,3 +722,128 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     </div>
   );
 };
+// File List Item Component with inline editing
+interface FileListItemProps {
+  file: any;
+  onRename: (newName: string) => void;
+  onDelete: () => void;
+}
+
+const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(file.originalName);
+  const [isValidName, setIsValidName] = useState(true);
+
+  // Validate filename
+  const validateFilename = (name: string): boolean => {
+    if (!name.trim()) return false;
+    // Check for invalid characters
+    const invalidChars = /[<>:"/\\|?*]/;
+    return !invalidChars.test(name);
+  };
+
+  const handleSave = () => {
+    const trimmedName = editName.trim();
+    if (!validateFilename(trimmedName)) {
+      setIsValidName(false);
+      return;
+    }
+    
+    onRename(trimmedName);
+    setIsEditing(false);
+    setIsValidName(true);
+  };
+
+  const handleCancel = () => {
+    setEditName(file.originalName);
+    setIsEditing(false);
+    setIsValidName(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  const handleNameChange = (value: string) => {
+    setEditName(value);
+    setIsValidName(validateFilename(value));
+  };
+
+  return (
+    <div className="bg-white rounded-lg p-3 border flex items-center justify-between">
+      <div className="flex items-center space-x-3 flex-1">
+        <span className="text-lg">
+          {FileStorageService.getFileIcon(file.type)}
+        </span>
+        <div className="flex-1">
+          {isEditing ? (
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 ${
+                  isValidName 
+                    ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' 
+                    : 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                }`}
+                autoFocus
+              />
+              {!isValidName && (
+                <p className="text-xs text-red-600">
+                  Neplatný název souboru. Nesmí obsahovat: &lt; &gt; : " / \ | ? *
+                </p>
+              )}
+            </div>
+          ) : (
+            <p 
+              className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => setIsEditing(true)}
+              title="Klikněte pro úpravu názvu"
+            >
+              {file.originalName}
+            </p>
+          )}
+          <p className="text-xs text-gray-500">
+            {FileStorageService.formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('cs-CZ')}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800"
+          title="Otevřít soubor"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-blue-600 hover:text-blue-800"
+            title="Přejmenovat"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="text-red-600 hover:text-red-800"
+          title="Smazat"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
