@@ -39,6 +39,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showLinkDeleteConfirm, setShowLinkDeleteConfirm] = useState<string | null>(null);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -90,11 +91,25 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   };
 
   const removeLink = async (linkId: string) => {
+    setShowLinkDeleteConfirm(null);
     const newContent = {
       ...content,
       links: (content.links || []).filter(link => link.id !== linkId)
     };
     await updateContent(newContent);
+    toast?.showSuccess('Odkaz smazán', 'Odkaz byl úspěšně odstraněn');
+  };
+
+  const handleLinkDelete = (linkId: string) => {
+    setShowLinkDeleteConfirm(linkId);
+  };
+
+  const confirmLinkDelete = async (linkId: string) => {
+    await removeLink(linkId);
+  };
+
+  const cancelLinkDelete = () => {
+    setShowLinkDeleteConfirm(null);
   };
 
   // Basic Parameters handlers
@@ -352,6 +367,40 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         </div>
       )}
 
+      {/* Link Deletion Confirmation Modal */}
+      {showLinkDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <LinkIcon className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat odkaz
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento odkaz? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={cancelLinkDelete}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => confirmLinkDelete(showLinkDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Vertical Stack Content */}
       <div className="space-y-6">
@@ -481,6 +530,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                         </button>
                         <button
                           onClick={() => removeLink(link.id)}
+                          onClick={() => handleLinkDelete(link.id)}
                           className="text-red-600 hover:text-red-800"
                           title="Smazat odkaz"
                         >
