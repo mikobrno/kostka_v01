@@ -110,6 +110,14 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    // Validate each file before upload
+    for (const file of files) {
+      const validation = FileStorageService.validateFile(file);
+      if (!validation.isValid) {
+        toast?.showError('Neplatný soubor', `${file.name}: ${validation.error}`);
+        return;
+      }
+    }
     setIsUploading(true);
     try {
       const uploadPromises = Array.from(files).map(file =>
@@ -126,6 +134,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       
       toast?.showSuccess('Soubory nahrány', `Úspěšně nahráno ${uploadedFiles.length} souborů`);
     } catch (error) {
+      console.error('File upload error:', error);
       toast?.showError('Chyba při nahrávání', error.message);
     } finally {
       setIsUploading(false);

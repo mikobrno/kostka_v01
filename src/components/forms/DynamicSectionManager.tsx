@@ -20,24 +20,41 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
 
   // Load dynamic sections
   useEffect(() => {
-    if (clientId) {
+    if (clientId && clientId !== 'undefined') {
       loadSections();
     }
   }, [clientId]);
 
   const loadSections = async () => {
+    if (!clientId || clientId === 'undefined') {
+      console.warn('⚠️ Invalid clientId for loading dynamic sections:', clientId);
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('🔄 Loading dynamic sections for client:', clientId);
       const { data, error } = await DynamicSectionService.getDynamicSections(clientId);
       if (error) {
         console.error('Error loading dynamic sections:', error);
-        toast?.showError('Chyba při načítání', 'Nepodařilo se načíst dynamické sekce');
+        // Don't show error if table doesn't exist yet (migration not run)
+        if (error.message?.includes('relation "client_dynamic_sections" does not exist')) {
+          console.warn('⚠️ Dynamic sections table does not exist yet. Migration may not have been run.');
+          setSections([]);
+        } else {
+          toast?.showError('Chyba při načítání', 'Nepodařilo se načíst dynamické sekce');
+        }
         return;
       }
       setSections(data || []);
+      console.log('✅ Dynamic sections loaded successfully:', data?.length || 0);
     } catch (error) {
       console.error('Error loading dynamic sections:', error);
-      toast?.showError('Chyba při načítání', 'Nepodařilo se načíst dynamické sekce');
+      // Don't show error toast for missing table
+      if (!error.message?.includes('relation "client_dynamic_sections" does not exist')) {
+        toast?.showError('Chyba při načítání', 'Nepodařilo se načíst dynamické sekce');
+      }
+      setSections([]);
     } finally {
       setLoading(false);
     }

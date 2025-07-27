@@ -46,15 +46,28 @@ export class DynamicSectionService {
    * Fetches all dynamic sections for a client
    */
   static async getDynamicSections(clientId: string): Promise<{ data: DynamicSection[] | null; error: any }> {
+    if (!clientId) {
+      return { data: [], error: null };
+    }
+
     try {
+      console.log('🔍 Loading dynamic sections for client:', clientId);
+      
       const { data, error } = await supabase
         .from('client_dynamic_sections')
         .select('*')
         .eq('client_id', clientId)
         .order('order_index', { ascending: true });
 
+      if (error) {
+        console.error('❌ Supabase error loading dynamic sections:', error);
+        return { data: null, error };
+      }
+
+      console.log('✅ Dynamic sections loaded:', data?.length || 0, 'sections');
       return { data, error };
     } catch (error) {
+      console.error('❌ Unexpected error loading dynamic sections:', error);
       return { data: null, error };
     }
   }

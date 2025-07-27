@@ -334,7 +334,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       </div>
 
       {/* Dynamic Sections */}
-      {(selectedClient || currentClient) && (
+      {(selectedClient?.id || currentClient?.id) && (
         <DynamicSectionManager 
           clientId={selectedClient?.id || currentClient?.id}
           toast={toast}
