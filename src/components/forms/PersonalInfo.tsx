@@ -799,7 +799,7 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Název pole
@@ -829,38 +829,36 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
     );
   }
 
-  // Display mode - compact view with reduced width
+  // Display mode - full width view with edit functionality
   return (
     <div className="bg-gray-50 rounded-lg p-3 border">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0 mr-4">
-          <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-gray-900 truncate">
-              {field.label}:
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700 break-words">
-                {field.value}
-              </span>
-              <CopyButton text={field.value || ''} />
-            </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-900">
+            {field.label}
+          </span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-blue-600 hover:text-blue-800 transition-colors"
+              title="Upravit pole"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 transition-colors"
+              title="Smazat pole"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-            title="Upravit pole"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="text-red-600 hover:text-red-800 transition-colors"
-            title="Smazat pole"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-700 flex-1 break-words">
+            {field.value}
+          </span>
+          <CopyButton text={field.value || ''} />
         </div>
       </div>
     </div>
