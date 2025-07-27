@@ -6,7 +6,7 @@ import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
-import { Save, Download, Plus, Eye, X, FileText, User, Layers } from 'lucide-react';
+import { Save, Plus, Eye, X, FileText, User, Layers } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
@@ -144,21 +144,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   };
 
   const handleExportPDF = async () => {
-    const { generateClientPDF } = await import('../utils/pdfGenerator');
-    const clientData = selectedClient || currentClient;
-    
-    if (!clientData) {
-      toast?.showWarning('Nelze generovat PDF', 'Nejprve uložte klienta před generováním PDF');
-      return;
-    }
-    
-    try {
-      await generateClientPDF(clientData, formData);
-      toast?.showSuccess('PDF vygenerováno', 'Soubor byl úspěšně stažen');
-    } catch (error) {
-      console.error('Chyba při generování PDF:', error);
-      toast?.showError('Chyba při generování PDF', 'Nepodařilo se vygenerovat PDF soubor');
-    }
+    toast?.showInfo('PDF generování dočasně nedostupné', 'Funkce bude přidána v budoucí verzi');
   };
 
   const handleNewClient = () => {
@@ -251,10 +237,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           <button
             onClick={handleExportPDF}
             disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed transition-colors"
           >
             <FileText className="w-4 h-4 mr-2" />
-            Export PDF
+            PDF (brzy)
           </button>
         </div>
       </div>
@@ -475,10 +461,10 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
           
           <button
             onClick={onExportPDF}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed transition-colors"
           >
             <FileText className="w-4 h-4 mr-2" />
-            Export PDF
+            PDF (brzy)
           </button>
         </div>
       </div>
