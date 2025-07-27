@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
+import { AresService } from '../../services/aresService';
 import { CopyButton } from '../CopyButton';
 import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressInput } from '../AddressInput';
 import { ChildrenManager } from '../ChildrenManager';
-import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit } from 'lucide-react';
+import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search } from 'lucide-react';
 
 interface PersonalInfoProps {
   data: any;
@@ -451,11 +452,18 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Platnost do
         </label>
-        <div className="flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-300">
-          <Calendar className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="text-sm text-gray-600">
-            {data.documentValidUntil || 'Automaticky +10 let od vydání'}
-          </span>
+        <div className="flex">
+          <div className="flex-1 relative">
+            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={data.documentValidUntil ? new Date(data.documentValidUntil).toLocaleDateString('cs-CZ') : ''}
+              readOnly
+              className="block w-full pl-10 rounded-l-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm"
+              placeholder="Automaticky +10 let od vydání"
+            />
+          </div>
+          <CopyButton text={data.documentValidUntil ? new Date(data.documentValidUntil).toLocaleDateString('cs-CZ') : ''} />
         </div>
       </div>
 
@@ -512,6 +520,58 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       </div>
 
+      {/* Podnikání sekce */}
+      <div className="bg-white rounded-lg border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <Building className="w-5 h-5 text-purple-600" />
+            <h4 className="text-md font-medium text-gray-900">Podnikání</h4>
+          </div>
+          <button
+            onClick={() => {
+              const newBusiness = {
+                id: Date.now(),
+                ico: '',
+                companyName: '',
+                companyAddress: '',
+                businessStartDate: ''
+              };
+              const currentBusinesses = data.businesses || [];
+              updateField('businesses', [...currentBusinesses, newBusiness]);
+            }}
+            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Přidat podnikání
+          </button>
+        </div>
+        
+        {(data.businesses || []).map((business, index) => (
+          <BusinessDisplay
+            key={business.id}
+            business={business}
+            index={index}
+            onUpdate={(updatedBusiness) => {
+              const updatedBusinesses = (data.businesses || []).map(b => 
+                b.id === business.id ? updatedBusiness : b
+              );
+              updateField('businesses', updatedBusinesses);
+            }}
+            onDelete={() => {
+              setShowDeleteConfirm(`business-${business.id.toString()}`);
+            }}
+          />
+        ))}
+        
+        {(!data.businesses || data.businesses.length === 0) && (
+          <div className="text-center py-8 text-gray-500">
+            <Building className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>Žádné podnikání není přidáno.</p>
+            <p className="text-sm">Klikněte na "Přidat podnikání" pro vytvoření záznamu o podnikání.</p>
+          </div>
+        )}
+      </div>
+
       <div>
         <div className="flex items-center space-x-3 mb-4">
           <h4 className="text-md font-medium text-gray-900">Doklady totožnosti</h4>
@@ -543,16 +603,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <h5 className="text-sm font-medium text-gray-900">
                 Doklad #{index + 1}
               </h5>
-              {(data.documents || []).length > 1 && (
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(`document-${document.id}`);
-                  }}
-                  className="text-red-600 hover:text-red-800 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(`document-${document.id.toString()}`);
+                }}
+                className="text-red-600 hover:text-red-800 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -715,7 +773,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </button>
                 <button
                   onClick={() => {
-                    const documentId = showDeleteConfirm.replace('document-', '');
+                    const documentId = parseInt(showDeleteConfirm.replace('document-', ''));
                     const updatedDocuments = (data.documents || []).filter(d => d.id !== documentId);
                     updateField('documents', updatedDocuments);
                     setShowDeleteConfirm(null);
@@ -730,8 +788,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       )}
 
-      {/* Delete Confirmation Modal for Extra Fields */}
-      {showDeleteConfirm && showDeleteConfirm.startsWith('field-') && (
+      {/* Delete Confirmation Modal for Extra Fields and Business */}
+      {showDeleteConfirm && (showDeleteConfirm.startsWith('field-') || showDeleteConfirm.startsWith('business-')) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
@@ -741,10 +799,13 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </div>
               </div>
               <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
-                Smazat pole
+                {showDeleteConfirm.startsWith('business-') ? 'Smazat podnikání' : 'Smazat pole'}
               </h3>
               <p className="text-sm text-gray-500 text-center mb-6">
-                Opravdu chcete smazat toto pole? Tato akce je nevratná.
+                {showDeleteConfirm.startsWith('business-') 
+                  ? 'Opravdu chcete smazat tento záznam o podnikání? Tato akce je nevratná.'
+                  : 'Opravdu chcete smazat toto pole? Tato akce je nevratná.'
+                }
               </p>
               <div className="flex items-center justify-center space-x-3">
                 <button
@@ -755,9 +816,15 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </button>
                 <button
                   onClick={() => {
-                    const fieldId = parseInt(showDeleteConfirm.replace('field-', ''));
-                    const updatedFields = (data.extraFields || []).filter(f => f.id !== fieldId);
-                    updateField('extraFields', updatedFields);
+                    if (showDeleteConfirm.startsWith('business-')) {
+                      const businessId = parseInt(showDeleteConfirm.replace('business-', ''));
+                      const updatedBusinesses = (data.businesses || []).filter(b => b.id !== businessId);
+                      updateField('businesses', updatedBusinesses);
+                    } else {
+                      const fieldId = parseInt(showDeleteConfirm.replace('field-', ''));
+                      const updatedFields = (data.extraFields || []).filter(f => f.id !== fieldId);
+                      updateField('extraFields', updatedFields);
+                    }
                     setShowDeleteConfirm(null);
                   }}
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -939,6 +1006,231 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
           </span>
           <div className="flex-shrink-0">
             <CopyButton text={field.value || ''} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Business Display Component
+interface BusinessDisplayProps {
+  business: any;
+  index: number;
+  onUpdate: (business: any) => void;
+  onDelete: () => void;
+}
+
+const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUpdate, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(!business.ico || !business.companyName); // Auto-edit if empty
+  const [editData, setEditData] = useState(business);
+  const [isLoadingAres, setIsLoadingAres] = useState(false);
+
+  const handleSave = () => {
+    if (!editData.ico.trim() || !editData.companyName.trim()) {
+      alert('IČO a název firmy jsou povinné');
+      return;
+    }
+    onUpdate(editData);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditData(business);
+    setIsEditing(false);
+  };
+
+  const fetchAresData = async (ico: string) => {
+    if (ico.length !== 8) return;
+    
+    setIsLoadingAres(true);
+    try {
+      const { data, error } = await AresService.searchByIco(ico);
+      
+      if (error) {
+        alert(`Chyba při načítání z ARES: ${error}`);
+        return;
+      }
+      
+      if (data) {
+        setEditData(prev => ({
+          ...prev,
+          companyName: data.companyName,
+          companyAddress: data.address
+        }));
+      }
+    } catch (error) {
+      console.error('Chyba při načítání dat z ARES:', error);
+      alert('Chyba při načítání dat z ARES');
+    } finally {
+      setIsLoadingAres(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200 mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <h5 className="text-sm font-medium text-purple-900">
+            {business.ico ? 'Úprava podnikání' : `Nové podnikání #${index + 1}`}
+          </h5>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSave}
+              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+            >
+              <Save className="w-3 h-3 mr-1" />
+              Uložit
+            </button>
+            <button
+              onClick={handleCancel}
+              className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Zrušit
+            </button>
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              IČO *
+            </label>
+            <div className="flex">
+              <input
+                type="text"
+                value={editData.ico || ''}
+                onChange={(e) => {
+                  const ico = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  setEditData({ ...editData, ico });
+                  if (ico.length === 8) {
+                    fetchAresData(ico);
+                  }
+                }}
+                className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                placeholder="12345678"
+                maxLength={8}
+                style={{ borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}
+              />
+              <button
+                onClick={() => fetchAresData(editData.ico)}
+                disabled={isLoadingAres || editData.ico?.length !== 8}
+                className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ borderTopRightRadius: '0.375rem', borderBottomRightRadius: '0.375rem' }}
+              >
+                {isLoadingAres ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Zadáním IČO se automaticky vyplní název a adresa firmy z ARES
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Název firmy *
+            </label>
+            <input
+              type="text"
+              value={editData.companyName || ''}
+              onChange={(e) => setEditData({ ...editData, companyName: e.target.value })}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+              placeholder="Název společnosti"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Adresa firmy
+            </label>
+            <input
+              type="text"
+              value={editData.companyAddress || ''}
+              onChange={(e) => setEditData({ ...editData, companyAddress: e.target.value })}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+              placeholder="Adresa sídla společnosti"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Začátek podnikání
+            </label>
+            <input
+              type="date"
+              value={editData.businessStartDate || ''}
+              onChange={(e) => setEditData({ ...editData, businessStartDate: e.target.value })}
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Display mode
+  return (
+    <div className="bg-gray-50 rounded-lg p-4 border w-full mb-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Building className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-gray-900">
+              {business.companyName || 'Název firmy'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-blue-600 hover:text-blue-800 transition-colors"
+              title="Upravit podnikání"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 transition-colors"
+              title="Smazat podnikání"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">IČO:</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-900">{business.ico || 'Neuvedeno'}</span>
+              <CopyButton text={business.ico || ''} />
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Adresa:</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-900 truncate">{business.companyAddress || 'Neuvedeno'}</span>
+              <CopyButton text={business.companyAddress || ''} />
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Začátek podnikání:</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-900">
+                {business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : 'Neuvedeno'}
+              </span>
+              <CopyButton text={business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : ''} />
+            </div>
           </div>
         </div>
       </div>
