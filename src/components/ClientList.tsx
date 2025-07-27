@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail } from 'lucide-react';
+import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientListProps {
@@ -14,6 +14,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showClientPreview, setShowClientPreview] = useState<any | null>(null);
 
   const loadClients = async () => {
     setLoading(true);
@@ -108,6 +109,14 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
     setShowDeleteConfirm(null);
   };
 
+  const handleClientNameClick = (client: any) => {
+    setShowClientPreview(client);
+  };
+
+  const closeClientPreview = () => {
+    setShowClientPreview(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -151,6 +160,18 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
             </div>
           </div>
         </div>
+      )}
+
+      {/* Client Preview Modal */}
+      {showClientPreview && (
+        <ClientPreviewModal 
+          client={showClientPreview} 
+          onClose={closeClientPreview}
+          onEdit={() => {
+            onSelectClient?.(showClientPreview);
+            closeClientPreview();
+          }}
+        />
       )}
 
       <div className="bg-white rounded-lg shadow">
@@ -252,7 +273,13 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {client.applicant_first_name} {client.applicant_last_name}
+                            <button
+                              onClick={() => handleClientNameClick(client)}
+                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
+                              title="Klikněte pro náhled klienta"
+                            >
+                              {client.applicant_first_name} {client.applicant_last_name}
+                            </button>
                           </div>
                           <div className="text-sm text-gray-500">
                             RČ: {client.applicant_birth_number}
@@ -332,6 +359,266 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Client Preview Modal Component
+interface ClientPreviewModalProps {
+  client: any;
+  onClose: () => void;
+  onEdit: () => void;
+}
+
+const ClientPreviewModal: React.FC<ClientPreviewModalProps> = ({ client, onClose, onEdit }) => {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Neuvedeno';
+    try {
+      return new Date(dateString).toLocaleDateString('cs-CZ');
+    } catch {
+      return 'Neplatné datum';
+    }
+  };
+
+  const formatPrice = (price: number | string) => {
+    if (!price) return 'Neuvedeno';
+    const numPrice = typeof price === 'string' ? parseInt(price) : price;
+    return numPrice.toLocaleString('cs-CZ') + ' Kč';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-4 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-600 rounded-full">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {client.applicant_first_name} {client.applicant_last_name}
+              </h2>
+              <p className="text-sm text-gray-500">
+                Vytvořeno: {formatDate(client.created_at)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Upravit
+            </button>
+            <button
+              onClick={onClose}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Zavřít
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-96 overflow-y-auto">
+          {/* Žadatel */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+              <User className="w-5 h-5 mr-2" />
+              Žadatel
+            </h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-blue-700">Jméno:</span>
+                  <p className="text-blue-900 font-medium">
+                    {[client.applicant_title, client.applicant_first_name, client.applicant_last_name]
+                      .filter(Boolean).join(' ')}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-blue-700">Věk:</span>
+                  <p className="text-blue-900">{client.applicant_age ? `${client.applicant_age} let` : 'Neuvedeno'}</p>
+                </div>
+              </div>
+              
+              <div>
+                <span className="text-sm font-medium text-blue-700">Rodné číslo:</span>
+                <p className="text-blue-900 font-mono">{client.applicant_birth_number || 'Neuvedeno'}</p>
+              </div>
+              
+              <div>
+                <span className="text-sm font-medium text-blue-700">Rodinný stav:</span>
+                <p className="text-blue-900">{client.applicant_marital_status || 'Neuvedeno'}</p>
+              </div>
+              
+              <div>
+                <span className="text-sm font-medium text-blue-700 flex items-center">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  Trvalé bydliště:
+                </span>
+                <p className="text-blue-900 text-sm">{client.applicant_permanent_address || 'Neuvedeno'}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-blue-700 flex items-center">
+                    <Phone className="w-3 h-3 mr-1" />
+                    Telefon:
+                  </span>
+                  <p className="text-blue-900 font-mono text-sm">{client.applicant_phone || 'Neuvedeno'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-blue-700 flex items-center">
+                    <Mail className="w-3 h-3 mr-1" />
+                    Email:
+                  </span>
+                  <p className="text-blue-900 text-sm">{client.applicant_email || 'Neuvedeno'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Spolužadatel */}
+          <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+            <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Spolužadatel
+            </h3>
+            {client.co_applicant_first_name ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-green-700">Jméno:</span>
+                    <p className="text-green-900 font-medium">
+                      {[client.co_applicant_title, client.co_applicant_first_name, client.co_applicant_last_name]
+                        .filter(Boolean).join(' ')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-green-700">Věk:</span>
+                    <p className="text-green-900">{client.co_applicant_age ? `${client.co_applicant_age} let` : 'Neuvedeno'}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <span className="text-sm font-medium text-green-700">Rodné číslo:</span>
+                  <p className="text-green-900 font-mono">{client.co_applicant_birth_number || 'Neuvedeno'}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-green-700 flex items-center">
+                      <Phone className="w-3 h-3 mr-1" />
+                      Telefon:
+                    </span>
+                    <p className="text-green-900 font-mono text-sm">{client.co_applicant_phone || 'Neuvedeno'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-green-700 flex items-center">
+                      <Mail className="w-3 h-3 mr-1" />
+                      Email:
+                    </span>
+                    <p className="text-green-900 text-sm">{client.co_applicant_email || 'Neuvedeno'}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-green-700 italic">Spolužadatel nebyl zadán</p>
+            )}
+          </div>
+
+          {/* Zaměstnavatel */}
+          {client.employers && client.employers.length > 0 && (
+            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
+              <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center">
+                <Building className="w-5 h-5 mr-2" />
+                Zaměstnavatel
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm font-medium text-purple-700">Název firmy:</span>
+                  <p className="text-purple-900 font-medium">{client.employers[0]?.company_name || 'Neuvedeno'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-purple-700">IČO:</span>
+                  <p className="text-purple-900 font-mono">{client.employers[0]?.ico || 'Neuvedeno'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-purple-700">Čistý příjem:</span>
+                  <p className="text-purple-900 font-semibold text-lg">
+                    {client.employers[0]?.net_income ? formatPrice(client.employers[0].net_income) : 'Neuvedeno'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nemovitost */}
+          {client.properties && client.properties.length > 0 && (
+            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
+              <h3 className="text-lg font-semibold text-orange-900 mb-4 flex items-center">
+                <MapPin className="w-5 h-5 mr-2" />
+                Nemovitost
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm font-medium text-orange-700">Adresa:</span>
+                  <p className="text-orange-900">{client.properties[0]?.address || 'Neuvedeno'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-orange-700">Kupní cena:</span>
+                  <p className="text-orange-900 font-bold text-xl text-green-600">
+                    {client.properties[0]?.price ? formatPrice(client.properties[0].price) : 'Neuvedeno'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Závazky */}
+          {client.liabilities && client.liabilities.length > 0 && (
+            <div className="bg-red-50 rounded-lg p-6 border border-red-200 lg:col-span-2">
+              <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2" />
+                Závazky ({client.liabilities.length})
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-red-200">
+                  <thead>
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Instituce</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Typ</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Splátka</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Zůstatek</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-red-200">
+                    {client.liabilities.slice(0, 3).map((liability: any, index: number) => (
+                      <tr key={index}>
+                        <td className="px-3 py-2 text-sm text-red-900">{liability.institution || 'Neuvedeno'}</td>
+                        <td className="px-3 py-2 text-sm text-red-900">{liability.type || 'Neuvedeno'}</td>
+                        <td className="px-3 py-2 text-sm text-red-900 font-medium">
+                          {liability.payment ? formatPrice(liability.payment) : 'Neuvedeno'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-red-900 font-medium">
+                          {liability.balance ? formatPrice(liability.balance) : 'Neuvedeno'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {client.liabilities.length > 3 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    ... a {client.liabilities.length - 3} dalších závazků
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
