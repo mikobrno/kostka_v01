@@ -4,7 +4,7 @@ import { DynamicSectionService } from '../services/dynamicSectionService';
 
 // IMPORT NOVÉHO FONTU:
 // Předpokládá, že soubor NotoSans-Regular-normal.js je ve stejném adresáři
-import { font as NotoSansRegularFont } from './NotoSans-Regular-normal.js';
+import NotoSansRegularFont from './NotoSans-Regular-normal.js';
 
 declare module 'jspdf' {
   interface jsPDF {
