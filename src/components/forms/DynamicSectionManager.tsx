@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DynamicSectionService, DynamicSection as DynamicSectionType } from '../../services/dynamicSectionService';
 import { DynamicSection } from './DynamicSection';
-import { Plus, Layers } from 'lucide-react';
+import { Plus, Layers, Edit, X } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 
 interface DynamicSectionManagerProps {
@@ -14,9 +14,12 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
   toast
 }) => {
   const [sections, setSections] = useState<DynamicSectionType[]>([]);
+  const [activeDynamicSectionId, setActiveDynamicSectionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editingSectionName, setEditingSectionName] = useState('');
 
   // Load dynamic sections
   useEffect(() => {
@@ -48,6 +51,11 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
       }
       setSections(data || []);
       console.log('✅ Dynamic sections loaded successfully:', data?.length || 0);
+      
+      // Set first section as active if no active section is set
+      if (data && data.length > 0 && !activeDynamicSectionId) {
+        setActiveDynamicSectionId(data[0].id);
+      }
     } catch (error) {
       console.error('Error loading dynamic sections:', error);
       // Don't show error toast for missing table
@@ -80,6 +88,7 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
 
       if (data) {
         setSections(prev => [...prev, data]);
+        setActiveDynamicSectionId(data.id); // Make new section active
         setNewSectionName('');
         setShowAddModal(false);
         toast?.showSuccess('Sekce vytvořena', `Sekce "${data.section_name}" byla úspěšně přidána`);
@@ -115,12 +124,53 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
         throw new Error(error.message || 'Chyba při mazání sekce');
       }
 
-      setSections(prev => prev.filter(section => section.id !== sectionId));
+      const updatedSections = sections.filter(section => section.id !== sectionId);
+      setSections(updatedSections);
+      
+      // If deleted section was active, set new active section
+      if (activeDynamicSectionId === sectionId) {
+        if (updatedSections.length > 0) {
+          // Set first remaining section as active
+          setActiveDynamicSectionId(updatedSections[0].id);
+        } else {
+          // No sections left
+          setActiveDynamicSectionId(null);
+        }
+      }
+      
+      toast?.showSuccess('Sekce smazána', 'Sekce byla úspěšně odstraněna');
     } catch (error) {
       console.error('Error deleting section:', error);
       toast?.showError('Chyba při mazání', error.message);
     }
   };
+
+  const handleRenameSectionStart = (sectionId: string, currentName: string) => {
+    setEditingSectionId(sectionId);
+    setEditingSectionName(currentName);
+  };
+
+  const handleRenameSectionSave = async () => {
+    if (!editingSectionId || !editingSectionName.trim()) return;
+    
+    try {
+      await handleUpdateSection(editingSectionId, { section_name: editingSectionName.trim() });
+      setEditingSectionId(null);
+      setEditingSectionName('');
+      toast?.showSuccess('Název sekce změněn', 'Název byl úspěšně aktualizován');
+    } catch (error) {
+      console.error('Error renaming section:', error);
+      toast?.showError('Chyba při přejmenování', error.message);
+    }
+  };
+
+  const handleRenameSectionCancel = () => {
+    setEditingSectionId(null);
+    setEditingSectionName('');
+  };
+
+  // Get currently active section
+  const activeSection = sections.find(section => section.id === activeDynamicSectionId);
 
   if (loading) {
     return (
@@ -133,53 +183,135 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Layers className="w-6 h-6 text-purple-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Vlastní sekce</h2>
-          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-            {sections.length} sekcí
-          </span>
+      {sections.length === 0 ? (
+        /* No sections - show empty state */
+        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné vlastní sekce</h3>
+          <p className="text-gray-500 mb-6">
+            Přidejte vlastní sekce pro organizaci specifických informací o klientovi
+          </p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Přidat první sekci
+          </button>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Přidat sekci
-        </button>
-      </div>
-
-      {/* Sections List */}
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <DynamicSection
-            key={section.id}
-            section={section}
-            onUpdate={handleUpdateSection}
-            onDelete={handleDeleteSection}
-            toast={toast}
-          />
-        ))}
-
-        {sections.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné vlastní sekce</h3>
-            <p className="text-gray-500 mb-6">
-              Přidejte vlastní sekce pro organizaci specifických informací o klientovi
-            </p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Přidat první sekci
-            </button>
+      ) : (
+        /* Sections exist - show tabbed interface */
+        <>
+          {/* Horizontal Section Navigation */}
+          <div className="border-b border-gray-200">
+            <div className="flex items-center space-x-1 overflow-x-auto">
+              {sections.map((section) => (
+                <div key={section.id} className="flex items-center">
+                  {editingSectionId === section.id ? (
+                    /* Editing section name */
+                    <div className="flex items-center space-x-2 px-3 py-2 border-b-2 border-purple-500">
+                      <input
+                        type="text"
+                        value={editingSectionName}
+                        onChange={(e) => setEditingSectionName(e.target.value)}
+                        className="text-sm font-medium bg-transparent border-none focus:outline-none focus:ring-0 min-w-0 w-32"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameSectionSave();
+                          if (e.key === 'Escape') handleRenameSectionCancel();
+                        }}
+                        autoFocus
+                        onBlur={handleRenameSectionSave}
+                      />
+                      <button
+                        onClick={handleRenameSectionSave}
+                        className="text-green-600 hover:text-green-800"
+                        title="Uložit"
+                      >
+                        <Plus className="w-3 h-3 rotate-45" />
+                      </button>
+                      <button
+                        onClick={handleRenameSectionCancel}
+                        className="text-gray-600 hover:text-gray-800"
+                        title="Zrušit"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* Normal section tab */
+                    <button
+                      onClick={() => setActiveDynamicSectionId(section.id)}
+                      className={`group flex items-center space-x-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                        activeDynamicSectionId === section.id
+                          ? 'border-purple-500 text-purple-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <span>{section.section_name}</span>
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameSectionStart(section.id, section.section_name);
+                          }}
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Přejmenovat sekci"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Opravdu chcete smazat sekci "${section.section_name}"?`)) {
+                              handleDeleteSection(section.id);
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-600"
+                          title="Smazat sekci"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              {/* Add New Section Button */}
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center space-x-2 px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-purple-600 hover:border-purple-300 font-medium text-sm transition-colors whitespace-nowrap"
+                title="Přidat novou sekci"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Přidat sekci</span>
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Active Section Content */}
+          <div className="mt-6">
+            {activeSection ? (
+              <DynamicSection
+                key={activeSection.id}
+                section={activeSection}
+                onUpdate={handleUpdateSection}
+                onDelete={handleDeleteSection}
+                toast={toast}
+                hideHeader={true} // Hide the section header since we show it in tabs
+              />
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border">
+                <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Vyberte sekci</h3>
+                <p className="text-gray-500">
+                  Klikněte na záložku výše pro zobrazení obsahu sekce
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Add Section Modal */}
       {showAddModal && (

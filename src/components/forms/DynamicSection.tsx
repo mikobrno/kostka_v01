@@ -22,13 +22,15 @@ interface DynamicSectionProps {
   onUpdate: (sectionId: string, updates: { section_name?: string; content?: DynamicSectionContent }) => Promise<void>;
   onDelete: (sectionId: string) => Promise<void>;
   toast?: ReturnType<typeof useToast>;
+  hideHeader?: boolean; // New prop to hide the section header
 }
 
 export const DynamicSection: React.FC<DynamicSectionProps> = ({
   section,
   onUpdate,
   onDelete,
-  toast
+  toast,
+  hideHeader = false
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [sectionName, setSectionName] = useState(section.section_name);
@@ -212,62 +214,64 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow border p-6">
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          {isEditingName ? (
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={sectionName}
-                onChange={(e) => setSectionName(e.target.value)}
-                className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveName();
-                  if (e.key === 'Escape') {
+      {/* Section Header - only show if not hidden */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            {isEditingName ? (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={sectionName}
+                  onChange={(e) => setSectionName(e.target.value)}
+                  className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') {
+                      setSectionName(section.section_name);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveName}
+                  className="text-green-600 hover:text-green-800"
+                >
+                  <Save className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
                     setSectionName(section.section_name);
                     setIsEditingName(false);
-                  }
-                }}
-                autoFocus
-              />
-              <button
-                onClick={handleSaveName}
-                className="text-green-600 hover:text-green-800"
-              >
-                <Save className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setSectionName(section.section_name);
-                  setIsEditingName(false);
-                }}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <>
-              <h3 className="text-xl font-semibold text-gray-900">{section.section_name}</h3>
-              <button
-                onClick={() => setIsEditingName(true)}
-                className="text-blue-600 hover:text-blue-800"
-                title="Upravit název"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-            </>
-          )}
+                  }}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-gray-900">{section.section_name}</h3>
+                <button
+                  onClick={() => setIsEditingName(true)}
+                  className="text-blue-600 hover:text-blue-800"
+                  title="Upravit název"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+          <button
+            onClick={handleDeleteSection}
+            className="text-red-600 hover:text-red-800"
+            title="Smazat sekci"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={handleDeleteSection}
-          className="text-red-600 hover:text-red-800"
-          title="Smazat sekci"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
-      </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
