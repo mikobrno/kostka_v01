@@ -36,7 +36,6 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [sectionName, setSectionName] = useState(section.section_name);
   const [content, setContent] = useState<DynamicSectionContent>(section.content);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'notes' | 'parameters' | 'files' | 'fields'>('notes');
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
@@ -206,13 +205,6 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     await updateContent(newContent);
   };
 
-  const tabs = [
-    { id: 'notes', label: 'Poznámky a Odkazy', icon: FileText },
-    { id: 'parameters', label: 'Základní Parametry', icon: Calculator },
-    { id: 'files', label: 'Soubory', icon: Upload },
-    { id: 'fields', label: 'Obecná pole', icon: Settings }
-  ];
-
   return (
     <div className="bg-white rounded-lg shadow border p-6">
       {/* Section Header - only show if not hidden */}
@@ -274,30 +266,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as any)}
-              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
 
-      {/* Tab Content */}
+      {/* Vertical Stack Content */}
       <div className="space-y-6">
-        {/* Notes & Links Tab */}
-        {activeTab === 'notes' && (
+        {/* 1. Poznámky (Notes) Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border">
+          <div className="flex items-center space-x-2 mb-4">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-medium text-gray-900">Poznámky a Odkazy</h3>
+          </div>
+          
           <div className="space-y-6">
             {/* Notes */}
             <div>
@@ -330,7 +308,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
               <div className="space-y-3">
                 {(content.links || []).map((link) => (
-                  <div key={link.id} className="bg-gray-50 rounded-lg p-4 border">
+                  <div key={link.id} className="bg-white rounded-lg p-4 border">
                     {editingLinkId === link.id ? (
                       // Editing mode
                       <>
@@ -424,10 +402,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Basic Parameters Tab */}
-        {activeTab === 'parameters' && (
+        {/* 2. Základní Parametry (Basic Parameters) Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border">
+          <div className="flex items-center space-x-2 mb-4">
+            <Calculator className="w-5 h-5 text-green-600" />
+            <h3 className="text-lg font-medium text-gray-900">Základní Parametry</h3>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -514,34 +497,39 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 <CopyButton text={content.basicParameters?.preferredFixationYears || ''} />
               </div>
             </div>
+          </div>
 
-            {/* LTV Calculation */}
-            {content.basicParameters?.requestedLoanAmount && content.basicParameters?.propertyValue && (
-              <div className="md:col-span-2 bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Výpočet LTV</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-blue-700">Výše úvěru:</span>
-                    <div className="font-medium">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Hodnota nemovitosti:</span>
-                    <div className="font-medium">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">LTV poměr:</span>
-                    <div className="font-bold text-lg text-blue-800">
-                      {((content.basicParameters.requestedLoanAmount / content.basicParameters.propertyValue) * 100).toFixed(2)}%
-                    </div>
+          {/* LTV Calculation */}
+          {content.basicParameters?.requestedLoanAmount && content.basicParameters?.propertyValue && (
+            <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Výpočet LTV</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-700">Výše úvěru:</span>
+                  <div className="font-medium">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
+                </div>
+                <div>
+                  <span className="text-blue-700">Hodnota nemovitosti:</span>
+                  <div className="font-medium">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
+                </div>
+                <div>
+                  <span className="text-blue-700">LTV poměr:</span>
+                  <div className="font-bold text-lg text-blue-800">
+                    {((content.basicParameters.requestedLoanAmount / content.basicParameters.propertyValue) * 100).toFixed(2)}%
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
-        {/* Files Tab */}
-        {activeTab === 'files' && (
+        {/* 3. Soubory (Files) Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border">
+          <div className="flex items-center space-x-2 mb-4">
+            <Upload className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-medium text-gray-900">Soubory</h3>
+          </div>
+          
           <div className="space-y-6">
             {/* File Upload */}
             <div>
@@ -583,7 +571,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </h4>
               <div className="space-y-2">
                 {(content.files || []).map((file) => (
-                  <div key={file.id} className="bg-gray-50 rounded-lg p-3 border flex items-center justify-between">
+                  <div key={file.id} className="bg-white rounded-lg p-3 border flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <span className="text-lg">
                         {FileStorageService.getFileIcon(file.type)}
@@ -639,77 +627,76 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* General Fields Tab */}
-        {activeTab === 'fields' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-gray-700">
-                Obecná pole
-              </h4>
-              <button
-                onClick={addGeneralField}
-                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Přidat pole
-              </button>
+        {/* 4. Obecná pole (General Fields) Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Settings className="w-5 h-5 text-orange-600" />
+              <h3 className="text-lg font-medium text-gray-900">Obecná pole</h3>
             </div>
+            <button
+              onClick={addGeneralField}
+              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Přidat pole
+            </button>
+          </div>
 
-            <div className="space-y-4">
-              {(content.generalFields || []).map((field) => (
-                <div key={field.id} className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Název pole
-                      </label>
+          <div className="space-y-4">
+            {(content.generalFields || []).map((field) => (
+              <div key={field.id} className="bg-white rounded-lg p-4 border">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Název pole
+                    </label>
+                    <input
+                      type="text"
+                      value={field.label}
+                      onChange={(e) => updateGeneralField(field.id, 'label', e.target.value)}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      placeholder="Např. Poznámka, Speciální požadavek..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Hodnota
+                    </label>
+                    <div className="flex">
                       <input
                         type="text"
-                        value={field.label}
-                        onChange={(e) => updateGeneralField(field.id, 'label', e.target.value)}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                        placeholder="Např. Poznámka, Speciální požadavek..."
+                        value={field.value}
+                        onChange={(e) => updateGeneralField(field.id, 'value', e.target.value)}
+                        className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        placeholder="Zadejte hodnotu..."
                       />
+                      <CopyButton text={field.value} />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Hodnota
-                      </label>
-                      <div className="flex">
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={(e) => updateGeneralField(field.id, 'value', e.target.value)}
-                          className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                          placeholder="Zadejte hodnotu..."
-                        />
-                        <CopyButton text={field.value} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-3">
-                    <button
-                      onClick={() => removeGeneralField(field.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={() => removeGeneralField(field.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
 
-              {(!content.generalFields || content.generalFields.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  <Settings className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>Žádná obecná pole nejsou přidána</p>
-                  <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole</p>
-                </div>
-              )}
-            </div>
+            {(!content.generalFields || content.generalFields.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                <Settings className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p>Žádná obecná pole nejsou přidána</p>
+                <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
