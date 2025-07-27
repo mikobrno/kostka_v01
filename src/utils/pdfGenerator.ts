@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { DynamicSectionService } from '../services/dynamicSectionService';
 
 // Import českého fontu pro správné zobrazení diakritiky
 declare module 'jspdf' {
@@ -324,6 +325,163 @@ export const generateClientPDF = async (client: any, formData: any) => {
     creator: 'KostKa Úvěry - Systém pro evidenci klientů',
     producer: 'jsPDF'
   });
+  
+  // Add dynamic sections to PDF
+  try {
+    const { data: dynamicSections } = await DynamicSectionService.getDynamicSections(client.id);
+    if (dynamicSections && dynamicSections.length > 0) {
+      // Add new page for dynamic sections
+      doc.addPage();
+      yPosition = 30;
+      
+      doc.setFontSize(16);
+      doc.setTextColor(40, 40, 40);
+      doc.text('VLASTNÍ SEKCE', 20, yPosition, { align: 'left' });
+      yPosition += 20;
+      
+      dynamicSections.forEach((section, index) => {
+        // Check if we need a new page
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 30;
+        }
+        
+        // Section title
+        doc.setFontSize(14);
+        doc.setTextColor(60, 60, 60);
+        doc.text(safeText(section.section_name), 20, yPosition, { align: 'left' });
+        yPosition += 15;
+        
+        const content = section.content;
+        
+        // Notes
+        if (content.notes) {
+          doc.setFontSize(10);
+          doc.setTextColor(80, 80, 80);
+          doc.text('Poznámky:', 25, yPosition);
+          yPosition += 8;
+          
+          const noteLines = doc.splitTextToSize(safeText(content.notes), 160);
+          doc.text(noteLines, 25, yPosition);
+          yPosition += noteLines.length * 5 + 10;
+        }
+        
+        // Links
+        if (content.links && content.links.length > 0) {
+          doc.setFontSize(10);
+          doc.setTextColor(80, 80, 80);
+          doc.text('Odkazy:', 25, yPosition);
+          yPosition += 8;
+          
+          content.links.forEach(link => {
+            doc.setTextColor(0, 0, 255);
+            doc.text(`• ${link.title || link.url}`, 30, yPosition);
+            yPosition += 6;
+          });
+          yPosition += 5;
+        }
+        
+        // Basic Parameters
+        if (content.basicParameters && Object.keys(content.basicParameters).length > 0) {
+          const params = content.basicParameters;
+          const paramData = [];
+          
+          if (params.financingPurpose) paramData.push(['Účel financování', safeText(params.financingPurpose)]);
+          if (params.requestedLoanAmount) paramData.push(['Požadovaná výše úvěru', formatPrice(params.requestedLoanAmount)]);
+          if (params.propertyValue) paramData.push(['Hodnota nemovitosti', formatPrice(params.propertyValue)]);
+          if (params.maturityYears) paramData.push(['Splatnost', `${params.maturityYears} let`]);
+          if (params.preferredFixationYears) paramData.push(['Fixace', `${params.preferredFixationYears} let`]);
+          
+          if (paramData.length > 0) {
+            autoTable(doc, {
+              startY: yPosition,
+              head: [['Parametr', 'Hodnota']],
+              body: paramData,
+              theme: 'grid',
+              headStyles: { 
+                fillColor: [147, 51, 234],
+                textColor: [255, 255, 255],
+                fontSize: 9,
+                fontStyle: 'bold'
+              },
+              margin: { left: 25, right: 20 },
+              styles: { 
+                fontSize: 8,
+                cellPadding: 2,
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1
+              },
+              columnStyles: {
+                0: { cellWidth: 60, fontStyle: 'bold' },
+                1: { cellWidth: 'auto' }
+              }
+            });
+            
+            yPosition = (doc as any).lastAutoTable?.finalY + 15 || yPosition + 50;
+          }
+        }
+        
+        // Files
+        if (content.files && content.files.length > 0) {
+          doc.setFontSize(10);
+          doc.setTextColor(80, 80, 80);
+          doc.text(`Soubory (${content.files.length}):`, 25, yPosition);
+          yPosition += 8;
+          
+          content.files.forEach(file => {
+            doc.text(`• ${safeText(file.originalName)} (${formatFileSize(file.size)})`, 30, yPosition);
+            yPosition += 6;
+          });
+          yPosition += 5;
+        }
+        
+        // General Fields
+        if (content.generalFields && content.generalFields.length > 0) {
+          const fieldData = content.generalFields.map(field => [
+            safeText(field.label),
+            safeText(field.value)
+          ]);
+          
+          autoTable(doc, {
+            startY: yPosition,
+            head: [['Pole', 'Hodnota']],
+            body: fieldData,
+            theme: 'grid',
+            headStyles: { 
+              fillColor: [75, 85, 99],
+              textColor: [255, 255, 255],
+              fontSize: 9,
+              fontStyle: 'bold'
+            },
+            margin: { left: 25, right: 20 },
+            styles: { 
+              fontSize: 8,
+              cellPadding: 2,
+              lineColor: [200, 200, 200],
+              lineWidth: 0.1
+            },
+            columnStyles: {
+              0: { cellWidth: 60, fontStyle: 'bold' },
+              1: { cellWidth: 'auto' }
+            }
+          });
+          
+          yPosition = (doc as any).lastAutoTable?.finalY + 20 || yPosition + 50;
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error adding dynamic sections to PDF:', error);
+  }
+  
+  // Helper function for file size formatting in PDF
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
   
   // Uložení PDF
   const lastName = safeText(formData.applicant.lastName).replace(/[^a-zA-Z0-9]/g, '_') || 'neznamy';

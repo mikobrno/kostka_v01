@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
+import { DynamicSectionManager } from './forms/DynamicSectionManager';
 import { PersonalInfo } from './forms/PersonalInfo';
 import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
@@ -331,6 +332,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
         />
       </div>
+
+      {/* Dynamic Sections */}
+      {(selectedClient || currentClient) && (
+        <DynamicSectionManager 
+          clientId={selectedClient?.id || currentClient?.id}
+          toast={toast}
+        />
+      )}
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6 border-b pb-3">
