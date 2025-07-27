@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { CopyButton } from '../CopyButton';
 import { AddressInput } from '../AddressInput';
 import { Search, Building, MapPin } from 'lucide-react';
+// Importujte AresService a AresCompanyData
+import { AresService, AresCompanyData } from '../../services/aresService'; // Zkontrolujte, zda je cesta správná
 
 interface EmployerInfoProps {
   data: any;
@@ -10,29 +12,50 @@ interface EmployerInfoProps {
 
 export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) => {
   const [isLoadingAres, setIsLoadingAres] = useState(false);
+  const [aresError, setAresError] = useState<string | null>(null); // Nový stav pro chyby z ARES
 
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
   };
 
   const fetchAresData = async (ico: string) => {
-    if (ico.length !== 8) return;
-    
+    // Validace IČO před voláním ARES služby
+    if (!ico || ico.length !== 8 || !/^\d{8}$/.test(ico)) {
+      setAresError('IČO musí být 8místné číslo.');
+      updateField('companyName', '');
+      updateField('companyAddress', '');
+      return;
+    }
+
     setIsLoadingAres(true);
+    setAresError(null); // Vyčistíme předchozí chyby
+    updateField('companyName', ''); // Vyčistíme data před načítáním
+    updateField('companyAddress', '');
+
     try {
-      // Mock ARES API call - v produkci nahradit skutečným API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data
-      const mockData = {
-        name: 'Vzorová společnost s.r.o.',
-        address: 'Václavské náměstí 1, 110 00 Praha 1'
-      };
-      
-      updateField('companyName', mockData.name);
-      updateField('companyAddress', mockData.address);
-    } catch (error) {
-      console.error('Chyba při načítání dat z ARES:', error);
+      // Skutečné volání ARES API pomocí AresService
+      const { data: companyAresData, error } = await AresService.searchByIco(ico);
+
+      // Můžete použít i mock data pro vývoj/testování (odkomentujte a zakomentujte řádek výše):
+      // const { data: companyAresData, error } = await AresService.getMockData(ico);
+
+      if (error) {
+        setAresError(error); // Nastavíme chybu z ARES služby
+      } else if (companyAresData) {
+        // Pokud data z ARES existují, aktualizujeme pole formuláře
+        updateField('companyName', companyAresData.companyName);
+        updateField('companyAddress', companyAresData.address);
+        // Zde můžete také aktualizovat další pole, jako je DIC, právní forma atd.
+        // updateField('dic', companyAresData.dic);
+        // updateField('legalForm', companyAresData.legalForm);
+      } else {
+        // Pokud data nejsou nalezena (data je null a error je také null, což by nemělo nastat
+        // pokud ARES service správně zpracovává "firma nenalezena" jako chybu)
+        setAresError('Firma s tímto IČO nebyla nalezena.');
+      }
+    } catch (unexpectedError: any) {
+      console.error('Neočekávaná chyba při volání ARES API:', unexpectedError);
+      setAresError(`Neočekávaná chyba při načítání dat: ${unexpectedError.message}`);
     } finally {
       setIsLoadingAres(false);
     }
@@ -49,9 +72,15 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             type="text"
             value={data.ico || ''}
             onChange={(e) => {
-              updateField('ico', e.target.value);
-              if (e.target.value.length === 8) {
-                fetchAresData(e.target.value);
+              const newIco = e.target.value;
+              updateField('ico', newIco);
+              // Automatické volání ARES při dosažení 8 znaků
+              if (newIco.length === 8) {
+                fetchAresData(newIco);
+              } else {
+                setAresError(null); // Vyčistíme chybu, pokud IČO není kompletní
+                updateField('companyName', ''); // Vyčistíme pole při neúplném IČO
+                updateField('companyAddress', '');
               }
             }}
             className="flex-1 block w-full border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -72,6 +101,9 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           </button>
           <CopyButton text={data.ico || ''} />
         </div>
+        {aresError && ( // Zobrazení chybové zprávy z ARES
+          <p className="mt-1 text-sm text-red-600">{aresError}</p>
+        )}
         <p className="mt-1 text-xs text-gray-500">
           Zadáním IČO se automaticky vyplní název a adresa firmy z ARES
         </p>
