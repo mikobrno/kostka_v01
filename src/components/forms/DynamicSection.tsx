@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DynamicSection as DynamicSectionType, DynamicSectionContent } from '../../services/dynamicSectionService';
-import { FileStorageService, UploadedFile } from '../../services/fileStorageService';
+import { FileStorageService } from '../../services/fileStorageService';
 import { CopyButton } from '../CopyButton';
 import { 
   Edit, 
@@ -13,12 +13,12 @@ import {
   Upload, 
   ExternalLink,
   Calculator,
-  Settings
+
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { formatNumber } from '../../utils/formatHelpers';
-import { RichTextEditor } from '../RichTextEditor';
+import { NotesEditor } from '../NotesEditor';
 
 interface DynamicSectionProps {
   section: DynamicSectionType;
@@ -123,7 +123,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   };
 
   // Basic Parameters handlers
-  const updateBasicParameter = async (field: string, value: any) => {
+  const updateBasicParameter = async (field: string, value: string | number) => {
     const newContent = {
       ...content,
       basicParameters: {
@@ -136,8 +136,10 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
   // File handlers
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target) return;
     const files = event.target.files;
     await uploadFiles(files);
+    event.target.value = ''; // Reset the input
   };
 
   // Enhanced file upload function to handle both input and drag-drop
@@ -169,7 +171,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       toast?.showSuccess('Soubory nahrány', `Úspěšně nahráno ${uploadedFiles.length} souborů`);
     } catch (error) {
       console.error('File upload error:', error);
-      toast?.showError('Chyba při nahrávání', error.message);
+      const err = error as Error;
+      toast?.showError('Chyba při nahrávání', err.message || 'Neznámá chyba');
     } finally {
       setIsUploading(false);
       // Reset file input
@@ -249,37 +252,12 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     toast?.showSuccess('Soubor smazán', 'Soubor byl úspěšně odstraněn');
   };
 
-  // General Fields handlers
-  const addGeneralField = async () => {
-    const newField = {
-      id: `field-${Date.now()}`,
-      label: '',
-      value: ''
-    };
-    const newContent = {
-      ...content,
-      generalFields: [...(content.generalFields || []), newField]
-    };
-    await updateContent(newContent);
-  };
-
-  const updateGeneralField = async (fieldId: string, field: 'label' | 'value', value: string) => {
-    const newContent = {
-      ...content,
-      generalFields: (content.generalFields || []).map(item =>
-        item.id === fieldId ? { ...item, [field]: value } : item
-      )
-    };
-    await updateContent(newContent);
-  };
-
-  const removeGeneralField = async (fieldId: string) => {
-    const newContent = {
-      ...content,
-      generalFields: (content.generalFields || []).filter(item => item.id !== fieldId)
-    };
-    await updateContent(newContent);
-  };
+  /* 
+   * TODO: Add general fields functionality
+   * - addGeneralField
+   * - updateGeneralField
+   * - removeGeneralField
+   */
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
@@ -294,6 +272,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
                   className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
+                  placeholder="Název sekce"
+                  title="Název sekce"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
                     if (e.key === 'Escape') {
@@ -306,6 +286,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 <button
                   onClick={handleSaveName}
                   className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                  title="Uložit změny"
                 >
                   <Save className="w-4 h-4" />
                 </button>
@@ -315,6 +296,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                     setIsEditingName(false);
                   }}
                   className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
+                  title="Zrušit úpravy"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -446,13 +428,11 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           
           <div className="prose prose-sm max-w-none dark:prose-invert border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             {isEditingNotes ? (
-              <RichTextEditor
+              <NotesEditor
                 value={content.notes || ''}
-                onChange={(value) => updateContent({ ...content, notes: value })}
+                onChange={(value: string) => updateContent({ ...content, notes: value })}
                 placeholder="Zadejte poznámky k této sekci..."
-                showToolbar={true}
                 className="min-h-[200px]"
-                label="Poznámky k sekci"
               />
             ) : content.notes ? (
               <div 
@@ -565,7 +545,6 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => removeLink(link.id)}
                           onClick={() => handleLinkDelete(link.id)}
                           className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                           title="Smazat odkaz"
@@ -651,7 +630,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="500 000"
                 />
-                <CopyButton text={content.basicParameters?.vlastniProstredky ? formatNumber(content.basicParameters.vlastniProstredky) : ''} />
+                <CopyButton text={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} />
               </div>
             </div>
 
@@ -669,7 +648,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="50"
                 />
-                <CopyButton text={content.basicParameters?.maturityYears || ''} />
+                <CopyButton text={String(content.basicParameters?.maturityYears || '')} />
               </div>
             </div>
 
@@ -687,7 +666,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="30"
                 />
-                <CopyButton text={content.basicParameters?.preferredFixationYears || ''} />
+                <CopyButton text={String(content.basicParameters?.preferredFixationYears || '')} />
               </div>
             </div>
           </div>
@@ -804,7 +783,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 };
 // File List Item Component with inline editing
 interface FileListItemProps {
-  file: any;
+  file: {
+    id: string;
+    name: string;
+    originalName: string;
+    type: string;
+    size: number;
+    url: string;
+    uploadedAt: string;
+  };
   onRename: (newName: string) => void;
   onDelete: () => void;
 }
