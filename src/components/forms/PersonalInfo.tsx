@@ -14,6 +14,19 @@ interface PersonalInfoProps {
 }
 
 export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix }) => {
+  React.useEffect(() => {
+    if (data.birthNumber && (!data.birthYear || !data.birthDate)) {
+      const ageData = calculateAgeFromBirthNumber(data.birthNumber);
+      if (ageData) {
+        onChange({
+          ...data,
+          age: ageData.age,
+          birthYear: ageData.birthYear,
+          birthDate: ageData.birthDate,
+        });
+      }
+    }
+  }, []);
   const [hasChildren, setHasChildren] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
