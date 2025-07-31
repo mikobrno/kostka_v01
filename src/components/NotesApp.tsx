@@ -15,7 +15,9 @@ import {
   SortAsc,
   SortDesc,
   Grid,
-  List as ListIcon
+  List as ListIcon,
+  X,
+  Eye
 } from 'lucide-react';
 
 interface Note {
@@ -36,21 +38,23 @@ interface NotesAppProps {
 }
 
 /**
- * Comprehensive Notes Application with Rich Text Editing
+ * Enhanced Notes Application with Rich Text Editing
  * 
  * Features:
- * - Rich text editing with formatting toolbar
+ * - Rich text editing with formatting toolbar (Bold, Strikethrough, Underline)
+ * - Clear edit/view mode distinction
+ * - Full note content always visible (no truncation)
  * - Note management (create, edit, delete, search)
  * - Categorization and tagging system
  * - Favorites functionality
  * - Search and filtering
  * - Grid and list view modes
- * - Auto-save functionality
  * - Responsive design
  */
 export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -59,6 +63,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [editingContent, setEditingContent] = useState('');
 
   const categories = [
     'all',
@@ -130,6 +135,8 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
     setSelectedNote(newNote);
     setIsCreating(false);
     setNewNoteTitle('');
+    setIsEditMode(true); // Start in edit mode for new notes
+    setEditingContent('');
   };
 
   /**
@@ -155,6 +162,33 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
   };
 
   /**
+   * Start editing a note
+   */
+  const startEditing = (note: Note) => {
+    setSelectedNote(note);
+    setEditingContent(note.content);
+    setIsEditMode(true);
+  };
+
+  /**
+   * Save note edits
+   */
+  const saveEdit = () => {
+    if (selectedNote) {
+      updateNote(selectedNote.id, { content: editingContent });
+      setIsEditMode(false);
+    }
+  };
+
+  /**
+   * Cancel note editing
+   */
+  const cancelEdit = () => {
+    setIsEditMode(false);
+    setEditingContent('');
+  };
+
+  /**
    * Delete note
    */
   const deleteNote = (noteId: string) => {
@@ -164,6 +198,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
       
       if (selectedNote?.id === noteId) {
         setSelectedNote(null);
+        setIsEditMode(false);
       }
     }
   };
@@ -241,17 +276,17 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
   };
 
   return (
-    <div className="notes-app h-screen flex bg-gray-50">
+    <div className="notes-app h-screen flex bg-gray-50 dark:bg-gray-900">
       {/* Sidebar - Notes List */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <FileText className="w-6 h-6 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Poznámky</h1>
+              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Poznámky</h1>
               {clientId && (
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-1 rounded-full">
                   Klient
                 </span>
               )}
@@ -259,27 +294,24 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             {onClose && (
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 title="Zavřít"
               >
-                ×
+                <X className="w-5 h-5" />
               </button>
             )}
           </div>
-            <div className="h-full">
-              <RichTextEditor
-                value={selectedNote.content}
-                onChange={(content) => updateNote(selectedNote.id, { content })}
-                placeholder="Začněte psát svou poznámku..."
-                minHeight={300}
-                maxHeight={500}
-                showToolbar={true}
-                autoSave={true}
-                onSave={(content) => updateNote(selectedNote.id, { content })}
-                label="Obsah poznámky"
-                className="w-full"
-              />
-            </div>
+
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              placeholder="Hledat poznámky..."
+            />
           </div>
 
           {/* Filters */}
@@ -287,7 +319,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="flex-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>{categoryLabels[cat]}</option>
@@ -298,8 +330,8 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               className={`p-2 rounded-md transition-colors ${
                 showFavoritesOnly 
-                  ? 'bg-yellow-100 text-yellow-600' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400' 
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
               title="Zobrazit pouze oblíbené"
             >
@@ -317,7 +349,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                   setSortBy(field as any);
                   setSortOrder(order as any);
                 }}
-                className="text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="updated-desc">Nejnovější</option>
                 <option value="updated-asc">Nejstarší</option>
@@ -331,14 +363,14 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}
                 title="Mřížka"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}
                 title="Seznam"
               >
                 <ListIcon className="w-4 h-4" />
@@ -349,13 +381,13 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
 
         {/* New Note Form */}
         {isCreating && (
-          <div className="p-4 border-b border-gray-200 bg-blue-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
             <div className="space-y-3">
               <input
                 type="text"
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Název nové poznámky..."
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') createNote();
@@ -369,7 +401,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={createNote}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Vytvořit
@@ -379,7 +411,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                     setIsCreating(false);
                     setNewNoteTitle('');
                   }}
-                  className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   Zrušit
                 </button>
@@ -392,14 +424,14 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
         <div className="flex-1 overflow-y-auto">
           {filteredNotes.length === 0 ? (
             <div className="p-8 text-center">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {searchTerm || selectedCategory !== 'all' || showFavoritesOnly 
                   ? 'Žádné poznámky nenalezeny' 
                   : 'Žádné poznámky'
                 }
               </h3>
-              <p className="text-gray-500 mb-6">
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
                 {searchTerm || selectedCategory !== 'all' || showFavoritesOnly
                   ? 'Zkuste upravit filtry nebo vyhledávání'
                   : 'Vytvořte svou první poznámku'
@@ -408,7 +440,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               {!searchTerm && selectedCategory === 'all' && !showFavoritesOnly && (
                 <button
                   onClick={() => setIsCreating(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Vytvořit poznámku
@@ -423,7 +455,11 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                   note={note}
                   isSelected={selectedNote?.id === note.id}
                   viewMode={viewMode}
-                  onSelect={() => setSelectedNote(note)}
+                  onSelect={() => {
+                    setSelectedNote(note);
+                    setIsEditMode(false); // Always start in view mode when selecting
+                  }}
+                  onEdit={() => startEditing(note)}
                   onToggleFavorite={() => toggleFavorite(note.id)}
                   onDelete={() => deleteNote(note.id)}
                   formatDate={formatDate}
@@ -434,36 +470,66 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
         </div>
 
         {/* Add Note Button */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setIsCreating(true)}
-            className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nová poznámka
           </button>
         </div>
+      </div>
+
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col">
         {selectedNote ? (
           <>
             {/* Note Header */}
-            <div className="p-6 border-b border-gray-200 bg-white">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="flex items-center justify-between mb-4">
                 <input
                   type="text"
                   value={selectedNote.title}
                   onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
-                  className="text-2xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 flex-1"
+                  className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-none focus:outline-none focus:ring-0 flex-1"
                   placeholder="Název poznámky..."
                 />
                 <div className="flex items-center space-x-2">
+                  {!isEditMode && (
+                    <button
+                      onClick={() => startEditing(selectedNote)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                      title="Upravit poznámku"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Upravit
+                    </button>
+                  )}
+                  {isEditMode && (
+                    <>
+                      <button
+                        onClick={saveEdit}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Uložit
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Zrušit
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => toggleFavorite(selectedNote.id)}
                     className={`p-2 rounded-md transition-colors ${
                       selectedNote.isFavorite 
-                        ? 'text-yellow-600 bg-yellow-100' 
-                        : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                        ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30' 
+                        : 'text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
                     }`}
                     title={selectedNote.isFavorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
                   >
@@ -471,7 +537,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                   </button>
                   <button
                     onClick={() => deleteNote(selectedNote.id)}
-                    className="p-2 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     title="Smazat poznámku"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -480,7 +546,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               </div>
 
               {/* Note Metadata */}
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
+              <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
                   <span>Upraveno: {formatDate(selectedNote.updatedAt)}</span>
@@ -490,45 +556,82 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                   <select
                     value={selectedNote.category || 'personal'}
                     onChange={(e) => updateNote(selectedNote.id, { category: e.target.value })}
-                    className="text-sm border-none bg-transparent focus:outline-none focus:ring-0"
+                    className="text-sm border-none bg-transparent focus:outline-none focus:ring-0 text-gray-500 dark:text-gray-400"
                   >
                     {categories.slice(1).map(cat => (
                       <option key={cat} value={cat}>{categoryLabels[cat]}</option>
                     ))}
                   </select>
                 </div>
+                <div className="flex items-center space-x-1">
+                  <Eye className="w-4 h-4" />
+                  <span className="font-medium">
+                    {isEditMode ? 'Režim úprav' : 'Režim zobrazení'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Rich Text Editor */}
-            <div className="flex-1 p-6 bg-white overflow-hidden">
-              <RichTextEditor
-                value={selectedNote.content}
-                onChange={(content) => updateNote(selectedNote.id, { content })}
-                placeholder="Začněte psát svou poznámku..."
-                minHeight={200}
-                maxHeight={400}
-                showToolbar={true}
-                autoSave={true}
-                onSave={(content) => updateNote(selectedNote.id, { content })}
-                label="Obsah poznámky"
-              />
+            {/* Note Content Area */}
+            <div className="flex-1 p-6 bg-white dark:bg-gray-800 overflow-hidden">
+              {isEditMode ? (
+                /* Edit Mode - Rich Text Editor */
+                <div className="h-full">
+                  <RichTextEditor
+                    value={editingContent}
+                    onChange={setEditingContent}
+                    placeholder="Začněte psát svou poznámku..."
+                    minHeight={300}
+                    maxHeight={600}
+                    showToolbar={true}
+                    autoSave={false}
+                    label="Obsah poznámky"
+                    className="h-full"
+                  />
+                </div>
+              ) : (
+                /* View Mode - Full Content Display */
+                <div className="h-full overflow-y-auto">
+                  <div className="prose prose-lg max-w-none dark:prose-invert">
+                    {selectedNote.content ? (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: selectedNote.content }}
+                        className="text-gray-900 dark:text-gray-100 leading-relaxed"
+                      />
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400 text-lg">
+                          Tato poznámka je prázdná
+                        </p>
+                        <button
+                          onClick={() => startEditing(selectedNote)}
+                          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Začít psát
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
           /* No Note Selected */
-          <div className="flex-1 flex items-center justify-center bg-white">
+          <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-800">
             <div className="text-center">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Vyberte poznámku
               </h2>
-              <p className="text-gray-500 mb-6">
-                Klikněte na poznámku vlevo pro úpravy nebo vytvořte novou
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Klikněte na poznámku vlevo pro zobrazení nebo úpravy
               </p>
               <button
                 onClick={() => setIsCreating(true)}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Vytvořit první poznámku
@@ -547,6 +650,7 @@ interface NoteCardProps {
   isSelected: boolean;
   viewMode: 'grid' | 'list';
   onSelect: () => void;
+  onEdit: () => void;
   onToggleFavorite: () => void;
   onDelete: () => void;
   formatDate: (date: string) => string;
@@ -557,6 +661,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   isSelected,
   viewMode,
   onSelect,
+  onEdit,
   onToggleFavorite,
   onDelete,
   formatDate
@@ -569,37 +674,46 @@ const NoteCard: React.FC<NoteCardProps> = ({
   if (viewMode === 'list') {
     return (
       <div
-        onClick={onSelect}
         className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
           isSelected 
-            ? 'bg-blue-100 border-2 border-blue-300' 
-            : 'bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+            ? 'bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-300 dark:border-blue-700' 
+            : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
         }`}
       >
         <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0" onClick={onSelect}>
             <div className="flex items-center space-x-2">
-              <h3 className="text-sm font-medium text-gray-900 truncate">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {note.title}
               </h3>
               {note.isFavorite && (
-                <Star className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
               )}
             </div>
-            <p className="text-xs text-gray-500 truncate mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
               {truncateText(note.plainTextContent, 60)}
             </p>
           </div>
           <div className="flex items-center space-x-1 ml-2">
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {formatDate(note.updatedAt)}
             </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                onEdit();
+              }}
+              className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+              title="Upravit"
+            >
+              <Edit className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 onToggleFavorite();
               }}
-              className="p-1 text-gray-400 hover:text-yellow-500"
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400"
             >
               {note.isFavorite ? <Star className="w-3 h-3" /> : <StarOff className="w-3 h-3" />}
             </button>
@@ -611,41 +725,54 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
   return (
     <div
-      onClick={onSelect}
       className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected 
-          ? 'bg-blue-100 border-2 border-blue-300 shadow-md' 
-          : 'bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm'
+          ? 'bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-300 dark:border-blue-700 shadow-md' 
+          : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm'
       }`}
     >
       <div className="flex items-start justify-between mb-2">
-        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2" onClick={onSelect}>
           {note.title}
         </h3>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          className={`p-1 rounded transition-colors ${
-            note.isFavorite 
-              ? 'text-yellow-500 bg-yellow-100' 
-              : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
-          }`}
-        >
-          {note.isFavorite ? <Star className="w-4 h-4" /> : <StarOff className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+            title="Upravit"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            className={`p-1 rounded transition-colors ${
+              note.isFavorite 
+                ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30' 
+                : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+            }`}
+          >
+            {note.isFavorite ? <Star className="w-4 h-4" /> : <StarOff className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
       
-      <p className="text-xs text-gray-600 line-clamp-3 mb-3">
-        {truncateText(note.plainTextContent, 120)}
-      </p>
-      
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>{formatDate(note.updatedAt)}</span>
-        <span className="bg-gray-100 px-2 py-1 rounded-full">
-          {categoryLabels[note.category] || 'Osobní'}
-        </span>
+      <div onClick={onSelect}>
+        <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 mb-3">
+          {truncateText(note.plainTextContent, 120)}
+        </p>
+        
+        <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+          <span>{formatDate(note.updatedAt)}</span>
+          <span className="bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+            {categoryLabels[note.category] || 'Osobní'}
+          </span>
+        </div>
       </div>
     </div>
   );

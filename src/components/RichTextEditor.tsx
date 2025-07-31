@@ -76,7 +76,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Format commands configuration
   const formatCommands: FormatCommand[] = [
     { command: 'bold', icon: Bold, label: 'Tučné', shortcut: 'Ctrl+B' },
-    { command: 'italic', icon: Italic, label: 'Kurzíva', shortcut: 'Ctrl+I' },
     { command: 'underline', icon: Underline, label: 'Podtržené', shortcut: 'Ctrl+U' },
     { command: 'strikeThrough', icon: Strikethrough, label: 'Přeškrtnuté', shortcut: 'Ctrl+Shift+X' },
   ];
@@ -132,10 +131,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         case 'b':
           e.preventDefault();
           executeCommand('bold');
-          break;
-        case 'i':
-          e.preventDefault();
-          executeCommand('italic');
           break;
         case 'u':
           e.preventDefault();
@@ -228,8 +223,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       onClick={onClick}
       className={`p-2 rounded-md transition-all duration-200 ${
         isActive 
-          ? 'bg-blue-600 text-white shadow-md' 
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+          ? 'bg-blue-600 dark:bg-blue-700 text-white shadow-md' 
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100'
       }`}
       title={`${command.label}${command.shortcut ? ` (${command.shortcut})` : ''}`}
       aria-label={command.label}
@@ -241,17 +236,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className="rich-text-editor-container space-y-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
       )}
 
       {/* Toolbar */}
       {showToolbar && (
-        <div className="bg-white border border-gray-300 rounded-lg p-3 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             {/* Text Formatting */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               {formatCommands.map((cmd) => (
                 <ToolbarButton
                   key={cmd.command}
@@ -262,23 +257,23 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             {/* Font Size */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               <button
                 type="button"
                 onClick={() => changeFontSize(false)}
-                className="p-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 title="Zmenšit písmo"
                 disabled={currentFontSize <= 10}
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="text-sm font-medium text-gray-600 min-w-[3rem] text-center">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300 min-w-[3rem] text-center">
                 {currentFontSize}px
               </span>
               <button
                 type="button"
                 onClick={() => changeFontSize(true)}
-                className="p-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 title="Zvětšit písmo"
                 disabled={currentFontSize >= 24}
               >
@@ -287,7 +282,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             {/* Text Alignment */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               {alignmentCommands.map((cmd) => (
                 <ToolbarButton
                   key={cmd.command}
@@ -298,7 +293,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             {/* Lists and Quotes */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               {listCommands.map((cmd) => (
                 <ToolbarButton
                   key={cmd.command}
@@ -309,7 +304,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             {/* Undo/Redo */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               <ToolbarButton
                 command={{ command: 'undo', icon: Undo, label: 'Zpět', shortcut: 'Ctrl+Z' }}
                 onClick={() => executeCommand('undo')}
@@ -321,14 +316,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             {/* Preview Toggle */}
-            <div className="flex items-center space-x-1 border-r border-gray-300 pr-3">
+            <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               <button
                 type="button"
                 onClick={() => setIsPreviewMode(!isPreviewMode)}
                 className={`p-2 rounded-md transition-colors ${
                   isPreviewMode 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-green-600 dark:bg-green-700 text-white' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
                 title={isPreviewMode ? 'Upravit' : 'Náhled'}
               >
@@ -345,15 +340,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   disabled={!hasUnsavedChanges}
                   className={`p-2 rounded-md transition-colors ${
                     hasUnsavedChanges
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      ? 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
                   title="Uložit (Ctrl+S)"
                 >
                   <Save className="w-4 h-4" />
                 </button>
                 {autoSave && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     Auto-save: {hasUnsavedChanges ? 'Pending...' : 'Saved'}
                   </span>
                 )}
@@ -362,19 +357,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </div>
 
           {/* Keyboard Shortcuts Help */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <details className="text-xs text-gray-500">
-              <summary className="cursor-pointer hover:text-gray-700 font-medium">
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+            <details className="text-xs text-gray-500 dark:text-gray-400">
+              <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 font-medium">
                 Klávesové zkratky
               </summary>
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+B</kbd> Tučné</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+I</kbd> Kurzíva</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+U</kbd> Podtržené</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+S</kbd> Uložit</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+Z</kbd> Zpět</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+Shift+Z</kbd> Znovu</div>
-                <div><kbd className="bg-gray-100 px-1 rounded">Ctrl+Shift+X</kbd> Přeškrtnuté</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+B</kbd> Tučné</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+U</kbd> Podtržené</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+S</kbd> Uložit</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+Z</kbd> Zpět</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+Shift+Z</kbd> Znovu</div>
+                <div><kbd className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-1 rounded">Ctrl+Shift+X</kbd> Přeškrtnuté</div>
               </div>
             </details>
           </div>
@@ -386,7 +380,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {isPreviewMode ? (
           /* Preview Mode */
           <div 
-            className={`w-full p-4 border border-gray-300 rounded-lg bg-gray-50 ${className}`}
+            className={`w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 ${className}`}
             style={{ 
               minHeight: `${minHeight}px`,
               maxHeight: `${maxHeight}px`,
@@ -394,8 +388,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
           >
             <div 
-              dangerouslySetInnerHTML={{ __html: value || '<p class="text-gray-500 italic">Žádný obsah k zobrazení</p>' }}
-              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: value || '<p class="text-gray-500 dark:text-gray-400 italic">Žádný obsah k zobrazení</p>' }}
+              className="prose prose-sm max-w-none dark:prose-invert text-gray-900 dark:text-gray-100"
             />
           </div>
         ) : (
@@ -406,8 +400,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             className={`
-              w-full p-4 border border-gray-300 rounded-lg 
+              w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg 
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              bg-white dark:bg-gray-800 text-gray-900 dark:text-white
               prose prose-sm max-w-none
               ${className}
             `}
@@ -429,7 +424,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <style jsx>{`
           [contenteditable]:empty:before {
             content: attr(data-placeholder);
-            color: #9CA3AF;
+            color: ${document.documentElement.classList.contains('dark') ? '#6B7280' : '#9CA3AF'};
             font-style: italic;
             pointer-events: none;
           }
@@ -437,18 +432,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
         <div className="flex items-center space-x-4">
           <span>Velikost písma: {currentFontSize}px</span>
           <span>Režim: {isPreviewMode ? 'Náhled' : 'Úpravy'}</span>
           {hasUnsavedChanges && (
-            <span className="text-orange-600 font-medium">● Neuložené změny</span>
+            <span className="text-orange-600 dark:text-orange-400 font-medium">● Neuložené změny</span>
           )}
         </div>
         <div className="flex items-center space-x-2">
           <span>Počet znaků: {value.replace(/<[^>]*>/g, '').length}</span>
           {autoSave && (
-            <span className="text-green-600">Auto-save zapnuto</span>
+            <span className="text-green-600 dark:text-green-400">Auto-save zapnuto</span>
           )}
         </div>
       </div>
