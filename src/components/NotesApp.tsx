@@ -505,8 +505,9 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                 value={selectedNote.content}
                 onChange={(content) => updateNote(selectedNote.id, { content })}
                 placeholder="Začněte psát svou poznámku..."
-                minHeight={300}
-                maxHeight={500}
+                minHeight={200}
+                maxHeight={400}
+                showToolbar={true}
                 autoSave={true}
                 onSave={(content) => updateNote(selectedNote.id, { content })}
                 label="Obsah poznámky"
