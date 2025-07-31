@@ -7,6 +7,7 @@ import { ClientForm } from './components/ClientForm';
 import { ClientList } from './components/ClientList';
 import { MortgageCalculator } from './components/MortgageCalculator';
 import { AdminPanel } from './components/AdminPanel';
+import { NotesApp } from './components/NotesApp';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
     { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'clientList', label: 'Seznam klientů', icon: Users },
     { id: 'calculator', label: 'Hypoteční kalkulačka', icon: Calculator },
+    { id: 'notes', label: 'Poznámky', icon: FileText },
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
 
@@ -175,6 +177,7 @@ function App() {
               <ClientList onSelectClient={handleSelectClient} toast={toast} />
             )}
             {activeTab === 'calculator' && !showClientForm && <MortgageCalculator />}
+            {activeTab === 'notes' && !showClientForm && <NotesApp />}
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
           </>
         )}
