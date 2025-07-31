@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { NotebookPen, Bold, Italic, Underline } from 'lucide-react';
-// @ts-expect-error - draft-js je CommonJS modul
-import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw, DraftHandleValue } from 'draft-js';
 import 'draft-js/dist/Draft.css';
 
 interface NotesEditorProps {
@@ -12,28 +11,50 @@ interface NotesEditorProps {
 }
 
 export const NotesEditor: React.FC<NotesEditorProps> = ({ value, onChange, placeholder, className }) => {
-  const [editorState, setEditorState] = useState(
-    () => {
-      if (value) {
-        try {
-          const contentState = convertFromRaw(JSON.parse(value));
-          return EditorState.createWithContent(contentState);
-        } catch {
-          return EditorState.createEmpty();
-        }
-      }
-      return EditorState.createEmpty();
-    }
-  );
+  const [Draft, setDraft] = useState<any>(null);
+  const [editorState, setEditorState] = useState<any>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    const contentState = editorState.getCurrentContent();
-    const raw = convertToRaw(contentState);
-    onChange(JSON.stringify(raw));
-  }, [editorState, onChange]);
+    if (!Draft) {
+      import('draft-js').then((mod) => {
+        setDraft(mod);
+      });
+    }
+  }, [Draft]);
+
+  useEffect(() => {
+    if (Draft && !initialized.current) {
+      let state;
+      if (value) {
+        try {
+          const contentState = Draft.convertFromRaw(JSON.parse(value));
+          state = Draft.EditorState.createWithContent(contentState);
+        } catch {
+          state = Draft.EditorState.createEmpty();
+        }
+      } else {
+        state = Draft.EditorState.createEmpty();
+      }
+      setEditorState(state);
+      initialized.current = true;
+    }
+  }, [Draft, value]);
+
+  useEffect(() => {
+    if (Draft && editorState) {
+      const contentState = editorState.getCurrentContent();
+      const raw = Draft.convertToRaw(contentState);
+      onChange(JSON.stringify(raw));
+    }
+  }, [editorState, Draft, onChange]);
+
+  if (!Draft || !editorState) {
+    return <div>Načítám editor…</div>;
+  }
 
   const handleKeyCommand = (command: string) => {
-    const newState = RichUtils.handleKeyCommand(editorState, command);
+    const newState = Draft.RichUtils.handleKeyCommand(editorState, command);
     if (newState) {
       setEditorState(newState);
       return 'handled' as const;
@@ -42,7 +63,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({ value, onChange, place
   };
 
   const toggleInlineStyle = (style: string) => {
-    setEditorState(RichUtils.toggleInlineStyle(editorState, style));
+    setEditorState(Draft.RichUtils.toggleInlineStyle(editorState, style));
   };
 
   return (
