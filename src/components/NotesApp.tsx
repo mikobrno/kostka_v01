@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { RichTextEditor } from './RichTextEditor';
-import { RichTextEditor } from './RichTextEditor';
 import { 
   FileText, 
   Plus, 
