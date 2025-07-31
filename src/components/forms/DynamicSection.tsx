@@ -42,6 +42,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showLinkDeleteConfirm, setShowLinkDeleteConfirm] = useState<string | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -408,52 +409,54 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       <div className="space-y-6">
         {/* 1. Poznámky (Notes) Section */}
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
-          <div className="flex items-center space-x-2 mb-4">
-            <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
+            </div>
+            <button
+              onClick={() => setIsEditingNotes(!isEditingNotes)}
+              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isEditingNotes 
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300'
+              }`}
+            >
+              {isEditingNotes ? (
+                <>
+                  <Save className="w-4 h-4 mr-1.5" />
+                  Uložit
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4 mr-1.5" />
+                  Upravit
+                </>
+              )}
+            </button>
           </div>
           
-          {/* Enhanced Notes with Dynamic Height */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Poznámky k sekci
-            </label>
-            <textarea
-              value={content.notes || ''}
-              onChange={(e) => updateNotes(e.target.value)}
-              className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none transition-all duration-200 ease-in-out bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="Zadejte poznámky k této sekci..."
-              style={{
-                minHeight: '60px',
-                maxHeight: '300px',
-                overflow: 'hidden'
-              }}
-              onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
-                const target = e.target as HTMLTextAreaElement;
-                // Reset height to auto to get the correct scrollHeight
-                target.style.height = 'auto';
-                // Calculate new height within min/max constraints
-                const newHeight = Math.min(Math.max(target.scrollHeight, 60), 300);
-                target.style.height = newHeight + 'px';
-                
-                // Show scrollbar only if content exceeds max height
-                if (target.scrollHeight > 300) {
-                  target.style.overflow = 'auto';
-                } else {
-                  target.style.overflow = 'hidden';
-                }
-              }}
-              onFocus={(e) => {
-                // Ensure proper height calculation on focus
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                const newHeight = Math.min(Math.max(target.scrollHeight, 60), 300);
-                target.style.height = newHeight + 'px';
-              }}
-            />
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Text area se automaticky přizpůsobí délce textu
-            </div>
+          <div className="prose prose-sm max-w-none dark:prose-invert border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {isEditingNotes ? (
+              <RichTextEditor
+                value={content.notes || ''}
+                onChange={(value) => updateContent({ ...content, notes: value })}
+                placeholder="Zadejte poznámky k této sekci..."
+                showToolbar={true}
+                className="min-h-[200px]"
+                label="Poznámky k sekci"
+              />
+            ) : content.notes ? (
+              <div 
+                className="p-4 min-h-[100px]"
+                dangerouslySetInnerHTML={{ __html: content.notes }}
+              />
+            ) : (
+              <div className="p-4 text-gray-500 dark:text-gray-400 text-center">
+                <FileText className="w-8 h-8 mx-auto mb-2" />
+                Klikněte na tlačítko "Upravit" pro přidání poznámek...
+              </div>
+            )}
           </div>
         </div>
 
@@ -619,15 +622,13 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 Hodnota nemovitosti (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={content.basicParameters?.propertyValue || ''}
-                  onChange={(e) => updateBasicParameter('propertyValue', parseFloat(e.target.value) || 0)}
+                  onChange={(value) => updateBasicParameter('propertyValue', parseFloat(value) || 0)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="2000000"
-                  min="0"
+                  placeholder="2 000 000"
                 />
-                <CopyButton text={content.basicParameters?.propertyValue ? content.basicParameters.propertyValue.toLocaleString('cs-CZ') : ''} />
+                <CopyButton text={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} />
               </div>
             </div>
 
@@ -636,15 +637,13 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 Vlastní prostředky (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={content.basicParameters?.vlastniProstredky || ''}
-                  onChange={(e) => updateBasicParameter('vlastniProstredky', parseFloat(e.target.value) || 0)}
+                  onChange={(value) => updateBasicParameter('vlastniProstredky', parseFloat(value) || 0)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="500000"
-                  min="0"
+                  placeholder="500 000"
                 />
-                <CopyButton text={content.basicParameters?.vlastniProstredky ? content.basicParameters.vlastniProstredky.toLocaleString('cs-CZ') : ''} />
+                <CopyButton text={content.basicParameters?.vlastniProstredky ? formatNumber(content.basicParameters.vlastniProstredky) : ''} />
               </div>
             </div>
 
