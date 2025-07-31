@@ -282,7 +282,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
                   Žadatel
                 </h2>
@@ -295,8 +295,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             </div>
 
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                   Spolužadatel
                 </h2>
                 <PersonalInfo 
@@ -309,8 +309,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                 Zaměstnavatel žadatele
               </h2>
               <EmployerInfo 
@@ -319,8 +319,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               />
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                 Zaměstnavatel spolužadatele
               </h2>
               <EmployerInfo 
@@ -331,7 +331,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <PropertyInfo 
                 data={formData.applicantProperty}
                 onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
@@ -339,7 +339,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               />
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <PropertyInfo 
                 data={formData.coApplicantProperty}
                 onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
@@ -348,7 +348,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
             <LoanSection 
               data={formData.loan}
               onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
@@ -356,9 +356,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-6 border-b pb-3">
-              <h2 className="text-xl font-semibold text-gray-900">Závazky</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Závazky</h2>
               <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                 <Plus className="w-4 h-4 mr-1" />
                 Přidat závazek
