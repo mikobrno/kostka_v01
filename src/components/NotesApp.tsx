@@ -592,11 +592,11 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               ) : (
                 /* View Mode - Full Content Display */
                 <div className="h-full overflow-y-auto">
-                  <div className="prose prose-lg max-w-none dark:prose-invert">
+                  <div className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-strong:font-bold prose-strong:text-gray-900 dark:prose-strong:text-white prose-em:italic prose-ul:list-disc prose-ol:list-decimal">
                     {selectedNote.content ? (
                       <div 
                         dangerouslySetInnerHTML={{ __html: selectedNote.content }}
-                        className="text-gray-900 dark:text-gray-100 leading-relaxed"
+                        className="text-gray-900 dark:text-gray-100 leading-relaxed [&_u]:underline [&_s]:line-through"
                       />
                     ) : (
                       <div className="text-center py-12">
