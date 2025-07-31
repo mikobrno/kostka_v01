@@ -573,30 +573,38 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             </div>
 
             {/* Note Content Area */}
-            <div className="flex-1 p-6 bg-white dark:bg-gray-800 overflow-hidden">
+            <div className="flex-1 p-6 bg-white dark:bg-gray-800 overflow-auto">
               {isEditMode ? (
                 /* Edit Mode - Rich Text Editor */
-                <div className="h-full">
+                <div className="h-full flex flex-col">
                   <RichTextEditor
                     value={editingContent}
                     onChange={setEditingContent}
                     placeholder="Začněte psát svou poznámku..."
-                    minHeight={300}
-                    maxHeight={600}
+                    minHeight={500}
+                    maxHeight={1200}
                     showToolbar={true}
-                    autoSave={false}
+                    autoSave={true}
                     label="Obsah poznámky"
-                    className="h-full"
+                    className="flex-1"
                   />
                 </div>
               ) : (
                 /* View Mode - Full Content Display */
-                <div className="h-full overflow-y-auto">
-                  <div className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-strong:font-bold prose-strong:text-gray-900 dark:prose-strong:text-white prose-em:italic prose-ul:list-disc prose-ol:list-decimal">
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 prose prose-lg max-w-none dark:prose-invert 
+                    prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
+                    prose-strong:font-bold prose-strong:text-gray-900 dark:prose-strong:text-white 
+                    prose-em:italic prose-em:text-gray-800 dark:prose-em:text-gray-200
+                    prose-ul:list-disc prose-ul:pl-5 
+                    prose-ol:list-decimal prose-ol:pl-5
+                    prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600 
+                    prose-blockquote:pl-4 prose-blockquote:italic
+                    [&_u]:underline [&_s]:line-through">
                     {selectedNote.content ? (
                       <div 
                         dangerouslySetInnerHTML={{ __html: selectedNote.content }}
-                        className="text-gray-900 dark:text-gray-100 leading-relaxed [&_u]:underline [&_s]:line-through"
+                        className="text-gray-900 dark:text-gray-100 leading-relaxed min-h-[500px]"
                       />
                     ) : (
                       <div className="text-center py-12">
