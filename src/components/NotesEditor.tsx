@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw } from 'draft-js';
 import { NotebookPen, Bold, Italic, Underline } from 'lucide-react';
+// @ts-expect-error - draft-js je CommonJS modul
+import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw, DraftHandleValue } from 'draft-js';
 import 'draft-js/dist/Draft.css';
 
 interface NotesEditorProps {
@@ -31,13 +32,13 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({ value, onChange, place
     onChange(JSON.stringify(raw));
   }, [editorState, onChange]);
 
-  const handleKeyCommand = (command: string, state: EditorState) => {
-    const newState = RichUtils.handleKeyCommand(state, command);
+  const handleKeyCommand = (command: string) => {
+    const newState = RichUtils.handleKeyCommand(editorState, command);
     if (newState) {
       setEditorState(newState);
-      return 'handled';
+      return 'handled' as const;
     }
-    return 'not-handled';
+    return 'not-handled' as const;
   };
 
   const toggleInlineStyle = (style: string) => {
