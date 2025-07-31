@@ -18,6 +18,7 @@ import {
 import { useToast } from '../../hooks/useToast';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { formatNumber } from '../../utils/formatHelpers';
+import { RichTextEditor } from '../RichTextEditor';
 
 interface DynamicSectionProps {
   section: DynamicSectionType;
@@ -64,10 +65,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     }
   };
 
-  // Notes & Links handlers
+  // Notes handlers
+  const handleNotesSave = async () => {
+    await updateContent(content);
+    setIsEditingNotes(false);
+    toast?.showSuccess('Poznámky uloženy', 'Poznámky byly úspěšně aktualizovány');
+  };
+
   const updateNotes = async (notes: string) => {
     const newContent = { ...content, notes };
-    await updateContent(newContent);
+    setContent(newContent);
   };
 
   const addLink = async () => {
@@ -415,12 +422,13 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
             </div>
             <button
-              onClick={() => setIsEditingNotes(!isEditingNotes)}
+              onClick={() => isEditingNotes ? handleNotesSave() : setIsEditingNotes(true)}
               className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isEditingNotes 
                   ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300'
                   : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300'
               }`}
+              title={isEditingNotes ? 'Uložit změny v poznámkách' : 'Upravit poznámky'}
             >
               {isEditingNotes ? (
                 <>
