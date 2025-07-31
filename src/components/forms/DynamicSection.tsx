@@ -16,6 +16,8 @@ import {
   Settings
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { formatNumber } from '../../utils/formatHelpers';
 
 interface DynamicSectionProps {
   section: DynamicSectionType;
@@ -599,24 +601,20 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </div>
             </div>
 
-            <div>
+              <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Požadovaná výše úvěru (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={content.basicParameters?.requestedLoanAmount || ''}
-                  onChange={(e) => updateBasicParameter('requestedLoanAmount', parseFloat(e.target.value) || 0)}
+                  onChange={(value) => updateBasicParameter('requestedLoanAmount', parseFloat(value) || 0)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="1500000"
-                  min="0"
+                  placeholder="1 500 000"
                 />
-                <CopyButton text={content.basicParameters?.requestedLoanAmount ? content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ') : ''} />
+                <CopyButton text={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} />
               </div>
-            </div>
-
-            <div>
+            </div>            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hodnota nemovitosti (Kč)
               </label>

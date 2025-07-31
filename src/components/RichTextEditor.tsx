@@ -72,10 +72,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [currentFontSize, setCurrentFontSize] = useState(14);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showFormattingHint, setShowFormattingHint] = useState(true);
 
   // Format commands configuration
   const formatCommands: FormatCommand[] = [
     { command: 'bold', icon: Bold, label: 'Tučné', shortcut: 'Ctrl+B' },
+    { command: 'italic', icon: Italic, label: 'Kurzíva', shortcut: 'Ctrl+I' },
     { command: 'underline', icon: Underline, label: 'Podtržené', shortcut: 'Ctrl+U' },
     { command: 'strikeThrough', icon: Strikethrough, label: 'Přeškrtnuté', shortcut: 'Ctrl+Shift+X' },
   ];
@@ -236,15 +238,47 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className="rich-text-editor-container space-y-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
+      )}
+      {showFormattingHint && (
+        <div className="text-sm bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-medium">Tip:</span> Používejte formátování pro lepší přehlednost textu
+            </div>
+            <button 
+              onClick={() => setShowFormattingHint(false)}
+              className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              title="Zavřít tip"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <ul className="mt-2 list-disc list-inside">
+            <li>Tučné písmo (Ctrl+B) pro důležité informace</li>
+            <li>Kurzíva (Ctrl+I) pro zvýraznění</li>
+            <li>Seznamy pro přehledné body</li>
+          </ul>
+        </div>
       )}
 
       {/* Toolbar */}
       {showToolbar && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 shadow-sm mb-4">
+          {showFormattingHint && (
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
+              Pro formátování textu můžete použít panel nástrojů nebo klávesové zkratky (Ctrl+B pro tučné, Ctrl+I pro kurzívu)
+              <button 
+                onClick={() => setShowFormattingHint(false)}
+                className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2 justify-between">
             {/* Text Formatting */}
             <div className="flex items-center space-x-1 border-r border-gray-300 dark:border-gray-600 pr-3">
               {formatCommands.map((cmd) => (
