@@ -443,8 +443,6 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             Nová poznámka
           </button>
         </div>
-      </div>
-
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col">
         {selectedNote ? (
