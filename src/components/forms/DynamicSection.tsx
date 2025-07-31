@@ -272,7 +272,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow border p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
       {/* Section Header - only show if not hidden */}
       {!hideHeader && (
         <div className="flex items-center justify-between mb-6">
@@ -283,7 +283,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="text"
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
-                  className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none"
+                  className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
                     if (e.key === 'Escape') {
@@ -295,7 +295,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 />
                 <button
                   onClick={handleSaveName}
-                  className="text-green-600 hover:text-green-800"
+                  className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                 >
                   <Save className="w-4 h-4" />
                 </button>
@@ -304,17 +304,17 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                     setSectionName(section.section_name);
                     setIsEditingName(false);
                   }}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <>
-                <h3 className="text-xl font-semibold text-gray-900">{section.section_name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{section.section_name}</h3>
                 <button
                   onClick={() => setIsEditingName(true)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   title="Upravit název"
                 >
                   <Edit className="w-4 h-4" />
@@ -324,7 +324,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           </div>
           <button
             onClick={handleDeleteSection}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
             title="Smazat sekci"
           >
             <Trash2 className="w-5 h-5" />
@@ -405,21 +405,21 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       {/* Vertical Stack Content */}
       <div className="space-y-6">
         {/* 1. Poznámky (Notes) Section */}
-        <div className="bg-gray-50 rounded-lg p-6 border">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 mb-4">
             <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900">Poznámky</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
           </div>
           
           {/* Enhanced Notes with Dynamic Height */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Poznámky k sekci
             </label>
             <textarea
               value={content.notes || ''}
               onChange={(e) => updateNotes(e.target.value)}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none transition-all duration-200 ease-in-out"
+              className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none transition-all duration-200 ease-in-out bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               placeholder="Zadejte poznámky k této sekci..."
               style={{
                 minHeight: '60px',
@@ -449,28 +449,28 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 target.style.height = newHeight + 'px';
               }}
             />
-            <div className="mt-1 text-xs text-gray-500">
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Text area se automaticky přizpůsobí délce textu
             </div>
           </div>
         </div>
 
         {/* 1.5. Odkazy (Links) Section */}
-        <div className="bg-gray-50 rounded-lg p-6 border">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 mb-4">
             <LinkIcon className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-lg font-medium text-gray-900">Odkazy</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Odkazy</h3>
           </div>
           
           <div>
             {/* Links */}
             <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Webové odkazy
               </label>
               <button
                 onClick={addLink}
-                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600"
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Přidat odkaz
@@ -479,13 +479,13 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
             <div className="space-y-3">
               {(content.links || []).map((link) => (
-                <div key={link.id} className="bg-white rounded-lg p-4 border">
+                <div key={link.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                   {editingLinkId === link.id ? (
                     // Editing mode
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                             URL
                           </label>
                           <div className="flex">
@@ -493,21 +493,21 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                               type="url"
                               value={link.url}
                               onChange={(e) => updateLink(link.id, 'url', e.target.value)}
-                              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                               placeholder="https://example.com"
                             />
                             <CopyButton text={link.url} />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Název (volitelný)
                           </label>
                           <input
                             type="text"
                             value={link.title || ''}
                             onChange={(e) => updateLink(link.id, 'title', e.target.value)}
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                             placeholder="Popis odkazu"
                           />
                         </div>
@@ -515,14 +515,14 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                       <div className="flex justify-end space-x-2 mt-3">
                         <button
                           onClick={() => setEditingLinkId(null)}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
                         >
                           <Save className="w-3 h-3 mr-1" />
                           Uložit
                         </button>
                         <button
                           onClick={() => setEditingLinkId(null)}
-                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
                           <X className="w-3 h-3 mr-1" />
                           Zrušit
@@ -537,7 +537,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
                         >
                           <LinkIcon className="w-4 h-4 mr-2" />
                           {link.title || 'Odkaz bez názvu'}
@@ -546,7 +546,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => setEditingLinkId(link.id)}
-                          className="text-indigo-600 hover:text-indigo-800"
+                          className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                           title="Upravit odkaz"
                         >
                           <Edit className="w-4 h-4" />
@@ -554,7 +554,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                         <button
                           onClick={() => removeLink(link.id)}
                           onClick={() => handleLinkDelete(link.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                           title="Smazat odkaz"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -566,8 +566,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               ))}
 
               {(!content.links || content.links.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
                   <p>Žádné odkazy nejsou přidány</p>
                 </div>
               )}
@@ -576,15 +576,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         </div>
 
         {/* 2. Základní Parametry (Basic Parameters) Section */}
-        <div className="bg-gray-50 rounded-lg p-6 border">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 mb-4">
             <Calculator className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-medium text-gray-900">Základní Parametry</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Základní Parametry</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Účel financování
               </label>
               <div className="flex">
@@ -592,7 +592,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="text"
                   value={content.basicParameters?.financingPurpose || ''}
                   onChange={(e) => updateBasicParameter('financingPurpose', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Koupě nemovitosti, refinancování..."
                 />
                 <CopyButton text={content.basicParameters?.financingPurpose || ''} />
@@ -600,7 +600,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Požadovaná výše úvěru (Kč)
               </label>
               <div className="flex">
@@ -608,7 +608,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.requestedLoanAmount || ''}
                   onChange={(e) => updateBasicParameter('requestedLoanAmount', parseFloat(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="1500000"
                   min="0"
                 />
@@ -617,7 +617,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hodnota nemovitosti (Kč)
               </label>
               <div className="flex">
@@ -625,7 +625,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.propertyValue || ''}
                   onChange={(e) => updateBasicParameter('propertyValue', parseFloat(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="2000000"
                   min="0"
                 />
@@ -634,7 +634,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vlastní prostředky (Kč)
               </label>
               <div className="flex">
@@ -642,7 +642,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.vlastniProstredky || ''}
                   onChange={(e) => updateBasicParameter('vlastniProstredky', parseFloat(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="500000"
                   min="0"
                 />
@@ -651,7 +651,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Splatnost v letech
               </label>
               <div className="flex">
@@ -659,7 +659,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.maturityYears || ''}
                   onChange={(e) => updateBasicParameter('maturityYears', parseInt(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="30"
                   min="1"
                   max="50"
@@ -669,7 +669,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Délka fixace preferovaná (roky)
               </label>
               <div className="flex">
@@ -677,7 +677,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.preferredFixationYears || ''}
                   onChange={(e) => updateBasicParameter('preferredFixationYears', parseInt(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="5"
                   min="1"
                   max="30"
@@ -689,20 +689,20 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
           {/* LTV Calculation */}
           {content.basicParameters?.requestedLoanAmount && content.basicParameters?.propertyValue && (
-            <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Výpočet LTV</h4>
+            <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Výpočet LTV</h4>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-blue-700">Výše úvěru:</span>
-                  <div className="font-medium">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
+                  <span className="text-blue-700 dark:text-blue-300">Výše úvěru:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
                 </div>
                 <div>
-                  <span className="text-blue-700">Hodnota nemovitosti:</span>
-                  <div className="font-medium">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
+                  <span className="text-blue-700 dark:text-blue-300">Hodnota nemovitosti:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
                 </div>
                 <div>
-                  <span className="text-blue-700">LTV poměr:</span>
-                  <div className="font-bold text-lg text-blue-800">
+                  <span className="text-blue-700 dark:text-blue-300">LTV poměr:</span>
+                  <div className="font-bold text-lg text-blue-800 dark:text-blue-200">
                     {((content.basicParameters.requestedLoanAmount / content.basicParameters.propertyValue) * 100).toFixed(2)}%
                   </div>
                 </div>
@@ -712,16 +712,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         </div>
 
         {/* 3. Soubory (Files) Section */}
-        <div className="bg-gray-50 rounded-lg p-6 border">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 mb-4">
             <Upload className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-medium text-gray-900">Soubory</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Soubory</h3>
           </div>
           
           <div className="space-y-6">
             {/* File List - Now displayed ABOVE upload area */}
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Nahrané soubory ({(content.files || []).length})
               </h4>
               <div className="space-y-2">
@@ -735,8 +735,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 ))}
 
                 {(!content.files || content.files.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
                     <p>Žádné soubory nejsou nahrány</p>
                   </div>
                 )}
@@ -745,30 +745,32 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
             {/* File Upload Area - Now positioned at the BOTTOM */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nahrát soubory
               </label>
               <div
-                className={`flex items-center justify-center w-full transition-all duration-200 ${
-                  isDragOver ? 'border-purple-500 bg-purple-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                className={`flex items-center justify-center w-full transition-all duration-200 border-2 border-dashed rounded-lg ${
+                  isDragOver 
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-400' 
+                    : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
               >
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer">
+                <label className="flex flex-col items-center justify-center w-full h-32 cursor-pointer">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className={`w-8 h-8 mb-4 transition-colors ${
-                      isDragOver ? 'text-purple-600' : 'text-gray-500'
+                      isDragOver ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
                     }`} />
-                    <p className="mb-2 text-sm text-gray-500">
+                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-semibold">
                         {isDragOver ? 'Pusťte soubory zde' : 'Klikněte pro nahrání'}
                       </span>
                       {!isDragOver && ' nebo přetáhněte soubory'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Maximální velikost: 5MB na soubor
                     </p>
                   </div>
@@ -783,7 +785,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 </label>
               </div>
               {isUploading && (
-                <div className="mt-2 text-sm text-purple-600 flex items-center">
+                <div className="mt-2 text-sm text-purple-600 dark:text-purple-400 flex items-center">
                   <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full mr-2" />
                   Nahrávám soubory...
                 </div>
@@ -849,7 +851,7 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
   };
 
   return (
-    <div className="bg-white rounded-lg p-3 border flex items-center justify-between">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600 flex items-center justify-between">
       <div className="flex items-center space-x-3 flex-1">
         <span className="text-lg">
           {FileStorageService.getFileIcon(file.type)}
@@ -863,29 +865,29 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
                 onChange={(e) => handleNameChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={handleSave}
-                className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 ${
+                className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                   isValidName 
-                    ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' 
-                    : 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                    ? 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500' 
+                    : 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500'
                 }`}
                 autoFocus
               />
               {!isValidName && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-red-600 dark:text-red-400">
                   Neplatný název souboru. Nesmí obsahovat: &lt; &gt; : " / \ | ? *
                 </p>
               )}
             </div>
           ) : (
             <p 
-              className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+              className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               onClick={() => setIsEditing(true)}
               title="Klikněte pro úpravu názvu"
             >
               {file.originalName}
             </p>
           )}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {FileStorageService.formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('cs-CZ')}
           </p>
         </div>
@@ -895,7 +897,7 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
           href={file.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800"
+          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           title="Otevřít soubor"
         >
           <ExternalLink className="w-4 h-4" />
@@ -903,7 +905,7 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             title="Přejmenovat"
           >
             <Edit className="w-4 h-4" />
@@ -911,7 +913,7 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
         )}
         <button
           onClick={onDelete}
-          className="text-red-600 hover:text-red-800"
+          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
           title="Smazat"
         >
           <Trash2 className="w-4 h-4" />
