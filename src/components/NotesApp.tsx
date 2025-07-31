@@ -266,17 +266,20 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
               </button>
             )}
           </div>
-
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Hledat v poznámkách..."
-            />
+            <div className="h-full">
+              <RichTextEditor
+                value={selectedNote.content}
+                onChange={(content) => updateNote(selectedNote.id, { content })}
+                placeholder="Začněte psát svou poznámku..."
+                minHeight={300}
+                maxHeight={500}
+                showToolbar={true}
+                autoSave={true}
+                onSave={(content) => updateNote(selectedNote.id, { content })}
+                label="Obsah poznámky"
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Filters */}
