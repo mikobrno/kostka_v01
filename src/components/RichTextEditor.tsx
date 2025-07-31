@@ -1,4 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Editor, EditorState, RichUtils, convertToRaw, convertFromHTML, ContentState } from 'draft-js';
+import 'draft-js/dist/Draft.css';
 import { 
   Bold, 
   Italic, 
@@ -68,9 +70,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onSave,
   label
 }) => {
-  const editorRef = useRef<HTMLDivElement>(null);
+  const [editorState, setEditorState] = useState(() => {
+    const contentState = value
+      ? ContentState.createFromText(value)
+      : ContentState.createFromText('');
+    return EditorState.createWithContent(contentState);
+  });
+
+  const editorRef = useRef<Editor>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [currentFontSize, setCurrentFontSize] = useState(14);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showFormattingHint, setShowFormattingHint] = useState(true);
 
@@ -94,20 +102,26 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     { command: 'formatBlock', value: 'blockquote', icon: Quote, label: 'Citace' },
   ];
 
-  /**
-   * Executes formatting commands on selected text
-   */
-  const executeCommand = useCallback((command: string, value?: string) => {
-    if (!editorRef.current) return;
-
-    editorRef.current.focus();
-    document.execCommand(command, false, value);
-    
-    // Update content and mark as changed
-    const newContent = editorRef.current.innerHTML;
-    onChange(newContent);
+  const handleEditorChange = (newState: EditorState) => {
+    setEditorState(newState);
+    const contentState = newState.getCurrentContent();
+    const rawContent = convertToRaw(contentState);
+    const htmlContent = JSON.stringify(rawContent);
+    onChange(htmlContent);
     setHasUnsavedChanges(true);
-  }, [onChange]);
+  };
+
+  const toggleInlineStyle = (inlineStyle: string) => {
+    handleEditorChange(
+      RichUtils.toggleInlineStyle(editorState, inlineStyle)
+    );
+  };
+
+  const toggleBlockType = (blockType: string) => {
+    handleEditorChange(
+      RichUtils.toggleBlockType(editorState, blockType)
+    );
+  };
 
   /**
    * Handles font size changes

@@ -18,6 +18,7 @@ import {
 import { useToast } from '../../hooks/useToast';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { formatNumber } from '../../utils/formatHelpers';
+import { SimpleRichTextEditor } from '../SimpleRichTextEditor';
 
 interface DynamicSectionProps {
   section: DynamicSectionType;
@@ -416,35 +417,21 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             </div>
             <button
               onClick={() => setIsEditingNotes(!isEditingNotes)}
-              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isEditingNotes 
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300'
-                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300'
-              }`}
+              className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300"
+              title={isEditingNotes ? "Uložit poznámky" : "Upravit poznámky"}
             >
-              {isEditingNotes ? (
-                <>
-                  <Save className="w-4 h-4 mr-1.5" />
-                  Uložit
-                </>
-              ) : (
-                <>
-                  <Edit className="w-4 h-4 mr-1.5" />
-                  Upravit
-                </>
-              )}
+              <Edit className="w-4 h-4 mr-1.5" />
+              {isEditingNotes ? "Uložit" : "Upravit"}
             </button>
           </div>
           
           <div className="prose prose-sm max-w-none dark:prose-invert border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             {isEditingNotes ? (
-              <RichTextEditor
+              <SimpleRichTextEditor
                 value={content.notes || ''}
-                onChange={(value) => updateContent({ ...content, notes: value })}
+                onChange={(notes) => updateContent({ ...content, notes })}
                 placeholder="Zadejte poznámky k této sekci..."
-                showToolbar={true}
-                className="min-h-[200px]"
-                label="Poznámky k sekci"
+                onSave={() => setIsEditingNotes(false)}
               />
             ) : content.notes ? (
               <div 
@@ -661,7 +648,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="50"
                 />
-                <CopyButton text={content.basicParameters?.maturityYears || ''} />
+                <CopyButton text={content.basicParameters?.maturityYears?.toString() || ''} />
               </div>
             </div>
 
@@ -679,7 +666,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="30"
                 />
-                <CopyButton text={content.basicParameters?.preferredFixationYears || ''} />
+                <CopyButton text={content.basicParameters?.preferredFixationYears?.toString() || ''} />
               </div>
             </div>
           </div>
@@ -796,7 +783,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 };
 // File List Item Component with inline editing
 interface FileListItemProps {
-  file: any;
+  file: {
+    id: string;
+    name: string;
+    originalName: string;
+    size: number;
+    type: string;
+    url: string;
+    path: string;
+    uploadedAt: string;
+  };
   onRename: (newName: string) => void;
   onDelete: () => void;
 }
