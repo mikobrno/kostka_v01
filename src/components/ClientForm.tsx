@@ -6,6 +6,7 @@ import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
+import { AutoResizeTextarea } from './AutoResizeTextarea';
 import { Save, Plus, Eye, X, FileText, User, Layers } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 

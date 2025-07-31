@@ -413,22 +413,45 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           
           {/* Enhanced Notes with Dynamic Height */}
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Poznámky k sekci
+            </label>
             <textarea
               value={content.notes || ''}
               onChange={(e) => updateNotes(e.target.value)}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none"
+              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none transition-all duration-200 ease-in-out"
               placeholder="Zadejte poznámky k této sekci..."
               style={{
-                minHeight: '80px',
-                height: 'auto',
-                maxHeight: '400px'
+                minHeight: '60px',
+                maxHeight: '300px',
+                overflow: 'hidden'
               }}
-              onInput={(e) => {
+              onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
+                const target = e.target as HTMLTextAreaElement;
+                // Reset height to auto to get the correct scrollHeight
+                target.style.height = 'auto';
+                // Calculate new height within min/max constraints
+                const newHeight = Math.min(Math.max(target.scrollHeight, 60), 300);
+                target.style.height = newHeight + 'px';
+                
+                // Show scrollbar only if content exceeds max height
+                if (target.scrollHeight > 300) {
+                  target.style.overflow = 'auto';
+                } else {
+                  target.style.overflow = 'hidden';
+                }
+              }}
+              onFocus={(e) => {
+                // Ensure proper height calculation on focus
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = 'auto';
-                target.style.height = Math.min(target.scrollHeight, 400) + 'px';
+                const newHeight = Math.min(Math.max(target.scrollHeight, 60), 300);
+                target.style.height = newHeight + 'px';
               }}
             />
+            <div className="mt-1 text-xs text-gray-500">
+              Text area se automaticky přizpůsobí délce textu
+            </div>
           </div>
         </div>
 
