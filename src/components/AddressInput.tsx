@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { CopyButton } from './CopyButton';
 import { MapPin } from 'lucide-react';
+import { useGoogleMapsLoader } from '../utils/googleMapsLoader';
 
 // Global type declarations for Google Maps API
 declare global {
@@ -34,46 +35,16 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isApiLoaded, setIsApiLoaded] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const { isLoaded: isApiLoaded, error: apiError, loadApi } = useGoogleMapsLoader();
 
-  const loadGoogleMapsApi = useCallback(async () => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    console.log('🔑 API Key found:', !!apiKey);
-    
-    if (!apiKey) {
-      console.error('❌ Google Maps API key not found in environment');
-      setApiError('Google Maps API key not found');
-      return;
+  // Načtení Google Maps API při mount komponenty
+  useEffect(() => {
+    if (!isApiLoaded && !apiError) {
+      loadApi().catch(console.error);
     }
-    
-    if (window.google?.maps?.places) {
-      console.log('✅ Google Maps API already loaded');
-      setIsApiLoaded(true);
-      return;
-    }
-
-    console.log('📝 Loading Google Maps API script...');
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    
-    return new Promise((resolve, reject) => {
-      script.onload = () => {
-        console.log('✅ Google Maps API script loaded successfully');
-        setIsApiLoaded(true);
-        resolve(void 0);
-      };
-      script.onerror = (error) => {
-        console.error('❌ Failed to load Google Maps API script:', error);
-        setApiError('Failed to load Google Maps API');
-        reject(new Error('Failed to load Google Maps API'));
-      };
-      document.head.appendChild(script);
-    });
-  }, []);
+  }, [isApiLoaded, apiError, loadApi]);
 
   const searchAddresses = useCallback(async (query: string) => {
     if (query.length < 3 || !isApiLoaded) {
@@ -107,8 +78,10 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   }, [isApiLoaded]);
 
   useEffect(() => {
-    loadGoogleMapsApi();
-  }, [loadGoogleMapsApi]);
+    if (!isApiLoaded && !apiError) {
+      loadApi().catch(console.error);
+    }
+  }, [isApiLoaded, apiError, loadApi]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
