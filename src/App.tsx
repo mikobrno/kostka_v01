@@ -69,17 +69,9 @@ function App() {
     setActiveTab('clientList');
   };
 
-  const handleClientSaved = () => {
-    // Only hide form and clear selection when explicitly requested
-    // This is now only called when user clicks "New Client" button
-    if (activeTab === 'newClient') {
-      setShowClientForm(false);
-      setSelectedClient(null);
-    }
-    // Refresh client list if we're on that tab
-    if (activeTab === 'clientList') {
-      handleClientListRefresh();
-    }
+  const handleClientSaved = (updatedClient: any) => {
+    setSelectedClient(updatedClient);
+    handleClientListRefresh();
   };
 
   const handleClientListRefresh = () => {

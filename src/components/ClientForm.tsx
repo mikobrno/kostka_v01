@@ -12,7 +12,7 @@ import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
   selectedClient?: any;
-  onClientSaved?: () => void;
+  onClientSaved?: (updatedClient: any) => void;
   onClose?: () => void;
   toast?: ReturnType<typeof useToast>;
 }
@@ -153,8 +153,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         const { data: freshData, error: freshError } = await ClientService.getClient(clientId);
         if (!freshError && freshData) {
           setCurrentClient(freshData);
+          if (onClientSaved) {
+            onClientSaved(freshData);
+          }
         } else {
           setCurrentClient(data); // fallback
+          if (onClientSaved) {
+            onClientSaved(data);
+          }
         }
         toast?.showSuccess('Klient aktualizován', 'Údaje klienta byly úspěšně uloženy');
       } else {
@@ -168,16 +174,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           const { data: freshData, error: freshError } = await ClientService.getClient(data.id);
           if (!freshError && freshData) {
             setCurrentClient(freshData);
+             if (onClientSaved) {
+              onClientSaved(freshData);
+            }
           } else {
             setCurrentClient(data); // fallback
+            if (onClientSaved) {
+              onClientSaved(data);
+            }
           }
         } else {
           setCurrentClient(data);
-        }
-        if (!freshError && freshData) {
-          setCurrentClient(freshData);
-        } else {
-          setCurrentClient(data); // fallback
+           if (onClientSaved) {
+            onClientSaved(data);
+          }
         }
         toast?.showSuccess('Klient vytvořen', 'Nový klient byl úspěšně přidán do systému');
       }
