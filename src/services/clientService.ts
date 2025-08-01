@@ -224,7 +224,6 @@ export class ClientService {
       await supabase.from('liabilities').delete().eq('client_id', clientId)
 
       // Znovu vytvoření dat (stejný kód jako v createClient)
-      if (formData.applicantEmployer && Object.keys(formData.applicantEmployer).length > 0) {
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
         const employerData = {
           client_id: clientId,
