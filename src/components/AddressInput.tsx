@@ -2,6 +2,13 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { CopyButton } from './CopyButton';
 import { MapPin } from 'lucide-react';
 
+// Global type declarations for Google Maps API
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 interface AddressInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -18,37 +25,74 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isApiLoaded, setIsApiLoaded] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const loadGoogleMapsApi = useCallback(async () => {
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setApiError('Google Maps API key not found');
+      return;
+    }
+    
+    if (window.google?.maps?.places) {
+      setIsApiLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    return new Promise((resolve, reject) => {
+      script.onload = () => {
+        setIsApiLoaded(true);
+        resolve(void 0);
+      };
+      script.onerror = () => {
+        setApiError('Failed to load Google Maps API');
+        reject(new Error('Failed to load Google Maps API'));
+      };
+      document.head.appendChild(script);
+    });
+  }, []);
+
   const searchAddresses = useCallback(async (query: string) => {
-    if (query.length < 3) {
+    if (query.length < 3 || !isApiLoaded) {
       setSuggestions([]);
       return;
     }
 
     setLoading(true);
     try {
-      // Mock suggestions pro demonstraci - v produkci nahradit skutečným API
-      const mockSuggestions = [
-        `${query}, Praha 1`,
-        `${query}, Praha 2`,
-        `${query}, Brno`,
-        `${query}, Ostrava`,
-        `${query}, Plzeň`
-      ].filter(suggestion => 
-        suggestion.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      // Simulace API volání
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setSuggestions(mockSuggestions.slice(0, 5));
+      const service = new window.google.maps.places.AutocompleteService();
+      const request = {
+        input: query,
+        componentRestrictions: { country: 'cz' },
+        types: ['address']
+      };
+
+      service.getPlacePredictions(request, (predictions: any[], status: any) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          const formattedSuggestions = predictions.slice(0, 5).map(p => p.description);
+          setSuggestions(formattedSuggestions);
+        } else {
+          setSuggestions([]);
+        }
+        setLoading(false);
+      });
     } catch (error) {
-      console.error('Chyba při načítání adres:', error);
+      console.error('Google Places API error:', error);
       setSuggestions([]);
-    } finally {
       setLoading(false);
     }
-  }, []); // Odstraněna závislost na API klíči
+  }, [isApiLoaded]);
+
+  useEffect(() => {
+    loadGoogleMapsApi();
+  }, [loadGoogleMapsApi]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -58,7 +102,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [value, searchAddresses]); // Přidáno searchAddresses do závislostí
+  }, [value, searchAddresses]);
 
   const handleInputChange = (newValue: string) => {
     onChange(newValue);
@@ -83,9 +127,10 @@ export const AddressInput: React.FC<AddressInputProps> = ({
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             className={`block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${className}`}
-            placeholder={placeholder}
+            placeholder={apiError ? 'Chyba načítání API' : placeholder}
+            disabled={!!apiError}
           />
-          {loading && (
+          {(loading || !isApiLoaded) && !apiError && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
             </div>
