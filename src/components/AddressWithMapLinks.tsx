@@ -38,14 +38,14 @@ export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
         </label>
       )}
       
-      <div className="flex">
-        <div className="flex-1 relative">
+      <div className="flex w-full max-w-full">
+        <div className="flex-1 relative w-full max-w-full">
           <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={`block w-full pl-10 rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${className}`}
+            className={`block w-full max-w-full pl-10 rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${className}`}
             placeholder={placeholder}
           />
         </div>
