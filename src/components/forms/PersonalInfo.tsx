@@ -480,111 +480,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Telefon
-          </label>
-          <div className="flex">
-            <input
-              type="tel"
-              value={data.phone || ''}
-              onChange={(e) => updateField('phone', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="+420 xxx xxx xxx"
-            />
-            <CopyButton text={data.phone || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <div className="flex">
-            <input
-              type="email"
-              value={data.email || ''}
-              onChange={(e) => updateField('email', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="email@example.com"
-            />
-            <CopyButton text={data.email || ''} />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Banka
-        </label>
-        <div className="flex">
-          <select
-            value={data.bank || ''}
-            onChange={(e) => updateField('bank', e.target.value)}
-            className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value="">Vyberte banku</option>
-            {adminLists.banks.map(bank => (
-              <option key={bank} value={bank}>{bank}</option>
-            ))}
-          </select>
-          <CopyButton text={data.bank || ''} />
-        </div>
-      </div>
-
-      {/* Podnikání sekce */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <Building className="w-5 h-5 text-purple-600" />
-            <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
-          </div>
-          <button
-            onClick={() => {
-              const newBusiness = {
-                id: Date.now(),
-                ico: '',
-                companyName: '',
-                companyAddress: '',
-                businessStartDate: ''
-              };
-              const currentBusinesses = data.businesses || [];
-              updateField('businesses', [...currentBusinesses, newBusiness]);
-            }}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Přidat podnikání
-          </button>
-        </div>
-        
-        {(data.businesses || []).map((business, index) => (
-          <BusinessDisplay
-            key={business.id}
-            business={business}
-            index={index}
-            onUpdate={(updatedBusiness) => {
-              const updatedBusinesses = (data.businesses || []).map(b => 
-                b.id === business.id ? updatedBusiness : b
-              );
-              updateField('businesses', updatedBusinesses);
-            }}
-            onDelete={() => {
-              setShowDeleteConfirm(`business-${business.id.toString()}`);
-            }}
-          />
-        ))}
-        
-        {(!data.businesses || data.businesses.length === 0) && (
-          <div className="text-center py-8 text-gray-500">
-            <Building className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>Žádné podnikání není přidáno.</p>
-            <p className="text-sm">Klikněte na "Přidat podnikání" pro vytvoření záznamu o podnikání.</p>
-          </div>
-        )}
-      </div>
-
+      {/* Doklady totožnosti sekce */}
       <div>
         <div className="flex items-center space-x-3 mb-4">
           <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
@@ -739,7 +635,112 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Telefon
+          </label>
+          <div className="flex">
+            <input
+              type="tel"
+              value={data.phone || ''}
+              onChange={(e) => updateField('phone', e.target.value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
+              placeholder="+420 xxx xxx xxx"
+            />
+            <CopyButton text={data.phone || ''} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <div className="flex">
+            <input
+              type="email"
+              value={data.email || ''}
+              onChange={(e) => updateField('email', e.target.value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
+              placeholder="email@example.com"
+            />
+            <CopyButton text={data.email || ''} />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Banka
+        </label>
+        <div className="flex">
+          <select
+            value={data.bank || ''}
+            onChange={(e) => updateField('bank', e.target.value)}
+            className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          >
+            <option value="">Vyberte banku</option>
+            {adminLists.banks.map(bank => (
+              <option key={bank} value={bank}>{bank}</option>
+            ))}
+          </select>
+          <CopyButton text={data.bank || ''} />
+        </div>
+      </div>
+
+      {/* Podnikání sekce */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <Building className="w-5 h-5 text-purple-600" />
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
+          </div>
+          <button
+            onClick={() => {
+              const newBusiness = {
+                id: Date.now(),
+                ico: '',
+                companyName: '',
+                companyAddress: '',
+                businessStartDate: ''
+              };
+              const currentBusinesses = data.businesses || [];
+              updateField('businesses', [...currentBusinesses, newBusiness]);
+            }}
+            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Přidat podnikání
+          </button>
+        </div>
         
+        {(data.businesses || []).map((business, index) => (
+          <BusinessDisplay
+            key={business.id}
+            business={business}
+            index={index}
+            onUpdate={(updatedBusiness) => {
+              const updatedBusinesses = (data.businesses || []).map(b => 
+                b.id === business.id ? updatedBusiness : b
+              );
+              updateField('businesses', updatedBusinesses);
+            }}
+            onDelete={() => {
+              setShowDeleteConfirm(`business-${business.id.toString()}`);
+            }}
+          />
+        ))}
+        
+        {(!data.businesses || data.businesses.length === 0) && (
+          <div className="text-center py-8 text-gray-500">
+            <Building className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>Žádné podnikání není přidáno.</p>
+            <p className="text-sm">Klikněte na "Přidat podnikání" pro vytvoření záznamu o podnikání.</p>
+          </div>
+        )}
+      </div>
         <div className="flex items-center space-x-3 mb-4">
           <input
             type="checkbox"
@@ -760,6 +761,26 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           />
         )}
       </div>
+
+      <div className="flex items-center space-x-3 mb-4">
+        <input
+          type="checkbox"
+          id={`${prefix}-no-children`}
+          checked={!hasChildren}
+          onChange={(e) => setHasChildren(!e.target.checked)}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+        />
+        <label htmlFor={`${prefix}-no-children`} className="text-sm font-medium text-gray-700">
+          Nemá děti
+        </label>
+      </div>
+      
+      {hasChildren && (
+        <ChildrenManager
+          children={data.children || []}
+          onChange={(children) => updateField('children', children)}
+        />
+      )}
 
       {/* Delete Confirmation Modal for Documents */}
       {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
