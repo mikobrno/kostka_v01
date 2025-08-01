@@ -27,8 +27,16 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       }
     }
   }, []);
+  
   const [hasChildren, setHasChildren] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  // Inicializace hasChildren na základě existujících dat
+  React.useEffect(() => {
+    if (data.children && data.children.length > 0) {
+      setHasChildren(true);
+    }
+  }, [data.children]);
 
   const [adminLists, setAdminLists] = useState({
     titles: [],
@@ -742,6 +750,16 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         )}
       </div>
+
+      {/* Sekce Děti */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <User className="w-5 h-5 text-blue-600" />
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">Děti</h4>
+          </div>
+        </div>
+        
         <div className="flex items-center space-x-3 mb-4">
           <input
             type="checkbox"
@@ -762,26 +780,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           />
         )}
       </div>
-
-      <div className="flex items-center space-x-3 mb-4">
-        <input
-          type="checkbox"
-          id={`${prefix}-no-children`}
-          checked={!hasChildren}
-          onChange={(e) => setHasChildren(!e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
-        />
-        <label htmlFor={`${prefix}-no-children`} className="text-sm font-medium text-gray-700">
-          Nemá děti
-        </label>
-      </div>
-      
-      {hasChildren && (
-        <ChildrenManager
-          children={data.children || []}
-          onChange={(children) => updateField('children', children)}
-        />
-      )}
 
       {/* Delete Confirmation Modal for Documents */}
       {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
@@ -919,6 +917,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         )}
       </div>
+    </div>
     </>
   );
 };
