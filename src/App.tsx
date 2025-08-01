@@ -19,6 +19,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('clientList');
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientForm, setShowClientForm] = useState(false);
+  const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
 
   if (loading) {
     return (
@@ -82,9 +83,7 @@ function App() {
   };
 
   const handleClientListRefresh = () => {
-    // Force refresh of client list by updating a key or triggering re-render
-    // The ClientList component will refresh automatically due to useEffect
-    // This function can be used to trigger additional refresh logic if needed
+    setClientListRefreshKey((prev) => prev + 1);
   };
 
   const handleSignOut = async () => {
@@ -178,7 +177,7 @@ function App() {
               </div>
             )}
             {activeTab === 'clientList' && !showClientForm && (
-              <ClientList onSelectClient={handleSelectClient} toast={toast} />
+              <ClientList onSelectClient={handleSelectClient} toast={toast} refreshKey={clientListRefreshKey} />
             )}
             {activeTab === 'calculator' && !showClientForm && <MortgageCalculator />}
             {activeTab === 'notes' && !showClientForm && <NotesApp />}

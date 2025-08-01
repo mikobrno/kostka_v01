@@ -6,9 +6,10 @@ import { useToast } from '../hooks/useToast';
 interface ClientListProps {
   onSelectClient?: (client: any) => void;
   toast?: ReturnType<typeof useToast>;
+  refreshKey?: number;
 }
 
-export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast }) => {
+export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, refreshKey }) => {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +53,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast })
       return;
     }
     loadClients();
-  }, []);
+  }, [refreshKey]);
 
   const filteredClients = clients.filter(client => {
     const searchLower = searchTerm.toLowerCase();
