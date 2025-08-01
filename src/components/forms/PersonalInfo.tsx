@@ -3,7 +3,7 @@ import { AdminService } from '../../services/adminService';
 import { AresService } from '../../services/aresService';
 import { CopyButton } from '../CopyButton';
 import { FullNameCopyButton } from '../FullNameCopyButton';
-import { AddressWithMapLinks } from '../AddressWithMapLinks';
+import { AddressInput } from '../AddressInput';
 import { ChildrenManager } from '../ChildrenManager';
 import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search } from 'lucide-react';
 
@@ -388,20 +388,24 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       </div>
 
       <div>
-        <AddressWithMapLinks
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Trvalé bydliště
+        </label>
+        <AddressInput
           value={data.permanentAddress || ''}
           onChange={(value) => updateField('permanentAddress', value)}
           placeholder="Začněte psát adresu..."
-          label="Trvalé bydliště"
         />
       </div>
 
       <div>
-        <AddressWithMapLinks
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Kontaktní adresa
+        </label>
+        <AddressInput
           value={data.contactAddress || ''}
           onChange={(value) => updateField('contactAddress', value)}
           placeholder="Začněte psát adresu..."
-          label="Kontaktní adresa"
         />
       </div>
 
