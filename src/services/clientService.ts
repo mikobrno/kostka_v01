@@ -170,6 +170,34 @@ export class ClientService {
         await supabase.from('businesses').insert(businessesData)
       }
 
+      // Vytvoření dokladů totožnosti
+      const allDocuments = [
+        ...(formData.applicant.documents || []).map((document: any) => ({
+          ...document,
+          parent_type: 'applicant'
+        })),
+        ...(formData.coApplicant.documents || []).map((document: any) => ({
+          ...document,
+          parent_type: 'co_applicant'
+        }))
+      ]
+
+      if (allDocuments.length > 0) {
+        const documentsData = allDocuments.map((document: any) => ({
+          client_id: client.id,
+          parent_type: document.parent_type,
+          document_type: document.documentType || null,
+          document_number: document.documentNumber || null,
+          document_issue_date: document.documentIssueDate || null,
+          document_valid_until: document.documentValidUntil || null,
+          issuing_authority: document.issuingAuthority || null,
+          place_of_birth: document.placeOfBirth || null,
+          control_number: document.controlNumber || null,
+        }))
+
+        await supabase.from('documents').insert(documentsData)
+      }
+
       // Vytvoření závazků
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
@@ -249,6 +277,7 @@ export class ClientService {
       await supabase.from('properties').delete().eq('client_id', clientId)
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
+      await supabase.from('documents').delete().eq('client_id', clientId)
       await supabase.from('liabilities').delete().eq('client_id', clientId)
 
       // Znovu vytvoření dat (stejný kód jako v createClient)
@@ -343,6 +372,33 @@ export class ClientService {
         await supabase.from('businesses').insert(businessesData)
       }
 
+      // Znovu vytvoření dokladů totožnosti
+      const allDocuments = [
+        ...(formData.applicant.documents || []).map((document: any) => ({
+          ...document,
+          parent_type: 'applicant'
+        })),
+        ...(formData.coApplicant.documents || []).map((document: any) => ({
+          ...document,
+          parent_type: 'co_applicant'
+        }))
+      ]
+
+      if (allDocuments.length > 0) {
+        const documentsData = allDocuments.map((document: any) => ({
+          client_id: clientId,
+          parent_type: document.parent_type,
+          document_type: document.documentType || null,
+          document_number: document.documentNumber || null,
+          document_issue_date: document.documentIssueDate || null,
+          document_valid_until: document.documentValidUntil || null,
+          issuing_authority: document.issuingAuthority || null,
+          place_of_birth: document.placeOfBirth || null,
+          control_number: document.controlNumber || null,
+        }))
+        await supabase.from('documents').insert(documentsData)
+      }
+
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
           client_id: clientId,
@@ -378,6 +434,7 @@ export class ClientService {
           properties (*),
           children (*),
           businesses (*),
+          documents (*),
           liabilities (*)
         `)
         .order('created_at', { ascending: false })
@@ -403,6 +460,18 @@ export class ClientService {
           companyAddress: business.company_address,
           businessStartDate: business.business_start_date,
           parentType: business.parent_type
+        })) || [],
+        // Transformace dokladů totožnosti
+        documents: client.documents?.map((document: any) => ({
+          ...document,
+          documentType: document.document_type,
+          documentNumber: document.document_number,
+          documentIssueDate: document.document_issue_date,
+          documentValidUntil: document.document_valid_until,
+          issuingAuthority: document.issuing_authority,
+          placeOfBirth: document.place_of_birth,
+          controlNumber: document.control_number,
+          parentType: document.parent_type
         })) || []
       })) || []
 
@@ -423,6 +492,7 @@ export class ClientService {
           properties (*),
           children (*),
           businesses (*),
+          documents (*),
           liabilities (*)
         `)
         .eq('id', id)
@@ -448,6 +518,18 @@ export class ClientService {
           companyAddress: business.company_address,
           businessStartDate: business.business_start_date,
           parentType: business.parent_type
+        })) || [],
+        // Transformace dokladů totožnosti
+        documents: data.documents?.map((document: any) => ({
+          ...document,
+          documentType: document.document_type,
+          documentNumber: document.document_number,
+          documentIssueDate: document.document_issue_date,
+          documentValidUntil: document.document_valid_until,
+          issuingAuthority: document.issuing_authority,
+          placeOfBirth: document.place_of_birth,
+          controlNumber: document.control_number,
+          parentType: document.parent_type
         })) || []
       }
 

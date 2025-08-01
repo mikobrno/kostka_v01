@@ -5,7 +5,7 @@ import { CopyButton } from '../CopyButton';
 import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
-import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search } from 'lucide-react';
+import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search, ExternalLink } from 'lucide-react';
 
 interface PersonalInfoProps {
   data: any;
@@ -706,23 +706,41 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <Building className="w-5 h-5 text-purple-600" />
             <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
           </div>
-          <button
-            onClick={() => {
-              const newBusiness = {
-                id: Date.now(),
-                ico: '',
-                companyName: '',
-                companyAddress: '',
-                businessStartDate: ''
-              };
-              const currentBusinesses = data.businesses || [];
-              updateField('businesses', [...currentBusinesses, newBusiness]);
-            }}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Přidat podnikání
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+                if (fullName) {
+                  const url = `https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu?jmeno=${encodeURIComponent(fullName)}`;
+                  window.open(url, '_blank');
+                } else {
+                  window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
+                }
+              }}
+              className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+              title="Vyhledat v Registru živnostenského podnikání"
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              RŽP vyhledání
+            </button>
+            <button
+              onClick={() => {
+                const newBusiness = {
+                  id: Date.now(),
+                  ico: '',
+                  companyName: '',
+                  companyAddress: '',
+                  businessStartDate: ''
+                };
+                const currentBusinesses = data.businesses || [];
+                updateField('businesses', [...currentBusinesses, newBusiness]);
+              }}
+              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Přidat podnikání
+            </button>
+          </div>
         </div>
         
         {(data.businesses || []).map((business, index) => (
@@ -1188,12 +1206,11 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Adresa firmy
             </label>
-            <input
-              type="text"
+            <AddressWithMapLinks
               value={editData.companyAddress || ''}
-              onChange={(e) => setEditData({ ...editData, companyAddress: e.target.value })}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+              onChange={(value) => setEditData({ ...editData, companyAddress: value })}
               placeholder="Adresa sídla společnosti"
+              className="text-sm"
             />
           </div>
           

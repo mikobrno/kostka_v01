@@ -57,7 +57,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           email: client.applicant_email || '',
           bank: client.applicant_bank || '',
           housingType: client.applicant_housing_type || '',
-          children: client.children?.filter(c => c.parent_type === 'applicant') || []
+          children: client.children?.filter(c => c.parent_type === 'applicant') || [],
+          businesses: client.businesses?.filter(b => b.parent_type === 'applicant') || [],
+          documents: client.documents?.filter(d => d.parent_type === 'applicant') || []
         },
         coApplicant: {
           title: client.co_applicant_title || '',
@@ -77,7 +79,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           phone: client.co_applicant_phone || '',
           email: client.co_applicant_email || '',
           bank: client.co_applicant_bank || '',
-          children: client.children?.filter(c => c.parent_type === 'co_applicant') || []
+          children: client.children?.filter(c => c.parent_type === 'co_applicant') || [],
+          businesses: client.businesses?.filter(b => b.parent_type === 'co_applicant') || [],
+          documents: client.documents?.filter(d => d.parent_type === 'co_applicant') || []
         },
         applicantEmployer: {
           ico: client.employers?.find(e => e.employer_type === 'applicant')?.ico || '',
