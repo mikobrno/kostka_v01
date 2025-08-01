@@ -1,0 +1,12 @@
+{
+  "name": "kostka-netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for KostKa app",
+  "dependencies": {
+    "@netlify/functions": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

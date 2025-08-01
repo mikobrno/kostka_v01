@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "dist"
+
+[functions]
+  # Enable Node.js 18.x runtime
+  node_bundler = "esbuild"

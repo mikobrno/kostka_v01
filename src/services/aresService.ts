@@ -17,6 +17,9 @@ export class AresService {
   private static readonly ARES_BASE_URL = 'https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi';
   // Alternativní CORS proxy služby
   private static readonly CORS_PROXIES = [
+    // Náš vlastní Netlify proxy (nejspolehlivější)
+    '/.netlify/functions/ares-proxy?ico=',
+    // Backup proxy služby
     'https://api.allorigins.win/raw?url=',
     'https://thingproxy.freeboard.io/fetch/',
     'https://cors.bridged.cc/',
@@ -52,8 +55,17 @@ export class AresService {
       for (let i = 0; i < this.CORS_PROXIES.length; i++) {
         const proxy = this.CORS_PROXIES[i];
         try {
-          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${this.CORS_PROXIES.length}: ${proxy}`);
-          const url = `${proxy}${encodeURIComponent(aresUrl)}`;
+          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${this.CORS_PROXIES.length}: ${proxy.split('?')[0]}`);
+          
+          let url: string;
+          
+          // Náš vlastní Netlify proxy má jiný formát
+          if (proxy.startsWith('/.netlify/functions/ares-proxy')) {
+            url = `${proxy}${ico}`;
+          } else {
+            // Ostatní proxy potřebují enkódovaný ARES URL
+            url = `${proxy}${encodeURIComponent(aresUrl)}`;
+          }
           
           const response = await fetch(url, {
             method: 'GET',
