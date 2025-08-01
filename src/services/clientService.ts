@@ -145,6 +145,31 @@ export class ClientService {
         await supabase.from('children').insert(childrenData)
       }
 
+      // Vytvoření podnikání
+      const allBusinesses = [
+        ...(formData.applicant.businesses || []).map((business: any) => ({
+          ...business,
+          parent_type: 'applicant'
+        })),
+        ...(formData.coApplicant.businesses || []).map((business: any) => ({
+          ...business,
+          parent_type: 'co_applicant'
+        }))
+      ]
+
+      if (allBusinesses.length > 0) {
+        const businessesData = allBusinesses.map((business: any) => ({
+          client_id: client.id,
+          parent_type: business.parent_type,
+          ico: business.ico || null,
+          company_name: business.companyName || null,
+          company_address: business.companyAddress || null,
+          business_start_date: business.businessStartDate || null,
+        }))
+
+        await supabase.from('businesses').insert(businessesData)
+      }
+
       // Vytvoření závazků
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
@@ -223,6 +248,7 @@ export class ClientService {
       await supabase.from('employers').delete().eq('client_id', clientId)
       await supabase.from('properties').delete().eq('client_id', clientId)
       await supabase.from('children').delete().eq('client_id', clientId)
+      await supabase.from('businesses').delete().eq('client_id', clientId)
       await supabase.from('liabilities').delete().eq('client_id', clientId)
 
       // Znovu vytvoření dat (stejný kód jako v createClient)
@@ -293,6 +319,30 @@ export class ClientService {
         await supabase.from('children').insert(childrenData)
       }
 
+      // Vytvoření podnikání
+      const allBusinesses = [
+        ...(formData.applicant.businesses || []).map((business: any) => ({
+          ...business,
+          parent_type: 'applicant'
+        })),
+        ...(formData.coApplicant.businesses || []).map((business: any) => ({
+          ...business,
+          parent_type: 'co_applicant'
+        }))
+      ]
+
+      if (allBusinesses.length > 0) {
+        const businessesData = allBusinesses.map((business: any) => ({
+          client_id: clientId,
+          parent_type: business.parent_type,
+          ico: business.ico || null,
+          company_name: business.companyName || null,
+          company_address: business.companyAddress || null,
+          business_start_date: business.businessStartDate || null,
+        }))
+        await supabase.from('businesses').insert(businessesData)
+      }
+
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
           client_id: clientId,
@@ -327,6 +377,7 @@ export class ClientService {
           employers (*),
           properties (*),
           children (*),
+          businesses (*),
           liabilities (*)
         `)
         .order('created_at', { ascending: false })
@@ -336,7 +387,26 @@ export class ClientService {
         return { data: null, error };
       }
 
-      return { data, error }
+      // Transformace dat pro frontend (převod snake_case na camelCase)
+      const transformedData = data?.map((client: any) => ({
+        ...client,
+        // Transformace dětí
+        children: client.children?.map((child: any) => ({
+          ...child,
+          birthDate: child.birth_date,
+          parentType: child.parent_type
+        })) || [],
+        // Transformace podnikání
+        businesses: client.businesses?.map((business: any) => ({
+          ...business,
+          companyName: business.company_name,
+          companyAddress: business.company_address,
+          businessStartDate: business.business_start_date,
+          parentType: business.parent_type
+        })) || []
+      })) || []
+
+      return { data: transformedData, error: null }
     } catch (error) {
       console.error('Client service error:', error);
       return { data: null, error }
@@ -352,12 +422,36 @@ export class ClientService {
           employers (*),
           properties (*),
           children (*),
+          businesses (*),
           liabilities (*)
         `)
         .eq('id', id)
         .single()
 
-      return { data, error }
+      if (error) {
+        return { data: null, error }
+      }
+
+      // Transformace dat pro frontend (převod snake_case na camelCase)
+      const transformedData = {
+        ...data,
+        // Transformace dětí
+        children: data.children?.map((child: any) => ({
+          ...child,
+          birthDate: child.birth_date,
+          parentType: child.parent_type
+        })) || [],
+        // Transformace podnikání
+        businesses: data.businesses?.map((business: any) => ({
+          ...business,
+          companyName: business.company_name,
+          companyAddress: business.company_address,
+          businessStartDate: business.business_start_date,
+          parentType: business.parent_type
+        })) || []
+      }
+
+      return { data: transformedData, error: null }
     } catch (error) {
       return { data: null, error }
     }
