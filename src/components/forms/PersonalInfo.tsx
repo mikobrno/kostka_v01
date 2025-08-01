@@ -919,7 +919,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         )}
       </div>
-    </div>
     </>
   );
 };
