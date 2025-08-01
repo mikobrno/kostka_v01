@@ -1,6 +1,8 @@
 import React from 'react';
 import { CopyButton } from '../CopyButton';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { formatNumber } from '../../utils/formatHelpers';
 import { MapPin } from 'lucide-react';
 
 interface PropertyInfoProps {
@@ -34,18 +36,13 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ data, onChange, titl
           Kupní cena (Kč)
         </label>
         <div className="flex">
-          <div className="flex-1 relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">Kč</span>
-            <input
-              type="number"
-              value={data.price || ''}
-              onChange={(e) => updateField('price', e.target.value)}
-              className="block w-full pl-8 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="2000000"
-              min="0"
-            />
-          </div>
-          <CopyButton text={data.price || ''} />
+          <FormattedNumberInput
+            value={data.price || ''}
+            onChange={(value) => updateField('price', value)}
+            className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="2 000 000"
+          />
+          <CopyButton text={data.price ? formatNumber(data.price) : ''} />
         </div>
       </div>
 

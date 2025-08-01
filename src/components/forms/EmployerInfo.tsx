@@ -15,11 +15,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   const [aresError, setAresError] = useState<string | null>(null); // Nový stav pro chyby z ARES
 
   const updateField = (field: string, value: any) => {
-    console.log('EmployerInfo updateField:', field, '=', value);
-    console.log('Aktuální data před aktualizací:', data);
-    const newData = { ...data, [field]: value };
-    console.log('Nová data po aktualizaci:', newData);
-    onChange(newData);
+    onChange({ ...data, [field]: value });
   };
 
   // Funkce pro formátování čísel s mezerami jako tisícové oddělovače
@@ -80,25 +76,6 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
 
   return (
     <div className="space-y-6">
-      {/* Debug informace */}
-      <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-        <strong>Debug:</strong> IČO hodnota: "{data.ico || 'PRÁZDNÉ'}" | 
-        Data objekt: {JSON.stringify(data, null, 1)}
-      </div>
-      
-      {/* Testovací jednoduché pole */}
-      <div className="p-2 bg-blue-50 border border-blue-200 rounded">
-        <label className="block text-xs font-medium text-blue-700 mb-1">
-          TEST INPUT (funguje?)
-        </label>
-        <input
-          type="text"
-          placeholder="Test - zkuste napsat něco..."
-          onChange={(e) => console.log('TEST INPUT FUNGUJE:', e.target.value)}
-          className="w-full p-1 border border-blue-300 rounded text-xs"
-        />
-      </div>
-      
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           IČO
@@ -108,31 +85,25 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             type="text"
             value={data.ico || ''}
             onChange={(e) => {
-              console.log('IČO onChange spuštěn:', e.target.value);
               const newIco = e.target.value.replace(/\D/g, ''); // Pouze číslice
-              console.log('Filtrované IČO:', newIco);
               updateField('ico', newIco);
               // Automatické volání ARES při dosažení 8 znaků
               if (newIco.length === 8) {
                 fetchAresData(newIco);
               } else {
-                setAresError(null); // Vyčistíme chybu, pokud IČO není kompletní
-                updateField('companyName', ''); // Vyčistíme pole při neúplném IČO
+                setAresError(null);
+                updateField('companyName', '');
                 updateField('companyAddress', '');
               }
             }}
-            onFocus={() => console.log('IČO pole má focus')}
-            onBlur={() => console.log('IČO pole ztratilo focus')}
-            className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="flex-1 p-2 border border-gray-300 rounded-l text-sm"
             placeholder="12345678"
             maxLength={8}
-            disabled={false}
-            readOnly={false}
           />
           <button
             onClick={() => fetchAresData(data.ico)}
             disabled={isLoadingAres || data.ico?.length !== 8}
-            className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
+            className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-r"
           >
             {isLoadingAres ? (
               <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -142,7 +113,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           </button>
           <CopyButton text={data.ico || ''} />
         </div>
-        {aresError && ( // Zobrazení chybové zprávy z ARES
+        {aresError && (
           <p className="mt-1 text-sm text-red-600">{aresError}</p>
         )}
         <p className="mt-1 text-xs text-gray-500">

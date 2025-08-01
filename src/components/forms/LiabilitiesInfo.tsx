@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { CopyButton } from '../CopyButton';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { formatNumber } from '../../utils/formatHelpers';
 import { Plus, Trash2 } from 'lucide-react';
 
 interface LiabilitiesInfoProps {
@@ -161,15 +163,13 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                 Výše úvěru (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={liability.amount || ''}
-                  onChange={(e) => updateLiability(liability.id, 'amount', e.target.value)}
+                  onChange={(value) => updateLiability(liability.id, 'amount', value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="500000"
-                  min="0"
+                  placeholder="500 000"
                 />
-                <CopyButton text={liability.amount || ''} />
+                <CopyButton text={liability.amount ? formatNumber(liability.amount) : ''} />
               </div>
             </div>
 
@@ -178,15 +178,13 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                 Splátka (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={liability.payment || ''}
-                  onChange={(e) => updateLiability(liability.id, 'payment', e.target.value)}
+                  onChange={(value) => updateLiability(liability.id, 'payment', value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="5000"
-                  min="0"
+                  placeholder="5 000"
                 />
-                <CopyButton text={liability.payment || ''} />
+                <CopyButton text={liability.payment ? formatNumber(liability.payment) : ''} />
               </div>
             </div>
 
@@ -195,15 +193,13 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                 Zůstatek (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={liability.balance || ''}
-                  onChange={(e) => updateLiability(liability.id, 'balance', e.target.value)}
+                  onChange={(value) => updateLiability(liability.id, 'balance', value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="450000"
-                  min="0"
+                  placeholder="450 000"
                 />
-                <CopyButton text={liability.balance || ''} />
+                <CopyButton text={liability.balance ? formatNumber(liability.balance) : ''} />
               </div>
             </div>
           </div>
