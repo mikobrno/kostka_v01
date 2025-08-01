@@ -4,7 +4,10 @@ import type { Client, Employer, Property, Child, Liability } from '../lib/supaba
 export interface ClientFormData {
   applicant: any
   coApplicant: any
-  employer: any
+  employer: {
+    applicant?: any
+    coApplicant?: any
+  }
   property: any
   liabilities: any[]
 }
@@ -70,30 +73,39 @@ export class ClientService {
       }
 
       // Vytvoření zaměstnavatele
-      if (formData.applicantEmployer && Object.keys(formData.applicantEmployer).length > 0) {
+      if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
         const employerData = {
           client_id: client.id,
-          ico: formData.applicantEmployer.ico || null,
-          company_name: formData.applicantEmployer.companyName || null,
-          company_address: formData.applicantEmployer.companyAddress || null,
-          net_income: formData.applicantEmployer.netIncome ? parseFloat(formData.applicantEmployer.netIncome) : null,
+          ico: formData.employer.applicant.ico || null,
+          company_name: formData.employer.applicant.companyName || null,
+          company_address: formData.employer.applicant.companyAddress || null,
+          net_income: formData.employer.applicant.netIncome ? parseFloat(formData.employer.applicant.netIncome) : null,
+          job_position: formData.employer.applicant.jobPosition || null,
+          employed_since: formData.employer.applicant.employedSince || null,
+          contract_type: formData.employer.applicant.contractType || null,
+          contract_from_date: formData.employer.applicant.contractFromDate || null,
+          contract_to_date: formData.employer.applicant.contractToDate || null,
+          contract_extended: formData.employer.applicant.contractExtended || null,
           employer_type: 'applicant'
         }
-
         await supabase.from('employers').insert(employerData)
       }
 
-      // Vytvoření zaměstnavatele spolužadatele
-      if (formData.coApplicantEmployer && Object.keys(formData.coApplicantEmployer).length > 0) {
+      if (formData.employer?.coApplicant && Object.keys(formData.employer.coApplicant).length > 0) {
         const coEmployerData = {
           client_id: client.id,
-          ico: formData.coApplicantEmployer.ico || null,
-          company_name: formData.coApplicantEmployer.companyName || null,
-          company_address: formData.coApplicantEmployer.companyAddress || null,
-          net_income: formData.coApplicantEmployer.netIncome ? parseFloat(formData.coApplicantEmployer.netIncome) : null,
+          ico: formData.employer.coApplicant.ico || null,
+          company_name: formData.employer.coApplicant.companyName || null,
+          company_address: formData.employer.coApplicant.companyAddress || null,
+          net_income: formData.employer.coApplicant.netIncome ? parseFloat(formData.employer.coApplicant.netIncome) : null,
+          job_position: formData.employer.coApplicant.jobPosition || null,
+          employed_since: formData.employer.coApplicant.employedSince || null,
+          contract_type: formData.employer.coApplicant.contractType || null,
+          contract_from_date: formData.employer.coApplicant.contractFromDate || null,
+          contract_to_date: formData.employer.coApplicant.contractToDate || null,
+          contract_extended: formData.employer.coApplicant.contractExtended || null,
           employer_type: 'co_applicant'
         }
-
         await supabase.from('employers').insert(coEmployerData)
       }
 
@@ -213,24 +225,37 @@ export class ClientService {
 
       // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.applicantEmployer && Object.keys(formData.applicantEmployer).length > 0) {
+      if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
         const employerData = {
           client_id: clientId,
-          ico: formData.applicantEmployer.ico || null,
-          company_name: formData.applicantEmployer.companyName || null,
-          company_address: formData.applicantEmployer.companyAddress || null,
-          net_income: formData.applicantEmployer.netIncome ? parseFloat(formData.applicantEmployer.netIncome) : null,
+          ico: formData.employer.applicant.ico || null,
+          company_name: formData.employer.applicant.companyName || null,
+          company_address: formData.employer.applicant.companyAddress || null,
+          net_income: formData.employer.applicant.netIncome ? parseFloat(formData.employer.applicant.netIncome) : null,
+          job_position: formData.employer.applicant.jobPosition || null,
+          employed_since: formData.employer.applicant.employedSince || null,
+          contract_type: formData.employer.applicant.contractType || null,
+          contract_from_date: formData.employer.applicant.contractFromDate || null,
+          contract_to_date: formData.employer.applicant.contractToDate || null,
+          contract_extended: formData.employer.applicant.contractExtended || null,
           employer_type: 'applicant'
         }
         await supabase.from('employers').insert(employerData)
       }
 
-      if (formData.coApplicantEmployer && Object.keys(formData.coApplicantEmployer).length > 0) {
+      if (formData.employer?.coApplicant && Object.keys(formData.employer.coApplicant).length > 0) {
         const coEmployerData = {
           client_id: clientId,
-          ico: formData.coApplicantEmployer.ico || null,
-          company_name: formData.coApplicantEmployer.companyName || null,
-          company_address: formData.coApplicantEmployer.companyAddress || null,
-          net_income: formData.coApplicantEmployer.netIncome ? parseFloat(formData.coApplicantEmployer.netIncome) : null,
+          ico: formData.employer.coApplicant.ico || null,
+          company_name: formData.employer.coApplicant.companyName || null,
+          company_address: formData.employer.coApplicant.companyAddress || null,
+          net_income: formData.employer.coApplicant.netIncome ? parseFloat(formData.employer.coApplicant.netIncome) : null,
+          job_position: formData.employer.coApplicant.jobPosition || null,
+          employed_since: formData.employer.coApplicant.employedSince || null,
+          contract_type: formData.employer.coApplicant.contractType || null,
+          contract_from_date: formData.employer.coApplicant.contractFromDate || null,
+          contract_to_date: formData.employer.coApplicant.contractToDate || null,
+          contract_extended: formData.employer.coApplicant.contractExtended || null,
           employer_type: 'co_applicant'
         }
         await supabase.from('employers').insert(coEmployerData)
