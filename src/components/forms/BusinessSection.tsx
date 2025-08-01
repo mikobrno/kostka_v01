@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building, Search, Plus, Edit, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { CopyButton } from '../CopyButton';
+import { AresService } from '../../services/aresService';
 
 interface BusinessData {
   id: string;
@@ -68,37 +69,42 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
     'Jiné'
   ];
 
-  // Mock Business Registry API call
+  // ARES Business Registry API call
   const searchBusinessByIco = async (ico: string) => {
     setIsSearching(true);
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call ARES service
+      const result = await AresService.searchByIco(ico);
       
-      // Mock data - in production, this would call actual Business Registry API
-      const mockBusinessData: Partial<BusinessData> = {
-        ico: ico,
-        company_name: `Vzorová společnost ${ico} s.r.o.`,
-        legal_form: 's.r.o.',
-        registration_date: '2020-01-15',
-        business_address: 'Václavské náměstí 1, 110 00 Praha 1',
-        business_activity: 'Výroba a prodej software',
-        nace_code: '62010',
-        employee_count: 25,
-        business_status: 'active',
-        sync_status: 'synced',
-        last_sync_date: new Date().toISOString(),
-        is_active: true,
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      if (!result.data) {
+        throw new Error('Firma s tímto IČO nebyla nalezena');
+      }
+
+      // Transform ARES data to BusinessData format
+      const businessData: Partial<BusinessData> = {
+        ico: result.data.ico,
+        company_name: result.data.companyName,
+        legal_form: result.data.legalForm,
+        registration_date: result.data.registrationDate,
+        business_address: result.data.address,
+        business_status: result.data.isActive ? 'active' : 'inactive',
+        is_active: result.data.isActive,
         registry_data: {
-          source: 'business_registry_api',
-          fetched_at: new Date().toISOString(),
-          raw_data: { /* mock raw API response */ }
-        }
+          source: 'ares_api',
+          dic: result.data.dic,
+          last_updated: new Date().toISOString()
+        },
+        last_sync_date: new Date().toISOString(),
+        sync_status: 'synced'
       };
 
-      return mockBusinessData;
+      return businessData;
     } catch (error) {
-      throw new Error('Nepodařilo se načíst data z obchodního rejstříku');
+      throw new Error(`Nepodařilo se načíst data z ARES: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     } finally {
       setIsSearching(false);
     }
@@ -125,7 +131,7 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
       });
       setSearchIco('');
     } catch (error) {
-      alert(`Chyba při vyhledávání: ${error.message}`);
+      alert(`Chyba při vyhledávání: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     }
   };
 
@@ -187,7 +193,7 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
       onChange(updated);
       alert('Data byla úspěšně aktualizována');
     } catch (error) {
-      alert(`Chyba při aktualizaci: ${error.message}`);
+      alert(`Chyba při aktualizaci: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     }
   };
 

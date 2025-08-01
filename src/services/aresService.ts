@@ -15,6 +15,7 @@ export interface AresCompanyData {
 
 export class AresService {
   private static readonly ARES_BASE_URL = 'https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi';
+  private static readonly CORS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
   /**
    * Vyhledá firmu podle IČO v ARES registru
@@ -31,17 +32,17 @@ export class AresService {
         };
       }
 
-      // Sestavení URL pro ARES API
-      const url = `${this.ARES_BASE_URL}?ico=${ico}`;
+      // Sestavení URL pro ARES API s CORS proxy
+      const aresUrl = `${this.ARES_BASE_URL}?ico=${ico}`;
+      const url = `${this.CORS_PROXY_URL}${encodeURIComponent(aresUrl)}`;
       
       console.log('🔍 Vyhledávám firmu v ARES:', ico);
       
-      // Volání ARES API
+      // Volání ARES API přes CORS proxy
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/xml, text/xml',
-          'User-Agent': 'KostKa-Uvery-App/1.0'
         }
       });
 
@@ -73,7 +74,7 @@ export class AresService {
       
       return {
         data: null,
-        error: `Chyba při načítání dat z ARES: ${error.message}`
+        error: `Chyba při načítání dat z ARES: ${error instanceof Error ? error.message : 'Neznámá chyba'}`
       };
     }
   }
