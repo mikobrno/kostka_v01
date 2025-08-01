@@ -1,7 +1,11 @@
 [build]
-  command = "npm run build"
+  command = "npm ci && npm run build"
   functions = "netlify/functions"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
 
 [functions]
   # Enable Node.js 18.x runtime
