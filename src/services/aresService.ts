@@ -17,8 +17,13 @@ export class AresService {
   private static readonly ARES_BASE_URL = 'https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi';
   // Alternativní CORS proxy služby
   private static readonly CORS_PROXIES = [
-    'https://corsproxy.io/?',
+    'https://api.allorigins.win/raw?url=',
+    'https://thingproxy.freeboard.io/fetch/',
+    'https://cors.bridged.cc/',
+    'https://yacdn.org/proxy/',
     'https://api.codetabs.com/v1/proxy?quest=',
+    // Backup proxies
+    'https://corsproxy.io/?',
     'https://cors-anywhere.herokuapp.com/'
   ];
 
@@ -43,8 +48,11 @@ export class AresService {
       console.log('🔍 Vyhledávám firmu v ARES:', ico);
       
       // Zkouším různé CORS proxy postupně
-      for (const proxy of this.CORS_PROXIES) {
+      let lastError = '';
+      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
+        const proxy = this.CORS_PROXIES[i];
         try {
+          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${this.CORS_PROXIES.length}: ${proxy}`);
           const url = `${proxy}${encodeURIComponent(aresUrl)}`;
           
           const response = await fetch(url, {
@@ -77,7 +85,8 @@ export class AresService {
             error: null
           };
         } catch (proxyError) {
-          console.warn(`Proxy ${proxy} selhalo:`, proxyError);
+          lastError = proxyError instanceof Error ? proxyError.message : 'Neznámá chyba';
+          console.warn(`❌ Proxy ${i + 1} selhalo:`, lastError);
           // Pokračuje s dalším proxy
         }
       }
@@ -206,6 +215,34 @@ export class AresService {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const mockCompanies: Record<string, AresCompanyData> = {
+      // Reálná testovací IČO pro demo
+      '27074358': {
+        ico: '27074358',
+        dic: 'CZ27074358',
+        companyName: 'Microsoft s.r.o.',
+        legalForm: 'Společnost s ručením omezeným',
+        address: 'BB Centrum, Vyskočilova 1461/2a, 140 00 Praha 4',
+        isActive: true,
+        registrationDate: '2008-07-01'
+      },
+      '26168685': {
+        ico: '26168685',
+        dic: 'CZ26168685',
+        companyName: 'Google Czech Republic s.r.o.',
+        legalForm: 'Společnost s ručením omezeným',
+        address: 'Karla Engliše 3201/6, 150 00 Praha 5',
+        isActive: true,
+        registrationDate: '2006-12-15'
+      },
+      '47123737': {
+        ico: '47123737',
+        dic: 'CZ47123737',
+        companyName: 'Amazon Web Services EMEA SARL',
+        legalForm: 'Organizační složka',
+        address: 'Olivova 2096/4, 110 00 Praha 1',
+        isActive: true,
+        registrationDate: '2012-03-20'
+      },
       '12345678': {
         ico: '12345678',
         dic: 'CZ12345678',
@@ -232,6 +269,16 @@ export class AresService {
         address: 'Hlavní třída 15, 702 00 Ostrava',
         isActive: true,
         registrationDate: '2019-03-10'
+      },
+      // Časté testovací IČO
+      '95293299': {
+        ico: '95293299',
+        dic: 'CZ95293299',
+        companyName: 'Test Corporation s.r.o.',
+        legalForm: 'Společnost s ručením omezeným',
+        address: 'Testovací ulice 123, 100 00 Praha 10',
+        isActive: true,
+        registrationDate: '2021-06-10'
       }
     };
 
