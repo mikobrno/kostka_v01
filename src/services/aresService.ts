@@ -124,6 +124,8 @@ export class AresService {
    */
   private static parseAresXmlResponse(xmlText: string, ico: string): AresCompanyData | null {
     try {
+      console.log('🔍 Parsování ARES XML, délka:', xmlText.length);
+      
       // Vytvoření DOM parseru pro XML
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
@@ -131,30 +133,65 @@ export class AresService {
       // Kontrola chyb v XML
       const errorElement = xmlDoc.querySelector('parsererror');
       if (errorElement) {
+        console.error('❌ XML parser error:', errorElement.textContent);
         throw new Error('Chyba při parsování XML odpovědi z ARES');
       }
 
-      // Hledání elementu s údaji o firmě
-      const zaznamElement = xmlDoc.querySelector('Zaznam');
+      // Debug: vypíš strukturu XML
+      console.log('📋 XML struktura:', xmlDoc.documentElement?.tagName);
+      
+      // Hledání elementu s údaji o firmě - zkusíme různé možné struktury
+      let zaznamElement = xmlDoc.querySelector('Zaznam');
+      
       if (!zaznamElement) {
-        return null; // Firma nenalezena
+        // Alternativní struktury ARES XML
+        zaznamElement = xmlDoc.querySelector('are:Zaznam') || 
+                       xmlDoc.querySelector('D\\:Zaznam') ||
+                       xmlDoc.querySelector('Výpis_ARES Výpis_základních_údajů');
+      }
+      
+      if (!zaznamElement) {
+        console.warn('⚠️ Nenalezen element Zaznam v XML');
+        // Debug: vypíš všechny elementy pro analýzu
+        const allElements = xmlDoc.querySelectorAll('*');
+        console.log('🔍 Dostupné elementy:', Array.from(allElements).slice(0, 10).map(el => el.tagName));
+        return null;
       }
 
-      // Extrakce údajů z XML
+      console.log('✅ Nalezen element Zaznam');
+
+      // Extrakce údajů z XML - zkusíme různé možné názvy elementů
       const companyName = this.getXmlElementText(zaznamElement, 'OF') || 
-                         this.getXmlElementText(zaznamElement, 'ObchodniFirma') || 
+                         this.getXmlElementText(zaznamElement, 'ObchodniFirma') ||
+                         this.getXmlElementText(zaznamElement, 'ObchodniJmeno') ||
+                         this.getXmlElementText(zaznamElement, 'NazevFirmy') ||
                          'Název nenalezen';
 
-      const dic = this.getXmlElementText(zaznamElement, 'DIC');
-      const legalForm = this.getXmlElementText(zaznamElement, 'PF');
+      const dic = this.getXmlElementText(zaznamElement, 'DIC') ||
+                 this.getXmlElementText(zaznamElement, 'DIČ');
+      
+      const legalForm = this.getXmlElementText(zaznamElement, 'PF') ||
+                       this.getXmlElementText(zaznamElement, 'PravniForma');
       
       // Sestavení adresy
       const address = this.buildAddressFromXml(zaznamElement);
       
       // Kontrola stavu firmy
-      const isActive = !this.getXmlElementText(zaznamElement, 'DZ'); // DZ = datum zániku
+      const datumZaniku = this.getXmlElementText(zaznamElement, 'DZ') || 
+                         this.getXmlElementText(zaznamElement, 'DatumZaniku');
+      const isActive = !datumZaniku;
       
-      const registrationDate = this.getXmlElementText(zaznamElement, 'DV'); // DV = datum vzniku
+      const registrationDate = this.getXmlElementText(zaznamElement, 'DV') || 
+                              this.getXmlElementText(zaznamElement, 'DatumVzniku');
+
+      console.log('📊 Parsované údaje:', {
+        companyName,
+        dic,
+        legalForm,
+        address: address.substring(0, 50) + '...',
+        isActive,
+        registrationDate
+      });
 
       return {
         ico,
@@ -167,7 +204,8 @@ export class AresService {
       };
 
     } catch (error) {
-      console.error('Chyba při parsování ARES XML:', error);
+      console.error('❌ Chyba při parsování ARES XML:', error);
+      console.log('📝 XML ukázka (prvních 500 znaků):', xmlText.substring(0, 500));
       return null;
     }
   }
@@ -179,8 +217,31 @@ export class AresService {
    * @returns Text obsah elementu nebo null
    */
   private static getXmlElementText(parent: Element, tagName: string): string | null {
-    const element = parent.querySelector(tagName);
-    return element ? element.textContent?.trim() || null : null;
+    // Zkusíme různé možné selektory
+    const selectors = [
+      tagName,                    // přímý název
+      `*[localName="${tagName}"]`, // bez namespace
+      `are\\:${tagName}`,         // s are: namespace
+      `D\\:${tagName}`            // s D: namespace
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = parent.querySelector(selector);
+        if (element) {
+          const text = element.textContent?.trim();
+          if (text) {
+            console.log(`📄 Nalezen ${tagName}:`, text);
+            return text;
+          }
+        }
+      } catch {
+        // Pokračuje s dalším selektorem
+      }
+    }
+    
+    console.log(`⚠️ Nenalezen element: ${tagName}`);
+    return null;
   }
 
   /**
@@ -191,30 +252,52 @@ export class AresService {
   private static buildAddressFromXml(zaznamElement: Element): string {
     const addressParts: string[] = [];
 
+    // Zkusíme různé možné struktury adres
     // Ulice a číslo
-    const street = this.getXmlElementText(zaznamElement, 'NU');
+    const street = this.getXmlElementText(zaznamElement, 'NU') ||
+                  this.getXmlElementText(zaznamElement, 'Ulice') ||
+                  this.getXmlElementText(zaznamElement, 'NazevUlice');
+    
     const houseNumber = this.getXmlElementText(zaznamElement, 'CD') || 
-                       this.getXmlElementText(zaznamElement, 'CO');
+                       this.getXmlElementText(zaznamElement, 'CO') ||
+                       this.getXmlElementText(zaznamElement, 'CisloPopisne') ||
+                       this.getXmlElementText(zaznamElement, 'CisloOrientacni');
     
     if (street) {
       addressParts.push(houseNumber ? `${street} ${houseNumber}` : street);
+    } else if (houseNumber) {
+      addressParts.push(houseNumber);
     }
 
     // Město
-    const city = this.getXmlElementText(zaznamElement, 'N');
+    const city = this.getXmlElementText(zaznamElement, 'N') ||
+                this.getXmlElementText(zaznamElement, 'Mesto') ||
+                this.getXmlElementText(zaznamElement, 'NazevMesta') ||
+                this.getXmlElementText(zaznamElement, 'ObecNazev');
+    
     if (city) {
       addressParts.push(city);
     }
 
     // PSČ
-    const postalCode = this.getXmlElementText(zaznamElement, 'PSC');
+    const postalCode = this.getXmlElementText(zaznamElement, 'PSC') ||
+                      this.getXmlElementText(zaznamElement, 'PostovniKod');
+    
     if (postalCode) {
       // Formátování PSČ na XXX XX
-      const formattedPostalCode = postalCode.replace(/(\d{3})(\d{2})/, '$1 $2');
-      addressParts.push(formattedPostalCode);
+      const cleanPostalCode = postalCode.replace(/\s/g, '');
+      if (cleanPostalCode.length === 5) {
+        const formattedPostalCode = cleanPostalCode.replace(/(\d{3})(\d{2})/, '$1 $2');
+        addressParts.push(formattedPostalCode);
+      } else {
+        addressParts.push(postalCode);
+      }
     }
 
-    return addressParts.join(', ') || 'Adresa nenalezena';
+    const finalAddress = addressParts.join(', ') || 'Adresa nenalezena';
+    console.log('🏠 Sestavená adresa:', finalAddress);
+    
+    return finalAddress;
   }
 
   /**
