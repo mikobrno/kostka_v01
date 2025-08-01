@@ -56,6 +56,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           phone: client.applicant_phone || '',
           email: client.applicant_email || '',
           bank: client.applicant_bank || '',
+          housingType: client.applicant_housing_type || '',
           children: client.children?.filter(c => c.parent_type === 'applicant') || []
         },
         coApplicant: {
