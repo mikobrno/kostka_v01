@@ -149,19 +149,37 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         if (error) {
           throw new Error(error.message || 'Chyba při aktualizaci klienta');
         }
-        setCurrentClient(data);
+        // Po uložení načti aktuální data klienta ze Supabase
+        const { data: freshData, error: freshError } = await ClientService.getClient(clientId);
+        if (!freshError && freshData) {
+          setCurrentClient(freshData);
+        } else {
+          setCurrentClient(data); // fallback
+        }
         toast?.showSuccess('Klient aktualizován', 'Údaje klienta byly úspěšně uloženy');
-        // Don't call onClientSaved to prevent navigation - user stays on current page
       } else {
         // Vytvoření nového klienta
         const { data, error } = await ClientService.createClient(payload);
         if (error) {
           throw new Error(error.message || 'Chyba při vytváření klienta');
         }
-        setCurrentClient(data);
+        // Po uložení načti aktuální data klienta ze Supabase
+        if (data && data.id) {
+          const { data: freshData, error: freshError } = await ClientService.getClient(data.id);
+          if (!freshError && freshData) {
+            setCurrentClient(freshData);
+          } else {
+            setCurrentClient(data); // fallback
+          }
+        } else {
+          setCurrentClient(data);
+        }
+        if (!freshError && freshData) {
+          setCurrentClient(freshData);
+        } else {
+          setCurrentClient(data); // fallback
+        }
         toast?.showSuccess('Klient vytvořen', 'Nový klient byl úspěšně přidán do systému');
-        // Don't call onClientSaved to prevent navigation - user stays on current page
-        // After creation, we're now in edit mode with the saved client data
       }
     } catch (error) {
       console.error('Chyba při ukládání:', error);
