@@ -32,8 +32,11 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   };
 
   const fetchAresData = async (ico: string) => {
+    console.log('🚀 fetchAresData volána s IČO:', ico); // Debug log
+    
     // Validace IČO před voláním ARES služby
     if (!ico || ico.length !== 8 || !/^\d{8}$/.test(ico)) {
+      console.log('❌ Neplatné IČO:', ico); // Debug log
       setAresError('IČO musí být 8místné číslo.');
       updateField('companyName', '');
       updateField('companyAddress', '');
@@ -46,11 +49,11 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
     updateField('companyAddress', '');
 
     try {
-      // Skutečné volání ARES API pomocí AresService
-      const { data: companyAresData, error } = await AresService.searchByIco(ico);
-
-      // Můžete použít i mock data pro vývoj/testování (odkomentujte a zakomentujte řádek výše):
-      // const { data: companyAresData, error } = await AresService.getMockData(ico);
+      // Dočasně použijeme mock data pro testování - odkomentujte pro skutečné ARES volání
+      const { data: companyAresData, error } = await AresService.getMockData(ico);
+      
+      // Skutečné volání ARES API pomocí AresService (zakomentováno pro testování)
+      // const { data: companyAresData, error } = await AresService.searchByIco(ico);
 
       if (error) {
         setAresError(error); // Nastavíme chybu z ARES služby
@@ -85,24 +88,24 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             type="text"
             value={data.ico || ''}
             onChange={(e) => {
-              const newIco = e.target.value.replace(/\D/g, ''); // Pouze číslice
-              updateField('ico', newIco);
-              // Automatické volání ARES při dosažení 8 znaků
-              if (newIco.length === 8) {
-                fetchAresData(newIco);
-              } else {
-                setAresError(null);
-                updateField('companyName', '');
-                updateField('companyAddress', '');
-              }
+              console.log('IČO pole změna:', e.target.value); // Debug log
+              updateField('ico', e.target.value);
             }}
-            className="flex-1 p-2 border border-gray-300 rounded-l text-sm"
-            placeholder="12345678"
+            onFocus={() => console.log('IČO pole má focus')}
+            onBlur={() => console.log('IČO pole ztratilo focus')}
+            className="flex-1 block w-full p-3 border-2 border-red-500 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm bg-yellow-50"
+            placeholder="Zadejte IČO (8 číslic)"
             maxLength={8}
+            autoComplete="off"
           />
           <button
-            onClick={() => fetchAresData(data.ico)}
-            disabled={isLoadingAres || data.ico?.length !== 8}
+            onClick={() => {
+              const ico = data.ico?.replace(/\D/g, '') || '';
+              if (ico.length === 8) {
+                fetchAresData(ico);
+              }
+            }}
+            disabled={isLoadingAres}
             className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-r"
           >
             {isLoadingAres ? (
