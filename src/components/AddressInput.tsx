@@ -9,6 +9,15 @@ declare global {
   }
 }
 
+// Vite environment variables type declaration
+interface ImportMetaEnv {
+  readonly VITE_GOOGLE_MAPS_API_KEY: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 interface AddressInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -30,7 +39,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadGoogleMapsApi = useCallback(async () => {
-    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       setApiError('Google Maps API key not found');
       return;
