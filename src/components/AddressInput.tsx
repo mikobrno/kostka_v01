@@ -40,16 +40,21 @@ export const AddressInput: React.FC<AddressInputProps> = ({
 
   const loadGoogleMapsApi = useCallback(async () => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    console.log('🔑 API Key found:', !!apiKey);
+    
     if (!apiKey) {
+      console.error('❌ Google Maps API key not found in environment');
       setApiError('Google Maps API key not found');
       return;
     }
     
     if (window.google?.maps?.places) {
+      console.log('✅ Google Maps API already loaded');
       setIsApiLoaded(true);
       return;
     }
 
+    console.log('📝 Loading Google Maps API script...');
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
     script.async = true;
@@ -57,10 +62,12 @@ export const AddressInput: React.FC<AddressInputProps> = ({
     
     return new Promise((resolve, reject) => {
       script.onload = () => {
+        console.log('✅ Google Maps API script loaded successfully');
         setIsApiLoaded(true);
         resolve(void 0);
       };
-      script.onerror = () => {
+      script.onerror = (error) => {
+        console.error('❌ Failed to load Google Maps API script:', error);
         setApiError('Failed to load Google Maps API');
         reject(new Error('Failed to load Google Maps API'));
       };
