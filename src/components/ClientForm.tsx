@@ -80,16 +80,28 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           children: client.children?.filter(c => c.parent_type === 'co_applicant') || []
         },
         applicantEmployer: {
-          ico: client.employers?.[0]?.ico || '',
-          companyName: client.employers?.[0]?.company_name || '',
-          companyAddress: client.employers?.[0]?.company_address || '',
-          netIncome: client.employers?.[0]?.net_income || ''
+          ico: client.employers?.find(e => e.employer_type === 'applicant')?.ico || '',
+          companyName: client.employers?.find(e => e.employer_type === 'applicant')?.company_name || '',
+          companyAddress: client.employers?.find(e => e.employer_type === 'applicant')?.company_address || '',
+          netIncome: client.employers?.find(e => e.employer_type === 'applicant')?.net_income || '',
+          jobPosition: client.employers?.find(e => e.employer_type === 'applicant')?.job_position || '',
+          employedSince: client.employers?.find(e => e.employer_type === 'applicant')?.employed_since || '',
+          contractType: client.employers?.find(e => e.employer_type === 'applicant')?.contract_type || '',
+          contractFromDate: client.employers?.find(e => e.employer_type === 'applicant')?.contract_from_date || '',
+          contractToDate: client.employers?.find(e => e.employer_type === 'applicant')?.contract_to_date || '',
+          contractExtended: client.employers?.find(e => e.employer_type === 'applicant')?.contract_extended || false
         },
         coApplicantEmployer: {
-          ico: client.employers?.[1]?.ico || '',
-          companyName: client.employers?.[1]?.company_name || '',
-          companyAddress: client.employers?.[1]?.company_address || '',
-          netIncome: client.employers?.[1]?.net_income || ''
+          ico: client.employers?.find(e => e.employer_type === 'co_applicant')?.ico || '',
+          companyName: client.employers?.find(e => e.employer_type === 'co_applicant')?.company_name || '',
+          companyAddress: client.employers?.find(e => e.employer_type === 'co_applicant')?.company_address || '',
+          netIncome: client.employers?.find(e => e.employer_type === 'co_applicant')?.net_income || '',
+          jobPosition: client.employers?.find(e => e.employer_type === 'co_applicant')?.job_position || '',
+          employedSince: client.employers?.find(e => e.employer_type === 'co_applicant')?.employed_since || '',
+          contractType: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_type || '',
+          contractFromDate: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_from_date || '',
+          contractToDate: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_to_date || '',
+          contractExtended: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_extended || false
         },
         liabilities: client.liabilities || [],
         applicantProperty: {
@@ -120,10 +132,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Sestavení employer objektu pro ClientService
+      const employer = {
+        applicant: formData.applicantEmployer,
+        coApplicant: formData.coApplicantEmployer
+      };
+      const payload = {
+        ...formData,
+        employer,
+        property: formData.applicantProperty // nebo sloučit obě nemovitosti dle potřeby
+      };
       if (selectedClient || currentClient) {
         // Aktualizace existujícího klienta
         const clientId = selectedClient?.id || currentClient?.id;
-        const { data, error } = await ClientService.updateClient(clientId, formData);
+        const { data, error } = await ClientService.updateClient(clientId, payload);
         if (error) {
           throw new Error(error.message || 'Chyba při aktualizaci klienta');
         }
@@ -132,7 +154,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         // Don't call onClientSaved to prevent navigation - user stays on current page
       } else {
         // Vytvoření nového klienta
-        const { data, error } = await ClientService.createClient(formData);
+        const { data, error } = await ClientService.createClient(payload);
         if (error) {
           throw new Error(error.message || 'Chyba při vytváření klienta');
         }
