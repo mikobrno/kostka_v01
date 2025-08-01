@@ -87,16 +87,6 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             onChange={(e) => {
               const newIco = e.target.value.replace(/\D/g, ''); // Pouze číslice
               updateField('ico', newIco);
-              
-              // Automatické volání ARES při dosažení 8 znaků
-              if (newIco.length === 8) {
-                fetchAresData(newIco);
-              } else {
-                // Vyčistíme pole při neúplném IČO
-                setAresError(null);
-                updateField('companyName', '');
-                updateField('companyAddress', '');
-              }
             }}
             className="flex-1 block w-full p-2 border border-gray-300 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             placeholder="Zadejte IČO (8 číslic)"

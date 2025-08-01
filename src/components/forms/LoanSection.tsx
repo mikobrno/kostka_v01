@@ -1,6 +1,8 @@
 import React from 'react';
 import { AdminService } from '../../services/adminService';
 import { CopyButton } from '../CopyButton';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { formatNumber } from '../../utils/formatHelpers';
 import { Calculator, CreditCard, Percent, Calendar } from 'lucide-react';
 
 interface LoanSectionProps {
@@ -171,18 +173,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Výše úvěru (Kč)
           </label>
           <div className="flex">
-            <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">Kč</span>
-              <input
-                type="number"
-                value={data.loanAmount || ''}
-                onChange={(e) => updateField('loanAmount', e.target.value)}
-                className="block w-full pl-8 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-                placeholder="1500000"
-                min="0"
-              />
-            </div>
-            <CopyButton text={data.loanAmount || ''} />
+            <FormattedNumberInput
+              value={data.loanAmount || ''}
+              onChange={(value) => updateField('loanAmount', value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              placeholder="1 500 000"
+            />
+            <CopyButton text={data.loanAmount ? formatNumber(data.loanAmount) : ''} />
           </div>
         </div>
 
@@ -260,18 +257,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Hodnota nemovitosti - ocenění (Kč)
           </label>
           <div className="flex">
-            <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">Kč</span>
-              <input
-                type="number"
-                value={data.propertyValue || propertyPrice || ''}
-                onChange={(e) => updateField('propertyValue', e.target.value)}
-                className="block w-full pl-8 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-                placeholder="2000000"
-                min="0"
-              />
-            </div>
-            <CopyButton text={data.propertyValue || propertyPrice?.toString() || ''} />
+            <FormattedNumberInput
+              value={data.propertyValue || propertyPrice || ''}
+              onChange={(value) => updateField('propertyValue', value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              placeholder="2 000 000"
+            />
+            <CopyButton text={data.propertyValue ? formatNumber(data.propertyValue) : (propertyPrice ? formatNumber(propertyPrice.toString()) : '')} />
           </div>
         </div>
 
@@ -301,18 +293,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Měsíční splátka (Kč)
           </label>
           <div className="flex">
-            <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">Kč</span>
-              <input
-                type="number"
-                value={data.monthlyPayment || ''}
-                onChange={(e) => updateField('monthlyPayment', e.target.value)}
-                className="block w-full pl-8 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-                placeholder="8500"
-                min="0"
-              />
-            </div>
-            <CopyButton text={data.monthlyPayment || ''} />
+            <FormattedNumberInput
+              value={data.monthlyPayment || ''}
+              onChange={(value) => updateField('monthlyPayment', value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              placeholder="8 500"
+            />
+            <CopyButton text={data.monthlyPayment ? formatNumber(data.monthlyPayment) : ''} />
           </div>
         </div>
       </div>
