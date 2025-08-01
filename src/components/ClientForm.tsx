@@ -180,8 +180,30 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
     setFormData({
       applicant: {},
       coApplicant: {},
-      applicantEmployer: {},
-      coApplicantEmployer: {},
+      applicantEmployer: {
+        ico: '',
+        companyName: '',
+        companyAddress: '',
+        netIncome: '',
+        jobPosition: '',
+        employedSince: '',
+        contractType: '',
+        contractFromDate: '',
+        contractToDate: '',
+        contractExtended: false
+      },
+      coApplicantEmployer: {
+        ico: '',
+        companyName: '',
+        companyAddress: '',
+        netIncome: '',
+        jobPosition: '',
+        employedSince: '',
+        contractType: '',
+        contractFromDate: '',
+        contractToDate: '',
+        contractExtended: false
+      },
       liabilities: [],
       applicantProperty: {},
       coApplicantProperty: {},
