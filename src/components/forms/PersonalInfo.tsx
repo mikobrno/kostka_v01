@@ -711,14 +711,22 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               onClick={() => {
                 const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
                 if (fullName) {
-                  const url = `https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu?jmeno=${encodeURIComponent(fullName)}`;
-                  window.open(url, '_blank');
+                  // Zkopíruj jméno do schránky
+                  navigator.clipboard.writeText(fullName).then(() => {
+                    // Zobraz notifikaci
+                    alert(`Jméno "${fullName}" bylo zkopírováno do schránky. Vložte ho na RŽP stránce.`);
+                    // Otevři RŽP stránku
+                    window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
+                  }).catch(() => {
+                    // Fallback pokud clipboard nefunguje
+                    window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
+                  });
                 } else {
                   window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
                 }
               }}
               className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Vyhledat v Registru živnostenského podnikání"
+              title="Zkopírovat jméno do schránky a otevřít RŽP vyhledávání"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
               RŽP vyhledání
