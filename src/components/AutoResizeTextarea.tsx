@@ -123,7 +123,7 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       {label && (
         <label 
           htmlFor={textareaId}
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
         >
           {label}
         </label>
@@ -140,9 +140,10 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         disabled={disabled}
         rows={rows}
         className={`
-          block w-full border-gray-300 rounded-md shadow-sm 
+          block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
           focus:border-blue-500 focus:ring-blue-500 
-          disabled:bg-gray-100 disabled:cursor-not-allowed
+          disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed
+          bg-white dark:bg-gray-800 text-gray-900 dark:text-white
           resize-none transition-all duration-200 ease-in-out
           ${className}
         `}
@@ -156,7 +157,7 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       />
       
       {helpText && (
-        <div id={helpTextId} className="mt-1 text-xs text-gray-500">
+        <div id={helpTextId} className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {helpText}
         </div>
       )}

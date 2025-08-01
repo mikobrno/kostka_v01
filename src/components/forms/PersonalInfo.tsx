@@ -196,7 +196,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <select
               value={data.title || ''}
               onChange={(e) => updateField('title', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte titul</option>
               {adminLists.titles.map(title => (
@@ -216,7 +216,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               type="text"
               value={data.maidenName || ''}
               onChange={(e) => updateField('maidenName', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               placeholder="Rodné příjmení (pokud se liší)"
             />
             <CopyButton text={data.maidenName || ''} />
@@ -231,7 +231,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <select
               value={data.maritalStatus || ''}
               onChange={(e) => updateField('maritalStatus', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte stav</option>
               {adminLists.maritalStatuses.map(status => (
@@ -250,7 +250,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <select
               value={data.citizenship || 'Česká republika'}
               onChange={(e) => updateField('citizenship', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte občanství</option>
               {adminLists.citizenships.map(citizenship => (
@@ -269,7 +269,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <select
               value={data.housingType || ''}
               onChange={(e) => updateField('housingType', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte druh bydlení</option>
               {adminLists.housingTypes.map(type => (
@@ -337,7 +337,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               type="text"
               value={data.birthNumber || ''}
               onChange={(e) => updateField('birthNumber', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               placeholder="YYMMDDXXXX"
               maxLength={10}
             />
@@ -349,7 +349,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Věk
           </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-300">
+          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
             <Calendar className="w-4 h-4 text-gray-400 mr-2" />
             <span className="text-sm text-gray-600">
               {data.age ? `${data.age} let` : 'Zadejte rodné číslo'}
@@ -361,7 +361,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Rok narození
           </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-300">
+          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
             <User className="w-4 h-4 text-gray-400 mr-2" />
             <span className="text-sm text-gray-600">
               {data.birthYear || 'Automaticky'}
@@ -375,7 +375,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Datum narození
           </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-300">
+          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
             <Calendar className="w-4 h-4 text-gray-400 mr-2" />
             <span className="text-sm text-gray-600">
               {data.birthDate ? new Date(data.birthDate).toLocaleDateString('cs-CZ') : 'Automaticky z rodného čísla'}
@@ -414,7 +414,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <select
               value={data.documentType || ''}
               onChange={(e) => updateField('documentType', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte typ</option>
               {adminLists.documentTypes.map(type => (
@@ -434,7 +434,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               type="text"
               value={data.documentNumber || ''}
               onChange={(e) => updateField('documentNumber', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               placeholder="Číslo dokladu"
             />
             <CopyButton text={data.documentNumber || ''} />
@@ -450,7 +450,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               type="date"
               value={data.documentIssueDate || ''}
               onChange={(e) => updateField('documentIssueDate', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
             <CopyButton text={data.documentIssueDate || ''} />
           </div>
@@ -518,7 +518,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <select
             value={data.bank || ''}
             onChange={(e) => updateField('bank', e.target.value)}
-            className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
             <option value="">Vyberte banku</option>
             {adminLists.banks.map(bank => (
@@ -530,11 +530,11 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       </div>
 
       {/* Podnikání sekce */}
-      <div className="bg-white rounded-lg border p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Building className="w-5 h-5 text-purple-600" />
-            <h4 className="text-md font-medium text-gray-900">Podnikání</h4>
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
           </div>
           <button
             onClick={() => {
@@ -583,7 +583,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
       <div>
         <div className="flex items-center space-x-3 mb-4">
-          <h4 className="text-md font-medium text-gray-900">Doklady totožnosti</h4>
+          <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
           <button
             onClick={() => {
               const newDocument = {
@@ -609,7 +609,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         {(data.documents || []).map((document, index) => (
           <div key={document.id} className="bg-gray-50 rounded-lg p-4 border mb-4">
             <div className="flex justify-between items-center mb-4">
-              <h5 className="text-sm font-medium text-gray-900">
+              <h5 className="text-sm font-medium text-gray-900 dark:text-white">
                 Doklad #{index + 1}
               </h5>
               <button
@@ -635,7 +635,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
                   <option value="">Vyberte typ</option>
                   {adminLists.documentTypes.map(type => (
@@ -657,7 +657,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Číslo dokladu"
                 />
               </div>
@@ -675,7 +675,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -692,7 +692,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Magistrát města Brna"
                 />
               </div>
@@ -710,7 +710,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Praha"
                 />
               </div>
@@ -728,7 +728,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     );
                     updateField('documents', updatedDocuments);
                   }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="ABC123"
                 />
               </div>
@@ -742,7 +742,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             id={`${prefix}-no-children`}
             checked={!hasChildren}
             onChange={(e) => setHasChildren(!e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
           />
           <label htmlFor={`${prefix}-no-children`} className="text-sm font-medium text-gray-700">
             Nemá děti
@@ -760,14 +760,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       {/* Delete Confirmation Modal for Documents */}
       {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
                   <Trash2 className="w-6 h-6 text-red-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
                 Smazat doklad
               </h3>
               <p className="text-sm text-gray-500 text-center mb-6">
@@ -776,7 +776,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <div className="flex items-center justify-center space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                   Ne, zrušit
                 </button>
@@ -800,14 +800,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       {/* Delete Confirmation Modal for Extra Fields and Business */}
       {showDeleteConfirm && (showDeleteConfirm.startsWith('field-') || showDeleteConfirm.startsWith('business-')) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
                   <Trash2 className="w-6 h-6 text-red-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
                 {showDeleteConfirm.startsWith('business-') ? 'Smazat podnikání' : 'Smazat pole'}
               </h3>
               <p className="text-sm text-gray-500 text-center mb-6">
@@ -819,7 +819,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <div className="flex items-center justify-center space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                   Ne, zrušit
                 </button>
@@ -847,9 +847,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       )}
 
       {/* Extra dynamická pole */}
-      <div className="bg-white rounded-lg border p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-md font-medium text-gray-900">Extra pole</h4>
+          <h4 className="text-md font-medium text-gray-900 dark:text-white">Extra pole</h4>
           <button
             onClick={() => {
               const newField = {
@@ -989,7 +989,7 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
     <div className="bg-gray-50 rounded-lg p-4 border w-full">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-900 flex-1 mr-4">
+          <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 mr-4">
             {field.label}
           </span>
           <div className="flex items-center space-x-2">
@@ -1195,7 +1195,7 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Building className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-gray-900">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
               {business.companyName || 'Název firmy'}
             </span>
           </div>
@@ -1221,7 +1221,7 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
           <div>
             <span className="text-gray-500">IČO:</span>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-900">{business.ico || 'Neuvedeno'}</span>
+              <span className="text-gray-900 dark:text-white">{business.ico || 'Neuvedeno'}</span>
               <CopyButton text={business.ico || ''} />
             </div>
           </div>
@@ -1235,7 +1235,7 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
           <div>
             <span className="text-gray-500">Začátek podnikání:</span>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-900">
+              <span className="text-gray-900 dark:text-white">
                 {business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : 'Neuvedeno'}
               </span>
               <CopyButton text={business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : ''} />

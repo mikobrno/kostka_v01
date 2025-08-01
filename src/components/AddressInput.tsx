@@ -142,7 +142,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            className={`block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${className}`}
+            className={`block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${className}`}
             placeholder={apiError ? 'Chyba načítání API' : placeholder}
             disabled={!!apiError}
           />
@@ -156,7 +156,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
@@ -164,10 +164,10 @@ export const AddressInput: React.FC<AddressInputProps> = ({
                 e.preventDefault(); 
                 selectSuggestion(suggestion);
               }}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors first:rounded-t-md last:rounded-b-md"
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors first:rounded-t-md last:rounded-b-md text-gray-900 dark:text-white"
             >
               <div className="flex items-center">
-                <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" />
                 <span className="text-sm">{suggestion}</span>
               </div>
             </button>
