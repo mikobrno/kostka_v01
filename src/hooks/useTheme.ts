@@ -10,11 +10,7 @@ export const useTheme = () => {
       return savedTheme;
     }
     
-    // Zkontroluj systémové nastavení
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
+    // Vždy nastav světlý jako výchozí
     return 'light';
   });
 

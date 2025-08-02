@@ -450,6 +450,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             <LiabilitiesInfo 
               data={formData.liabilities}
               onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
+              clientId={selectedClient?.id || currentClient?.id}
+              toast={toast}
             />
           </div>
         </div>
@@ -472,7 +474,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               </p>
               <button
                 onClick={() => setActiveFormTab('basic')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
               >
                 <User className="w-4 h-4 mr-2" />
                 Přejít na základní údaje
@@ -583,8 +585,8 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
             </div>
             
             <div>
-              <span className="text-sm font-medium text-gray-500">Trvalé bydliště:</span>
-              <p className="text-gray-900">{formData.applicant.permanentAddress || 'Neuvedeno'}</p>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Trvalé bydliště:</span>
+              <p className="text-gray-900 dark:text-white">{formData.applicant.permanentAddress || 'Neuvedeno'}</p>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -599,8 +601,8 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
             </div>
             
             <div>
-              <span className="text-sm font-medium text-gray-500">Banka:</span>
-              <p className="text-gray-900">{formData.applicant.bank || 'Neuvedeno'}</p>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Banka:</span>
+              <p className="text-gray-900 dark:text-white">{formData.applicant.bank || 'Neuvedeno'}</p>
             </div>
           </div>
         </div>
@@ -786,23 +788,26 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
             Závazky
           </h2>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Instituce
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Typ
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Výše úvěru
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Splátka
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Zůstatek
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Poznámka
                   </th>
                 </tr>
               </thead>
@@ -823,6 +828,9 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {liability.balance ? formatPrice(liability.balance) : 'Neuvedeno'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      {liability.poznamky || 'Žádná poznámka'}
                     </td>
                   </tr>
                 ))}
