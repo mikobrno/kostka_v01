@@ -78,10 +78,14 @@ interface PropertyData {
 
 export class PDFService {
   private static setupFont(doc: jsPDF) {
-    // Nastavení UTF-8 kódování pro správné zobrazení českých znaků
-    doc.setFont('helvetica', 'normal');
-    // Explicitly set the encoding to support Czech characters
-    doc.setCharSpace(0);
+    // Pokus o nastavení fontu s UTF-8 podporou
+    try {
+      // Zkusíme courier místo helvetica - má lepší podporu pro diakritiku
+      doc.setFont('courier', 'normal');
+    } catch (error) {
+      // Fallback na helvetica
+      doc.setFont('helvetica', 'normal');
+    }
   }
 
   private static formatDate(dateString?: string): string {
@@ -101,14 +105,14 @@ export class PDFService {
 
   private static addHeader(doc: jsPDF, title: string) {
     doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text(czechToAscii(title), 105, 25, { align: 'center' });
+    doc.setFont('courier', 'bold');
+    doc.text(title, 105, 25, { align: 'center' });
     
     // Datum vytvoření
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     const today = new Date().toLocaleDateString('cs-CZ');
-    doc.text(czechToAscii(`Datum vytvoreni: ${today}`), 15, 35);
+    doc.text(`Datum vytvoření: ${today}`, 15, 35);
     
     // Linka pod hlavičkou
     doc.setLineWidth(0.5);
@@ -117,8 +121,8 @@ export class PDFService {
 
   private static addSection(doc: jsPDF, title: string, startY: number): number {
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(czechToAscii(title), 15, startY);
+    doc.setFont('courier', 'bold');
+    doc.text(title, 15, startY);
     
     // Linka pod nadpisem sekce
     doc.setLineWidth(0.2);
@@ -129,55 +133,55 @@ export class PDFService {
 
   private static addPersonalInfo(doc: jsPDF, client: ClientData, startY: number, isCoApplicant = false): number {
     const prefix = isCoApplicant ? 'co_applicant_' : 'applicant_';
-    const sectionTitle = isCoApplicant ? 'Spoluza datel' : 'Za datel';
+    const sectionTitle = isCoApplicant ? 'Spolužadatel' : 'Žadatel';
     
     let currentY = this.addSection(doc, sectionTitle, startY);
     
     // Osobní údaje
     const personalData = [
       ['Titul:', (client as any)[`${prefix}title`] || ''],
-      ['Jmeno:', (client as any)[`${prefix}first_name`] || ''],
-      ['Pri jmeni:', (client as any)[`${prefix}last_name`] || ''],
-      ['Rodne pri jmeni:', (client as any)[`${prefix}maiden_name`] || ''],
-      ['Rodne ci slo:', (client as any)[`${prefix}birth_number`] || ''],
-      ['Datum narozeni:', this.formatDate((client as any)[`${prefix}birth_date`])],
-      ['Ve k:', (client as any)[`${prefix}age`] ? `${(client as any)[`${prefix}age`]} let` : ''],
-      ['Rodinny stav:', (client as any)[`${prefix}marital_status`] || ''],
-      ['Bydli ste:', (client as any)[`${prefix}housing_type`] || '']
+      ['Jméno:', (client as any)[`${prefix}first_name`] || ''],
+      ['Příjmení:', (client as any)[`${prefix}last_name`] || ''],
+      ['Rodné příjmení:', (client as any)[`${prefix}maiden_name`] || ''],
+      ['Rodné číslo:', (client as any)[`${prefix}birth_number`] || ''],
+      ['Datum narození:', this.formatDate((client as any)[`${prefix}birth_date`])],
+      ['Věk:', (client as any)[`${prefix}age`] ? `${(client as any)[`${prefix}age`]} let` : ''],
+      ['Rodinný stav:', (client as any)[`${prefix}marital_status`] || ''],
+      ['Bydliště:', (client as any)[`${prefix}housing_type`] || '']
     ].filter(([, value]) => value); // Filtruje prázdné hodnoty
 
     // Kontaktní údaje
     const contactData = [
-      ['Trvala adresa:', (client as any)[`${prefix}permanent_address`] || ''],
-      ['Koresponden ni adresa:', (client as any)[`${prefix}contact_address`] || ''],
+      ['Trvalá adresa:', (client as any)[`${prefix}permanent_address`] || ''],
+      ['Korespondenční adresa:', (client as any)[`${prefix}contact_address`] || ''],
       ['Telefon:', (client as any)[`${prefix}phone`] || ''],
       ['E-mail:', (client as any)[`${prefix}email`] || '']
     ].filter(([, value]) => value);
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
 
     // Vykreslení osobních údajů
     personalData.forEach(([, value], index) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(czechToAscii(personalData[index][0]), 20, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(czechToAscii(value), 70, currentY);
+      doc.setFont('courier', 'bold');
+      doc.text(personalData[index][0], 20, currentY);
+      doc.setFont('courier', 'normal');
+      doc.text(value, 70, currentY);
       currentY += 6;
     });
 
     if (contactData.length > 0) {
       currentY += 5;
-      doc.setFont('helvetica', 'bold');
-      doc.text(czechToAscii('Kontaktni udaje:'), 20, currentY);
+      doc.setFont('courier', 'bold');
+      doc.text('Kontaktní údaje:', 20, currentY);
       currentY += 8;
 
       contactData.forEach(([, value], idx) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(czechToAscii(contactData[idx][0]), 25, currentY);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'bold');
+        doc.text(contactData[idx][0], 25, currentY);
+        doc.setFont('courier', 'normal');
         // Rozdělení dlouhého textu na více řádků
-        const splitText = doc.splitTextToSize(czechToAscii(value), 120);
+        const splitText = doc.splitTextToSize(value, 120);
         doc.text(splitText, 70, currentY);
         currentY += splitText.length * 6;
       });
@@ -189,32 +193,32 @@ export class PDFService {
   private static addEmployerInfo(doc: jsPDF, employers: EmployerData[], startY: number): number {
     if (!employers || employers.length === 0) return startY;
 
-    let currentY = this.addSection(doc, 'Informace o zamestnavateli', startY);
+    let currentY = this.addSection(doc, 'Informace o zaměstnavateli', startY);
     
     employers.forEach((employer) => {
-      const employerTitle = employer.employer_type === 'applicant' ? 'Za datel' : 'Spoluza datel';
+      const employerTitle = employer.employer_type === 'applicant' ? 'Žadatel' : 'Spolužadatel';
       
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(czechToAscii(`${employerTitle}:`), 20, currentY);
+      doc.setFont('courier', 'bold');
+      doc.text(`${employerTitle}:`, 20, currentY);
       currentY += 8;
 
       const employerData = [
-        ['ICO:', employer.ico || ''],
-        ['Nazev firmy:', employer.company_name || ''],
+        ['IČO:', employer.ico || ''],
+        ['Název firmy:', employer.company_name || ''],
         ['Adresa firmy:', employer.company_address || ''],
         ['Pozice:', employer.job_position || ''],
         ['Typ smlouvy:', employer.contract_type || ''],
-        ['Zamestnan od:', this.formatDate(employer.employed_since)],
-        ['Ci sty pri jem:', this.formatCurrency(employer.net_income)]
+        ['Zaměstnán od:', this.formatDate(employer.employed_since)],
+        ['Čistý příjem:', this.formatCurrency(employer.net_income)]
       ].filter(([, value]) => value);
 
       doc.setFontSize(10);
       employerData.forEach(([, value], idx) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(czechToAscii(employerData[idx][0]), 25, currentY);
-        doc.setFont('helvetica', 'normal');
-        const splitText = doc.splitTextToSize(czechToAscii(value), 120);
+        doc.setFont('courier', 'bold');
+        doc.text(employerData[idx][0], 25, currentY);
+        doc.setFont('courier', 'normal');
+        const splitText = doc.splitTextToSize(value, 120);
         doc.text(splitText, 70, currentY);
         currentY += splitText.length * 6;
       });
@@ -232,15 +236,15 @@ export class PDFService {
     
     const propertyData = [
       ['Adresa:', property.address || ''],
-      ['Kupni cena:', this.formatCurrency(property.price)]
+      ['Kupní cena:', this.formatCurrency(property.price)]
     ].filter(([, value]) => value);
 
     doc.setFontSize(10);
     propertyData.forEach(([, value], idx) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(czechToAscii(propertyData[idx][0]), 20, currentY);
-      doc.setFont('helvetica', 'normal');
-      const splitText = doc.splitTextToSize(czechToAscii(value), 120);
+      doc.setFont('courier', 'bold');
+      doc.text(propertyData[idx][0], 20, currentY);
+      doc.setFont('courier', 'normal');
+      const splitText = doc.splitTextToSize(value, 120);
       doc.text(splitText, 70, currentY);
       currentY += splitText.length * 6;
     });
@@ -248,17 +252,17 @@ export class PDFService {
     // Orientační výpočet LTV
     if (property.price) {
       currentY += 5;
-      doc.setFont('helvetica', 'bold');
-      doc.text(czechToAscii('Orientacni vypocet:'), 20, currentY);
+      doc.setFont('courier', 'bold');
+      doc.text('Orientační výpočet:', 20, currentY);
       currentY += 8;
 
       const ltv80 = property.price * 0.8;
       const ltv90 = property.price * 0.9;
 
-      doc.setFont('helvetica', 'normal');
-      doc.text(czechToAscii(`LTV 80%: ${this.formatCurrency(ltv80)}`), 25, currentY);
+      doc.setFont('courier', 'normal');
+      doc.text(`LTV 80%: ${this.formatCurrency(ltv80)}`, 25, currentY);
       currentY += 6;
-      doc.text(czechToAscii(`LTV 90%: ${this.formatCurrency(ltv90)}`), 25, currentY);
+      doc.text(`LTV 90%: ${this.formatCurrency(ltv90)}`, 25, currentY);
       currentY += 6;
     }
 
@@ -268,27 +272,27 @@ export class PDFService {
   private static addLiabilitiesInfo(doc: jsPDF, liabilities: LiabilityData[], startY: number): number {
     if (!liabilities || liabilities.length === 0) return startY;
 
-    let currentY = this.addSection(doc, 'Zavazky', startY);
+    let currentY = this.addSection(doc, 'Závazky', startY);
 
     // Tabulka závazků
     const tableData = liabilities.map((liability, index) => [
       (index + 1).toString(),
-      czechToAscii(liability.institution || ''),
-      czechToAscii(liability.type || ''),
+      liability.institution || '',
+      liability.type || '',
       this.formatCurrency(liability.amount),
       this.formatCurrency(liability.payment),
       this.formatCurrency(liability.balance),
-      czechToAscii(liability.notes || '')
+      liability.notes || ''
     ]);
 
     const headers = [
-      'c.',
+      'č.',
       'Instituce',
       'Typ',
-      'Vyse uveru',
-      'Splatka',
-      'Zustatek',
-      'Poznamka'
+      'Výše úvěru',
+      'Splátka',
+      'Zůstatek',
+      'Poznámka'
     ];
 
     autoTable(doc, {
@@ -347,7 +351,7 @@ export class PDFService {
 
     // Hlavička
     const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
-    const title = `Klientsky profil - ${clientName || 'Novy klient'}`;
+    const title = `Klientský profil - ${clientName || 'Nový klient'}`;
     this.addHeader(doc, title);
 
     let currentY = 50;
@@ -402,7 +406,7 @@ export class PDFService {
     const doc = new jsPDF();
     this.setupFont(doc);
 
-    this.addHeader(doc, 'Prehled zavazku');
+    this.addHeader(doc, 'Přehled závazků');
 
     const currentY = this.addLiabilitiesInfo(doc, liabilities, 50);
 
