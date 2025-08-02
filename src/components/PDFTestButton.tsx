@@ -4,8 +4,8 @@ import { FileDown } from 'lucide-react';
 export const PDFTestButton: React.FC = () => {
   const handleTestPDF = async () => {
     try {
-      // Lazy loading PDFService
-      const { PDFService } = await import('../services/pdfService');
+      // Lazy loading PDFMakeService
+      const { PDFMakeService } = await import('../services/pdfMakeService');
       
       // Test data s českou diakritikou
       const testClient = {
@@ -66,9 +66,9 @@ export const PDFTestButton: React.FC = () => {
         price: 8500000
       };
 
-      await PDFService.generateClientPDF(testClient, testEmployers, testLiabilities, testProperty);
+      await PDFMakeService.generateClientPDF(testClient, testEmployers, testLiabilities, testProperty);
       
-      alert('✅ PDF test úspěšný! Soubor byl stažen.');
+      alert('✅ PDF test s pdfMake úspěšný! Soubor byl stažen.');
     } catch (error) {
       console.error('Chyba při testu PDF:', error);
       alert('❌ Chyba při generování PDF: ' + (error instanceof Error ? error.message : 'Neznámá chyba'));

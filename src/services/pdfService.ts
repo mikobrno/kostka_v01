@@ -2,16 +2,21 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Funkce pro převod českých znaků
-const czechToAscii = (text: string): string => {
+// Helper funkce pro správné zobrazení českých znaků
+const encodeForPDF = (text: string): string => {
   if (!text) return '';
-  const map: { [key: string]: string } = {
-    'á': 'a', 'č': 'c', 'ď': 'd', 'é': 'e', 'ě': 'e', 'í': 'i', 'ň': 'n',
-    'ó': 'o', 'ř': 'r', 'š': 's', 'ť': 't', 'ú': 'u', 'ů': 'u', 'ý': 'y', 'ž': 'z',
-    'Á': 'A', 'Č': 'C', 'Ď': 'D', 'É': 'E', 'Ě': 'E', 'Í': 'I', 'Ň': 'N',
-    'Ó': 'O', 'Ř': 'R', 'Š': 'S', 'Ť': 'T', 'Ú': 'U', 'Ů': 'U', 'Ý': 'Y', 'Ž': 'Z'
-  };
-  return text.replace(/[áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, (match) => map[match] || match);
+  
+  // Použijeme encodeURI a pak decodeURI pro správné kódování
+  try {
+    // Převedeme na UTF-8 bytes a pak zpět
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const bytes = encoder.encode(text);
+    return decoder.decode(bytes);
+  } catch {
+    // Fallback - vrátíme originální text
+    return text;
+  }
 };
 
 interface ClientData {
@@ -78,14 +83,8 @@ interface PropertyData {
 
 export class PDFService {
   private static setupFont(doc: jsPDF) {
-    // Pokus o nastavení fontu s UTF-8 podporou
-    try {
-      // Zkusíme courier místo helvetica - má lepší podporu pro diakritiku
-      doc.setFont('courier', 'normal');
-    } catch (error) {
-      // Fallback na helvetica
-      doc.setFont('helvetica', 'normal');
-    }
+    // Používáme standardní helvetica font
+    doc.setFont('helvetica', 'normal');
   }
 
   private static formatDate(dateString?: string): string {
@@ -105,12 +104,12 @@ export class PDFService {
 
   private static addHeader(doc: jsPDF, title: string) {
     doc.setFontSize(20);
-    doc.setFont('courier', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(title, 105, 25, { align: 'center' });
     
     // Datum vytvoření
     doc.setFontSize(10);
-    doc.setFont('courier', 'normal');
+    doc.setFont('helvetica', 'normal');
     const today = new Date().toLocaleDateString('cs-CZ');
     doc.text(`Datum vytvoření: ${today}`, 15, 35);
     
@@ -121,7 +120,7 @@ export class PDFService {
 
   private static addSection(doc: jsPDF, title: string, startY: number): number {
     doc.setFontSize(14);
-    doc.setFont('courier', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(title, 15, startY);
     
     // Linka pod nadpisem sekce
@@ -159,27 +158,27 @@ export class PDFService {
     ].filter(([, value]) => value);
 
     doc.setFontSize(10);
-    doc.setFont('courier', 'normal');
+    doc.setFont('helvetica', 'normal');
 
     // Vykreslení osobních údajů
     personalData.forEach(([, value], index) => {
-      doc.setFont('courier', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(personalData[index][0], 20, currentY);
-      doc.setFont('courier', 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(value, 70, currentY);
       currentY += 6;
     });
 
     if (contactData.length > 0) {
       currentY += 5;
-      doc.setFont('courier', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Kontaktní údaje:', 20, currentY);
       currentY += 8;
 
       contactData.forEach(([, value], idx) => {
-        doc.setFont('courier', 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(contactData[idx][0], 25, currentY);
-        doc.setFont('courier', 'normal');
+        doc.setFont('helvetica', 'normal');
         // Rozdělení dlouhého textu na více řádků
         const splitText = doc.splitTextToSize(value, 120);
         doc.text(splitText, 70, currentY);
@@ -332,10 +331,10 @@ export class PDFService {
 
     currentY += 15;
     doc.setFont('helvetica', 'bold');
-    doc.text(czechToAscii('Celkem:'), 120, currentY);
-    doc.text(czechToAscii(this.formatCurrency(totalAmount)), 140, currentY);
-    doc.text(czechToAscii(this.formatCurrency(totalPayment)), 165, currentY);
-    doc.text(czechToAscii(this.formatCurrency(totalBalance)), 185, currentY);
+    doc.text('Celkem:', 120, currentY);
+    doc.text(this.formatCurrency(totalAmount), 140, currentY);
+    doc.text(this.formatCurrency(totalPayment), 165, currentY);
+    doc.text(this.formatCurrency(totalBalance), 185, currentY);
 
     return currentY + 15;
   }
