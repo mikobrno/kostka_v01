@@ -946,13 +946,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </button>
                 <button
                   onClick={async () => {
-                    alert('🔎 DEBUG: showDeleteConfirm = "' + showDeleteConfirm + '"');
-                    const documentId = parseInt(showDeleteConfirm.replace('document-', ''));
-                    alert('🔥 FUNKCE DELETE DOCUMENT SE SPUSTILA! ID: ' + documentId);
-                    console.log('🗑️ Pokus o smazání dokumentu s ID:', documentId);
+                    // Získej celé ID dokumentu ze showDeleteConfirm (odstraň prefix "document-")
+                    const documentId = showDeleteConfirm.replace('document-', '');
+                    alert('🔥 OPRAVENÉ MAZÁNÍ! ID: ' + documentId);
                     
-                    // Najdi doklad pro smazání
-                    const documentToDelete = (data.documents || []).find(d => d.id === documentId);
+                    // Najdi doklad pro smazání podle správného ID
+                    const documentToDelete = (data.documents || []).find(d => d.id == documentId);
                     console.log('📄 Dokument k smazání:', documentToDelete);
 
                     // Pokud má doklad supabase_id, smaž ho i z databáze
@@ -983,7 +982,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
                     // Smaž doklad z lokálního stavu
                     console.log('🔄 Aktualizuji lokální stav.');
-                    const updatedDocuments = (data.documents || []).filter(d => d.id !== documentId);
+                    const updatedDocuments = (data.documents || []).filter(d => d.id != documentId);
                     updateField('documents', updatedDocuments);
                     setShowDeleteConfirm(null);
                   }}
