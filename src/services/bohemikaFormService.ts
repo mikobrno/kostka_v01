@@ -2,9 +2,18 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Nastavení fontů pro pdfMake - upraveno pro TypeScript
-const pdfMakeWithFonts = pdfMake as any;
-pdfMakeWithFonts.vfs = (pdfFonts as any).pdfMake.vfs;
+// Nastavení fontů pro pdfMake - používáme pouze vestavěné fonty
+(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
+
+// Použijeme pouze dostupné fonty z pdfMake
+(pdfMake as any).fonts = {
+  Helvetica: {
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique'
+  }
+};
 
 interface ClientData {
   applicant_title?: string;
@@ -417,6 +426,7 @@ export class BohemikaFormService {
     };
 
     const fileName = `pruvodní_list_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    (pdfMake as any).createPdf(docDefinition as any).download(fileName);
+    // Dočasné řešení TypeScript problému
+    (pdfMake as any).createPdf(docDefinition).download(fileName);
   }
 }
