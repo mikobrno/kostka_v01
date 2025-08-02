@@ -4,6 +4,7 @@ import { formatNumber } from '../utils/formatHelpers';
 
 // Funkce pro převod českých znaků
 const czechToAscii = (text: string): string => {
+  if (!text) return '';
   const map: { [key: string]: string } = {
     'á': 'a', 'č': 'c', 'ď': 'd', 'é': 'e', 'ě': 'e', 'í': 'i', 'ň': 'n',
     'ó': 'o', 'ř': 'r', 'š': 's', 'ť': 't', 'ú': 'u', 'ů': 'u', 'ý': 'y', 'ž': 'z',
