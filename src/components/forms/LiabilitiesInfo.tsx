@@ -72,8 +72,17 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     onChange([...data, newLiability]);
   };
 
-  const removeLiability = (id: number) => {
+  const removeLiability = async (id: number) => {
     setShowDeleteConfirm(null);
+    const liability = data.find(item => item.id === id);
+    if (liability?.supabase_id) {
+      try {
+        const { error } = await supabase.from('liabilities').delete().eq('id', liability.supabase_id);
+        if (error) throw new Error(error.message);
+      } catch (e) {
+        toast?.showError('Chyba', 'Smazání v databázi selhalo');
+      }
+    }
     onChange(data.filter(item => item.id !== id));
   };
 
