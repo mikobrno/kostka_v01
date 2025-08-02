@@ -14,9 +14,9 @@ interface LiabilitiesInfoProps {
 }
 
 export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onChange, clientId, toast }) => {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
-  const [saving, setSaving] = useState<number | null>(null);
-  const [saved, setSaved] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | number | null>(null);
+  const [saving, setSaving] = useState<string | number | null>(null);
+  const [saved, setSaved] = useState<string | number | null>(null);
 
   const [adminLists, setAdminLists] = React.useState({
     institutions: [],
@@ -72,9 +72,9 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     onChange([...data, newLiability]);
   };
 
-  const removeLiability = async (id: number) => {
+  const removeLiability = async (id: string | number) => {
     setShowDeleteConfirm(null);
-    const liability = data.find(item => item.id === id);
+    const liability = data.find(item => item.id == id);
     if (liability?.supabase_id) {
       try {
         const { error } = await supabase.from('liabilities').delete().eq('id', liability.supabase_id);
@@ -83,10 +83,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
         toast?.showError('Chyba', 'Smazání v databázi selhalo');
       }
     }
-    onChange(data.filter(item => item.id !== id));
+    onChange(data.filter(item => item.id != id));
   };
 
-  const handleDeleteLiability = (id: number) => {
+  const handleDeleteLiability = (id: string | number) => {
     setShowDeleteConfirm(id);
   };
 
@@ -96,7 +96,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     ));
   };
 
-  const saveLiability = async (liabilityId: number) => {
+  const saveLiability = async (liabilityId: string | number) => {
     if (!clientId) {
       toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení závazku');
       return;
@@ -105,7 +105,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     setSaving(liabilityId);
     try {
       // Najdi specifický závazek
-      const liability = data.find(item => item.id === liabilityId);
+      const liability = data.find(item => item.id == liabilityId);
       if (!liability) {
         throw new Error('Závazek nebyl nalezen');
       }
@@ -144,7 +144,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
 
         // Aktualizuj lokální data s novým supabase_id
         const updatedData = data.map(item => 
-          item.id === liabilityId 
+          item.id == liabilityId 
             ? { ...item, supabase_id: newLiability.id }
             : item
         );
