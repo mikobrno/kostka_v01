@@ -930,8 +930,33 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                   Ne, zrušit
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const documentId = parseInt(showDeleteConfirm.replace('document-', ''));
+                    
+                    // Najdi doklad pro smazání
+                    const documentToDelete = (data.documents || []).find(d => d.id === documentId);
+
+                    // Pokud má doklad supabase_id, smaž ho i z databáze
+                    if (documentToDelete?.supabase_id) {
+                      try {
+                        const { error } = await supabase
+                          .from('documents')
+                          .delete()
+                          .eq('id', documentToDelete.supabase_id);
+
+                        if (error) {
+                          toast?.showError('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
+                          // Zastavíme se, pokud smazání z DB selže
+                          return; 
+                        }
+                        toast?.showSuccess('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
+                      } catch (error) {
+                        toast?.showError('Chyba', `Chyba při komunikaci s databází: ${error.message}`);
+                        return;
+                      }
+                    }
+
+                    // Smaž doklad z lokálního stavu
                     const updatedDocuments = (data.documents || []).filter(d => d.id !== documentId);
                     updateField('documents', updatedDocuments);
                     setShowDeleteConfirm(null);
