@@ -4,7 +4,7 @@ import { FileDown } from 'lucide-react';
 export const PDFTestButton: React.FC = () => {
   const handleTestPDF = async () => {
     try {
-      // Lazy loading HybridPDFService
+      // Lazy loading HybridPDFService - používá jsPDF s lepší podporou fontů
       const { HybridPDFService } = await import('../services/hybridPDFService');
       
       // Test data s českou diakritikou

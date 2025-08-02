@@ -116,16 +116,8 @@ export class HybridPDFService {
   private static setupDoc(): jsPDF {
     const doc = new jsPDF();
     
-    // Nastavíme základní font
-    doc.setFont('helvetica', 'normal');
-    
-    // Nastavíme kódování pro lepší podporu češtiny
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (doc as any).internal.write('/CharSet (iso-8859-2)');
-    } catch {
-      // Fallback pokud API není dostupné
-    }
+    // Použijeme Courier font - má lepší podporu znaků
+    doc.setFont('courier', 'normal');
     
     return doc;
   }
@@ -143,12 +135,12 @@ export class HybridPDFService {
     const title = this.encodeText(`Klientsky profil - ${clientName || 'Novy klient'}`);
     
     doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.text(title, 105, 25, { align: 'center' });
     
     // Datum
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     const today = new Date().toLocaleDateString('cs-CZ');
     doc.text(this.encodeText(`Datum vytvoreni: ${today}`), 15, 35);
     
@@ -160,7 +152,7 @@ export class HybridPDFService {
 
     // Žadatel
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.text(this.encodeText('Zadatel'), 15, currentY);
     currentY += 10;
 
@@ -188,9 +180,9 @@ export class HybridPDFService {
     // Vykreslení osobních údajů
     doc.setFontSize(10);
     applicantData.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText(label), 20, currentY);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('courier', 'normal');
       doc.text(this.encodeText(value || ''), 70, currentY);
       currentY += 6;
     });
@@ -198,14 +190,14 @@ export class HybridPDFService {
     // Kontaktní údaje
     if (contactData.length > 0) {
       currentY += 5;
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText('Kontaktni udaje:'), 20, currentY);
       currentY += 8;
 
       contactData.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(this.encodeText(label), 25, currentY);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'normal');
         const encodedValue = this.encodeText(value || '');
         const splitText = doc.splitTextToSize(encodedValue, 120);
         doc.text(splitText, 70, currentY);
@@ -217,7 +209,7 @@ export class HybridPDFService {
     if (client.co_applicant_first_name || client.co_applicant_last_name) {
       currentY += 15;
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText('Spoluzadatel'), 15, currentY);
       currentY += 10;
 
@@ -234,9 +226,9 @@ export class HybridPDFService {
 
       doc.setFontSize(10);
       coApplicantData.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(this.encodeText(label), 20, currentY);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'normal');
         doc.text(this.encodeText(value || ''), 70, currentY);
         currentY += 6;
       });
@@ -246,7 +238,7 @@ export class HybridPDFService {
     if (employers.length > 0) {
       currentY += 15;
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText('Informace o zamestnavateli'), 15, currentY);
       currentY += 10;
 
@@ -254,7 +246,7 @@ export class HybridPDFService {
         const employerTitle = employer.employer_type === 'applicant' ? 'Zadatel' : 'Spoluzadatel';
         
         doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(this.encodeText(`${employerTitle}:`), 20, currentY);
         currentY += 8;
 
@@ -270,9 +262,9 @@ export class HybridPDFService {
 
         doc.setFontSize(10);
         employerData.forEach(([label, value]) => {
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('courier', 'bold');
           doc.text(this.encodeText(label), 25, currentY);
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('courier', 'normal');
           const encodedValue = this.encodeText(value || '');
           const splitText = doc.splitTextToSize(encodedValue, 120);
           doc.text(splitText, 70, currentY);
@@ -286,7 +278,7 @@ export class HybridPDFService {
     if (property.address || property.price) {
       currentY += 15;
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText('Informace o nemovitosti'), 15, currentY);
       currentY += 10;
 
@@ -297,9 +289,9 @@ export class HybridPDFService {
 
       doc.setFontSize(10);
       propertyData.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(this.encodeText(label), 20, currentY);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'normal');
         const encodedValue = this.encodeText(value || '');
         const splitText = doc.splitTextToSize(encodedValue, 120);
         doc.text(splitText, 70, currentY);
@@ -309,14 +301,14 @@ export class HybridPDFService {
       // LTV výpočet
       if (property.price) {
         currentY += 5;
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(this.encodeText('Orientacni vypocet:'), 20, currentY);
         currentY += 8;
 
         const ltv80 = property.price * 0.8;
         const ltv90 = property.price * 0.9;
 
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'normal');
         doc.text(this.encodeText(`LTV 80%: ${this.formatCurrency(ltv80)}`), 25, currentY);
         currentY += 6;
         doc.text(this.encodeText(`LTV 90%: ${this.formatCurrency(ltv90)}`), 25, currentY);
@@ -333,7 +325,7 @@ export class HybridPDFService {
 
       currentY += 15;
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('courier', 'bold');
       doc.text(this.encodeText('Zavazky'), 15, currentY);
       currentY += 10;
 
@@ -365,7 +357,7 @@ export class HybridPDFService {
         styles: {
           fontSize: 9,
           cellPadding: 3,
-          font: 'helvetica'
+          font: 'courier'
         },
         headStyles: {
           fillColor: [66, 139, 202],
@@ -395,12 +387,12 @@ export class HybridPDFService {
 
     // Hlavička
     doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.text(this.encodeText('Prehled zavazku'), 105, 25, { align: 'center' });
 
     // Datum
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     const today = new Date().toLocaleDateString('cs-CZ');
     doc.text(this.encodeText(`Datum vytvoreni: ${today}`), 15, 35);
 
@@ -432,7 +424,7 @@ export class HybridPDFService {
       styles: {
         fontSize: 9,
         cellPadding: 3,
-        font: 'helvetica'
+        font: 'courier'
       },
       headStyles: {
         fillColor: [66, 139, 202],
