@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { formatNumber } from '../utils/formatHelpers';
 // Import české font pro podporu diakritiky
