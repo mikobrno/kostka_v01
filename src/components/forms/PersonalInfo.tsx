@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { AresService } from '../../services/aresService';
+import { supabase } from '../../lib/supabase';
 import { CopyButton } from '../CopyButton';
 import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
-import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search, ExternalLink } from 'lucide-react';
+import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search, ExternalLink, Check } from 'lucide-react';
 
 interface PersonalInfoProps {
   data: any;
   onChange: (data: any) => void;
   prefix: string;
+  clientId?: string | number;
+  toast?: any;
 }
 
-export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix }) => {
+export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [savingDocument, setSavingDocument] = useState<number | null>(null);
+  const [savedDocument, setSavedDocument] = useState<number | null>(null);
+  
   React.useEffect(() => {
     if (data.birthNumber && (!data.birthYear || !data.birthDate)) {
       const ageData = calculateAgeFromBirthNumber(data.birthNumber);
@@ -191,6 +198,79 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     }
     
     onChange(updated);
+  };
+
+  const saveDocument = async (documentId: number) => {
+    if (!clientId) {
+      toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení dokladu');
+      return;
+    }
+
+    setSavingDocument(documentId);
+    try {
+      // Najdi specifický doklad
+      const document = (data.documents || []).find((doc: any) => doc.id === documentId);
+      if (!document) {
+        throw new Error('Doklad nebyl nalezen');
+      }
+
+      // Připrav data pro Supabase (bez lokálního ID)
+      const documentData = {
+        client_id: String(clientId),
+        parent_type: prefix, // 'applicant' nebo 'co_applicant'
+        document_type: document.documentType || null,
+        document_number: document.documentNumber || null,
+        document_issue_date: document.documentIssueDate || null,
+        document_valid_until: document.documentValidUntil || null,
+        issuing_authority: document.issuingAuthority || null,
+        place_of_birth: document.placeOfBirth || null,
+        control_number: document.controlNumber || null
+      };
+
+      // Pokud už doklad existuje v DB (má supabase_id), aktualizuj ho
+      if (document.supabase_id) {
+        const { error } = await supabase
+          .from('documents')
+          .update(documentData)
+          .eq('id', document.supabase_id);
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při aktualizaci dokladu');
+        }
+      } else {
+        // Jinak vytvoř nový záznam
+        const { data: newDocument, error } = await supabase
+          .from('documents')
+          .insert(documentData)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při vytváření dokladu');
+        }
+
+        // Aktualizuj lokální data s novým supabase_id
+        const updatedDocuments = (data.documents || []).map((doc: any) => 
+          doc.id === documentId 
+            ? { ...doc, supabase_id: newDocument.id }
+            : doc
+        );
+        onChange({ ...data, documents: updatedDocuments });
+      }
+
+      setSavedDocument(documentId);
+      toast?.showSuccess('Uloženo', `Doklad byl úspěšně uložen`);
+      
+      // Skryj ikonku checkmarku po 2 sekundách
+      setTimeout(() => {
+        setSavedDocument(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Chyba při ukládání dokladu:', error);
+      toast?.showError('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit doklad');
+    } finally {
+      setSavingDocument(null);
+    }
   };
 
   return (
@@ -521,14 +601,34 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <h5 className="text-sm font-medium text-gray-900 dark:text-white">
                 Doklad #{index + 1}
               </h5>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(`document-${document.id.toString()}`);
-                }}
-                className="text-red-600 hover:text-red-800 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {/* Tlačítko pro uložení */}
+                <button
+                  onClick={() => saveDocument(document.id)}
+                  disabled={savingDocument === document.id}
+                  className="p-1 text-blue-600 hover:text-blue-800 disabled:text-blue-400 transition-colors"
+                  title="Uložit doklad"
+                >
+                  {savingDocument === document.id ? (
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  ) : savedDocument === document.id ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                </button>
+                
+                {/* Tlačítko pro smazání */}
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(`document-${document.id.toString()}`);
+                  }}
+                  className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                  title="Smazat doklad"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
