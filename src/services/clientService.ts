@@ -209,6 +209,7 @@ export class ClientService {
           amount: liability.amount ? parseFloat(liability.amount) : null,
           payment: liability.payment ? parseFloat(liability.payment) : null,
           balance: liability.balance ? parseFloat(liability.balance) : null,
+          poznamky: liability.poznamky || null,
         }))
 
         await supabase.from('liabilities').insert(liabilitiesData)
@@ -411,6 +412,7 @@ export class ClientService {
           amount: liability.amount ? parseFloat(liability.amount) : null,
           payment: liability.payment ? parseFloat(liability.payment) : null,
           balance: liability.balance ? parseFloat(liability.balance) : null,
+          poznamky: liability.poznamky || null,
         }))
         await supabase.from('liabilities').insert(liabilitiesData)
       }
