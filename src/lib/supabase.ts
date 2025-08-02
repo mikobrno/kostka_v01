@@ -20,6 +20,7 @@ export interface Client {
   applicant_title?: string
   applicant_first_name?: string
   applicant_last_name?: string
+  applicant_maiden_name?: string
   applicant_birth_number?: string
   applicant_age?: number
   applicant_marital_status?: string
@@ -37,6 +38,7 @@ export interface Client {
   co_applicant_title?: string
   co_applicant_first_name?: string
   co_applicant_last_name?: string
+  co_applicant_maiden_name?: string
   co_applicant_birth_number?: string
   co_applicant_age?: number
   co_applicant_marital_status?: string
