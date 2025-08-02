@@ -36,25 +36,28 @@ def fill_bohemika_pdf(form_data, template_path, output_path):
         for page in reader.pages:
             writer.add_page(page)
         
-        # Mapování polí z form_data na PDF pole
+        # Mapování polí z form_data na PDF pole (podle skutečných názvů v PDF)
         field_mapping = {
             # Klient sekce
-            'fill_11': form_data.get('jmeno_prijmeni', ''),
-            'fill_12': form_data.get('rodne_cislo', ''),
-            'Adresa': form_data.get('adresa', ''),
-            'Telefon': form_data.get('telefon', ''),
+            'fill_1': form_data.get('fill_1', ''),  # Jméno a příjmení
+            'fill_2': form_data.get('fill_2', ''),  # Rodné číslo
+            'Adresa': form_data.get('Adresa', ''),
+            'Telefon': form_data.get('Telefon', ''),
             'email': form_data.get('email', ''),
             
-            # Zpracovatel sekce (pevné údaje)
-            'fill_21': form_data.get('zpracovatel_jmeno', 'Ing. Milan Kost'),
-            'fill_22': form_data.get('zpracovatel_cislo', '8680020061'),
+            # Zpracovatel sekce
+            'fill_16': form_data.get('fill_16', 'Ing. Milan Kost'),
+            'fill_17': form_data.get('fill_17', '8680020061'),
             
             # Úvěr sekce
-            'Produkt': form_data.get('produkt', ''),
-            'LTV': form_data.get('ltv', ''),
-            'fill_24': form_data.get('ucel_uveru', ''),
-            'fill_25': form_data.get('mesicni_splatka', ''),
-            'fill_26': form_data.get('datum_podpisu', ''),
+            'fill_10': form_data.get('fill_10', ''),  # Číslo smlouvy
+            'Produkt': form_data.get('Produkt', ''),
+            'fill_21': form_data.get('fill_21', ''),  # Výše úvěru
+            'fill_22': form_data.get('fill_22', ''),  # Suma zajištění
+            'LTV': form_data.get('LTV', ''),
+            'fill_24': form_data.get('fill_24', ''),  # Účel úvěru
+            'fill_25': form_data.get('fill_25', ''),  # Měsíční splátka
+            'fill_26': form_data.get('fill_26', ''),  # Datum podpisu úvěru
             
             # Datum a místo
             'V': form_data.get('misto', 'Brně'),

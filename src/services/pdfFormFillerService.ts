@@ -39,29 +39,32 @@ export class PDFFormFillerService {
     loan: LoanData = {}
   ): Promise<void> {
     try {
-      // Připravíme data pro vyplnění PDF formuláře
+      // Připravíme data pro vyplnění PDF formuláře podle skutečných názvů polí
       const formData = {
-        // Klient sekce
-        'jmeno_prijmeni': `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim(),
-        'rodne_cislo': client.applicant_birth_number || '',
-        'adresa': client.applicant_permanent_address || '',
-        'telefon': client.applicant_phone || '',
+        // Klient sekce - podle názvů z PDF template
+        'fill_1': `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim(),
+        'fill_2': client.applicant_birth_number || '',
+        'Adresa': client.applicant_permanent_address || '',
+        'Telefon': client.applicant_phone || '',
         'email': client.applicant_email || '',
         
         // Zpracovatel (pevné údaje)
-        'zpracovatel_jmeno': 'Ing. Milan Kost',
-        'zpracovatel_telefon': '608 123 456',
-        'zpracovatel_email': 'milan.kost@bohemika.cz',
+        'fill_16': 'Ing. Milan Kost',
+        'fill_17': '8680020061',
         
         // Úvěr sekce
-        'castka_uveru': this.formatCurrency(loan.amount),
-        'ucel_uveru': loan.purpose || '',
-        'splatnost': loan.ltv ? `${loan.ltv} let` : '',
-        'typ_nemovitosti': 'Rodinný dům',
-        'poznamky': `Produkt: ${loan.product || ''}\nMěsíční splátka: ${this.formatCurrency(loan.monthly_payment)}\nDatum podpisu: ${this.formatDate(loan.contract_date)}`,
+        'Produkt': loan.product || '',
+        'fill_21': this.formatCurrency(loan.amount),
+        'fill_22': this.formatCurrency(loan.amount), // Suma zajištění = částka úvěru
+        'LTV': loan.ltv ? `${loan.ltv}%` : '',
+        'fill_24': loan.purpose || '', // Účel úvěru
+        'fill_25': this.formatCurrency(loan.monthly_payment), // Měsíční splátka
+        'fill_26': this.formatDate(loan.contract_date), // Datum podpisu úvěru
         
-        // Datum
-        'datum': new Date().toLocaleDateString('cs-CZ')
+        // Číslo smlouvy a datum
+        'fill_10': `SM-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        'dne': new Date().toLocaleDateString('cs-CZ'),
+        'misto': 'Brně'
       };
 
       console.log('📋 Volám PDF form filler s daty:', formData);
@@ -86,7 +89,7 @@ export class PDFFormFillerService {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `bohemika_${formData.jmeno_prijmeni.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `bohemika_${formData.fill_1.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -98,7 +101,7 @@ export class PDFFormFillerService {
       console.error('Chyba při vyplňování PDF template:', error);
       
       // Fallback informace
-      alert(`❌ PDF template není dostupný.\n\nPro správné fungování potřebujete:\n1. Nahrát PDF šablonu do public/bohemika_template.pdf\n2. PDF musí mít vyplnitelná pole s názvy:\n   - jmeno_prijmeni\n   - rodne_cislo\n   - adresa\n   - telefon\n   - email\n   - zpracovatel_jmeno\n   - atd.\n\n💡 Můžete použít náš HTML template (bohemika_form_template.html) pro vytvoření PDF s vyplnitelnými poli.`);
+      alert(`❌ PDF template není dostupný.\n\nPro správné fungování potřebujete:\n1. Nahrát PDF šablonu do public/bohemika_template.pdf\n2. PDF musí mít vyplnitelná pole s názvy:\n   - fill_1 (jméno a příjmení)\n   - fill_2 (rodné číslo)\n   - Adresa\n   - Telefon\n   - email\n   - fill_16 (zpracovatel)\n   - atd.\n\n💡 Zkontrolujte názvy polí v PDF template.`);
       
       throw error;
     }
