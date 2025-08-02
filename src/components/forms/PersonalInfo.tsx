@@ -946,6 +946,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 </button>
                 <button
                   onClick={async () => {
+                    alert('🔎 DEBUG: showDeleteConfirm = "' + showDeleteConfirm + '"');
                     const documentId = parseInt(showDeleteConfirm.replace('document-', ''));
                     alert('🔥 FUNKCE DELETE DOCUMENT SE SPUSTILA! ID: ' + documentId);
                     console.log('🗑️ Pokus o smazání dokumentu s ID:', documentId);
