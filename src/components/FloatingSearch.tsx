@@ -236,7 +236,7 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
   if (!isVisible) return null;
 
   return (
-    <div className="floating-search-container fixed top-20 right-4 z-50">
+    <div className="floating-search-container fixed bottom-4 left-20 z-50">
       <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg transition-all duration-200 ${
         isMinimized ? 'w-12 h-12' : 'w-80'
       }`}>

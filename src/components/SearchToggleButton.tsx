@@ -10,7 +10,7 @@ export const SearchToggleButton: React.FC<SearchToggleButtonProps> = ({ onClick,
   return (
     <button
       onClick={onClick}
-      className={`fixed top-4 right-4 z-40 p-3 rounded-full shadow-lg transition-all duration-200 ${
+      className={`fixed bottom-4 left-4 z-50 p-3 rounded-full shadow-lg transition-all duration-200 ${
         isSearchVisible 
           ? 'bg-blue-600 text-white' 
           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
