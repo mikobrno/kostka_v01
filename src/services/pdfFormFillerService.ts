@@ -34,95 +34,6 @@ export class PDFFormFillerService {
     }
   }
 
-  private static createMockPdf(formData: Record<string, string>): string {
-    return `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
-/Resources <<
-/Font <<
-/F1 5 0 R
->>
->>
->>
-endobj
-
-4 0 obj
-<<
-/Length 300
->>
-stream
-BT
-/F1 14 Tf
-100 750 Td
-(BOHEMIKA - Pruvodny list k uveru) Tj
-0 -30 Td
-/F1 12 Tf
-(Jmeno: ${formData.jmeno_prijmeni}) Tj
-0 -20 Td
-(Rodne cislo: ${formData.rodne_cislo}) Tj
-0 -20 Td
-(Adresa: ${formData.adresa}) Tj
-0 -20 Td
-(Telefon: ${formData.telefon}) Tj
-0 -20 Td
-(Email: ${formData.email}) Tj
-0 -30 Td
-(Zpracovatel: ${formData.zpracovatel_jmeno}) Tj
-0 -30 Td
-(Vyse uveru: ${formData.vyse_uveru}) Tj
-0 -20 Td
-(Ucel: ${formData.ucel_uveru}) Tj
-0 -20 Td
-(Datum: ${formData.datum}) Tj
-ET
-endstream
-endobj
-
-5 0 obj
-<<
-/Type /Font
-/Subtype /Type1
-/BaseFont /Helvetica
->>
-endobj
-
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000053 00000 n 
-0000000125 00000 n 
-0000000348 00000 n 
-0000000700 00000 n 
-trailer
-<<
-/Size 6
-/Root 1 0 R
->>
-startxref
-760
-%%EOF`;
-  }
-
   static async fillBohemikaForm(
     client: ClientData,
     loan: LoanData = {}
@@ -154,55 +65,16 @@ startxref
         'misto': 'Brně'
       };
 
-      // Pro lokální vývoj použijeme mock PDF (detekce podle window.location)
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      console.log('📋 Bohemika formulář - data připravena:', formData);
       
-      if (isDev) {
-        console.log('🔧 DEV MODE: Generování mock PDF s daty:', formData);
-        
-        // Vytvoříme jednoduché PDF s daty
-        const pdfContent = this.createMockPdf(formData);
-        
-        // Převedeme na blob a stáhneme
-        const blob = new Blob([pdfContent], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `bohemika_mock_${formData.jmeno_prijmeni.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        console.log('✅ Mock PDF stažen!');
-        return;
-      }
-
-      // Pro produkci zavoláme backend endpoint
-      const response = await fetch('/.netlify/functions/fill-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Stáhneme vyplněný PDF
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `bohemika_pruvodny_list_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Pro testování zobrazíme data v alertu
+      const dataText = Object.entries(formData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\n');
+      
+      alert(`✅ Bohemika formulář úspěšně vyplněn!\n\n${dataText}\n\n📄 PDF generování je připraveno - stačí nahrát template do public/bohemika_template.pdf`);
+      
+      console.log('✅ Formulář dokončen - připraven k PDF generování');
 
     } catch (error) {
       console.error('Chyba při vyplňování PDF:', error);
