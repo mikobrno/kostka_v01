@@ -1,8 +1,6 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { formatNumber } from '../utils/formatHelpers';
-// Import české font pro podporu diakritiky
-import '../utils/NotoSans-Regular-normal.js';
 
 // Rozšíření jsPDF typu pro autoTable
 declare module 'jspdf' {
@@ -75,18 +73,8 @@ interface PropertyData {
 
 export class PDFService {
   private static setupFont(doc: jsPDF) {
-    // Nastavení fontu pro podporu češtiny
-    try {
-      // Pokusím se použít NotoSans font pro podporu diakritiky
-      doc.setFont('NotoSans-Regular', 'normal');
-    } catch {
-      try {
-        // Záložní možnost - používáme Helvetica s UTF-8 podporou
-        doc.setFont('helvetica', 'normal');
-      } catch {
-        console.warn('Font loading failed, using default font');
-      }
-    }
+    // Použití základního fontu s UTF-8 podporou
+    doc.setFont('helvetica', 'normal');
   }
 
   private static formatDate(dateString?: string): string {
@@ -106,12 +94,12 @@ export class PDFService {
 
   private static addHeader(doc: jsPDF, title: string) {
     doc.setFontSize(20);
-    doc.setFont('NotoSans-Regular', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(title, 105, 25, { align: 'center' });
     
     // Datum vytvoření
     doc.setFontSize(10);
-    doc.setFont('NotoSans-Regular', 'normal');
+    doc.setFont('helvetica', 'normal');
     const today = new Date().toLocaleDateString('cs-CZ');
     doc.text(`Datum vytvoření: ${today}`, 15, 35);
     
@@ -122,7 +110,7 @@ export class PDFService {
 
   private static addSection(doc: jsPDF, title: string, startY: number): number {
     doc.setFontSize(14);
-    doc.setFont('NotoSans-Regular', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(title, 15, startY);
     
     // Linka pod nadpisem sekce
@@ -160,27 +148,27 @@ export class PDFService {
     ].filter(([label, value]) => value);
 
     doc.setFontSize(10);
-    doc.setFont('NotoSans-Regular', 'normal');
+    doc.setFont('helvetica', 'normal');
 
     // Vykreslení osobních údajů
     personalData.forEach(([, value], index) => {
-      doc.setFont('NotoSans-Regular', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(personalData[index][0], 20, currentY);
-      doc.setFont('NotoSans-Regular', 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(value, 70, currentY);
       currentY += 6;
     });
 
     if (contactData.length > 0) {
       currentY += 5;
-      doc.setFont('NotoSans-Regular', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Kontaktní údaje:', 20, currentY);
       currentY += 8;
 
       contactData.forEach(([, value], idx) => {
-        doc.setFont('NotoSans-Regular', 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(contactData[idx][0], 25, currentY);
-        doc.setFont('NotoSans-Regular', 'normal');
+        doc.setFont('helvetica', 'normal');
         // Rozdělení dlouhého textu na více řádků
         const splitText = doc.splitTextToSize(value, 120);
         doc.text(splitText, 70, currentY);
@@ -200,7 +188,7 @@ export class PDFService {
       const employerTitle = employer.employer_type === 'applicant' ? 'Žadatel' : 'Spolužadatel';
       
       doc.setFontSize(12);
-      doc.setFont('NotoSans-Regular', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(`${employerTitle}:`, 20, currentY);
       currentY += 8;
 
@@ -216,9 +204,9 @@ export class PDFService {
 
       doc.setFontSize(10);
       employerData.forEach(([, value], idx) => {
-        doc.setFont('NotoSans-Regular', 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(employerData[idx][0], 25, currentY);
-        doc.setFont('NotoSans-Regular', 'normal');
+        doc.setFont('helvetica', 'normal');
         const splitText = doc.splitTextToSize(value, 120);
         doc.text(splitText, 70, currentY);
         currentY += splitText.length * 6;
@@ -242,9 +230,9 @@ export class PDFService {
 
     doc.setFontSize(10);
     propertyData.forEach(([, value], idx) => {
-      doc.setFont('NotoSans-Regular', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(propertyData[idx][0], 20, currentY);
-      doc.setFont('NotoSans-Regular', 'normal');
+      doc.setFont('helvetica', 'normal');
       const splitText = doc.splitTextToSize(value, 120);
       doc.text(splitText, 70, currentY);
       currentY += splitText.length * 6;
@@ -253,14 +241,14 @@ export class PDFService {
     // Orientační výpočet LTV
     if (property.price) {
       currentY += 5;
-      doc.setFont('NotoSans-Regular', 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Orientační výpočet:', 20, currentY);
       currentY += 8;
 
       const ltv80 = property.price * 0.8;
       const ltv90 = property.price * 0.9;
 
-      doc.setFont('NotoSans-Regular', 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(`LTV 80%: ${this.formatCurrency(ltv80)}`, 25, currentY);
       currentY += 6;
       doc.text(`LTV 90%: ${this.formatCurrency(ltv90)}`, 25, currentY);
@@ -303,7 +291,7 @@ export class PDFService {
       styles: {
         fontSize: 9,
         cellPadding: 3,
-        font: 'NotoSans-Regular'
+        font: 'helvetica'
       },
       headStyles: {
         fillColor: [66, 139, 202],
@@ -332,7 +320,7 @@ export class PDFService {
     const totalBalance = liabilities.reduce((sum, liability) => sum + (liability.balance || 0), 0);
 
     currentY += 15;
-    doc.setFont('NotoSans-Regular', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Celkem:', 120, currentY);
     doc.text(this.formatCurrency(totalAmount), 140, currentY);
     doc.text(this.formatCurrency(totalPayment), 165, currentY);

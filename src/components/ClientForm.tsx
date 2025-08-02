@@ -7,6 +7,7 @@ import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
 import { AutoResizeTextarea } from './AutoResizeTextarea';
+import { SimpleSearch } from './SimpleSearch';
 import { Save, Plus, Eye, X, FileText, User, Layers, FileDown } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -32,6 +33,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   const [showPreview, setShowPreview] = useState(false);
   const [currentClient, setCurrentClient] = useState(selectedClient);
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic'>('basic');
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
 
   // Načtení dat vybraného klienta do formuláře
   React.useEffect(() => {
@@ -285,6 +287,30 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
     }
   };
 
+  // Funkce pro kontrolu, zda sekce obsahuje hledaný text
+  const sectionMatchesSearch = (sectionData: any, searchTerm: string): boolean => {
+    if (!searchTerm.trim()) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const searchInObject = (obj: any): boolean => {
+      if (typeof obj === 'string') {
+        return obj.toLowerCase().includes(searchLower);
+      }
+      if (typeof obj === 'number') {
+        return obj.toString().includes(searchTerm);
+      }
+      if (Array.isArray(obj)) {
+        return obj.some(item => searchInObject(item));
+      }
+      if (obj && typeof obj === 'object') {
+        return Object.values(obj).some(value => searchInObject(value));
+      }
+      return false;
+    };
+    
+    return searchInObject(sectionData);
+  };
+
   const handleNewClient = () => {
     setCurrentClient(null);
     setFormData({
@@ -340,7 +366,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {selectedClient || currentClient ? 'Úprava klienta' : 'Nový klient'}
           </h1>
@@ -348,6 +374,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             <p className="text-gray-600 dark:text-gray-300 mt-1">
               {formData.applicant.firstName} {formData.applicant.lastName}
             </p>
+          )}
+          
+          {/* Globální vyhledávání */}
+          {(selectedClient || currentClient) && (
+            <div className="mt-4 max-w-md">
+              <SimpleSearch 
+                onSearchChange={setGlobalSearchTerm}
+                placeholder="Hledat v profilu klienta..."
+                className="w-full"
+              />
+              {globalSearchTerm && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
+                </p>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center space-x-3">
@@ -440,100 +482,147 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       {activeFormTab === 'basic' && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
-                  Žadatel
-                </h2>
-                <PersonalInfo 
-                  data={formData.applicant}
-                  onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
-                  prefix="applicant"
-                  clientId={selectedClient?.id || currentClient?.id}
-                  toast={toast}
-                />
+            {/* Žadatel */}
+            {sectionMatchesSearch(formData.applicant, globalSearchTerm) && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
+                    Žadatel
+                  </h2>
+                  <PersonalInfo 
+                    data={formData.applicant}
+                    onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
+                    prefix="applicant"
+                    clientId={selectedClient?.id || currentClient?.id}
+                    toast={toast}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
-                  Spolužadatel
-                </h2>
-                <PersonalInfo 
-                  data={formData.coApplicant}
-                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
-                  prefix="co_applicant"
-                  clientId={selectedClient?.id || currentClient?.id}
-                  toast={toast}
-                />
+            {/* Spolužadatel */}
+            {sectionMatchesSearch(formData.coApplicant, globalSearchTerm) && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
+                    Spolužadatel
+                  </h2>
+                  <PersonalInfo 
+                    data={formData.coApplicant}
+                    onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
+                    prefix="co_applicant"
+                    clientId={selectedClient?.id || currentClient?.id}
+                    toast={toast}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
-                Zaměstnavatel žadatele
-              </h2>
-              <EmployerInfo 
-                data={formData.applicantEmployer}
-                onChange={(data) => setFormData(prev => ({ ...prev, applicantEmployer: data }))}
-              />
-            </div>
+            {/* Zaměstnavatel žadatele */}
+            {sectionMatchesSearch(formData.applicantEmployer, globalSearchTerm) && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
+                  Zaměstnavatel žadatele
+                </h2>
+                <EmployerInfo 
+                  data={formData.applicantEmployer}
+                  onChange={(data) => setFormData(prev => ({ ...prev, applicantEmployer: data }))}
+                />
+              </div>
+            )}
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
-                Zaměstnavatel spolužadatele
-              </h2>
-              <EmployerInfo 
-                data={formData.coApplicantEmployer}
-                onChange={(data) => setFormData(prev => ({ ...prev, coApplicantEmployer: data }))}
-              />
-            </div>
+            {/* Zaměstnavatel spolužadatele */}
+            {sectionMatchesSearch(formData.coApplicantEmployer, globalSearchTerm) && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
+                  Zaměstnavatel spolužadatele
+                </h2>
+                <EmployerInfo 
+                  data={formData.coApplicantEmployer}
+                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicantEmployer: data }))}
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Nemovitost žadatele */}
+            {sectionMatchesSearch(formData.applicantProperty, globalSearchTerm) && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                <PropertyInfo 
+                  data={formData.applicantProperty}
+                  onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
+                  title="Nemovitost žadatele"
+                />
+              </div>
+            )}
+
+            {/* Nemovitost spolužadatele */}
+            {sectionMatchesSearch(formData.coApplicantProperty, globalSearchTerm) && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                <PropertyInfo 
+                  data={formData.coApplicantProperty}
+                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
+                  title="Nemovitost spolužadatele"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Úvěr/Půjčka */}
+          {sectionMatchesSearch(formData.loan, globalSearchTerm) && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <PropertyInfo 
-                data={formData.applicantProperty}
-                onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
-                title="Nemovitost žadatele"
+              <LoanSection 
+                data={formData.loan}
+                onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
+                propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
               />
             </div>
+          )}
 
+          {/* Závazky */}
+          {sectionMatchesSearch(formData.liabilities, globalSearchTerm) && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <PropertyInfo 
-                data={formData.coApplicantProperty}
-                onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
-                title="Nemovitost spolužadatele"
+              <div className="flex justify-between items-center mb-6 border-b pb-3">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Závazky</h2>
+                <button className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Přidat závazek
+                </button>
+              </div>
+              <LiabilitiesInfo 
+                data={formData.liabilities}
+                onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
+                clientId={selectedClient?.id || currentClient?.id}
+                toast={toast}
               />
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <LoanSection 
-              data={formData.loan}
-              onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
-              propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
-            />
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center mb-6 border-b pb-3">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Závazky</h2>
-              <button className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <Plus className="w-4 h-4 mr-1" />
-                Přidat závazek
-              </button>
+          )}
+          
+          {/* Zpráva, když žádná sekce neodpovídá vyhledávání */}
+          {globalSearchTerm && 
+            !sectionMatchesSearch(formData.applicant, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.coApplicant, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.applicantEmployer, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.coApplicantEmployer, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.applicantProperty, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.coApplicantProperty, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.loan, globalSearchTerm) &&
+            !sectionMatchesSearch(formData.liabilities, globalSearchTerm) && (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <div className="text-gray-400 dark:text-gray-500 mb-4">
+                <Eye className="w-12 h-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Žádné výsledky
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Pro hledaný výraz "{globalSearchTerm}" nebyla nalezena žádná data.
+              </p>
             </div>
-            <LiabilitiesInfo 
-              data={formData.liabilities}
-              onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
-              clientId={selectedClient?.id || currentClient?.id}
-              toast={toast}
-            />
-          </div>
+          )}
         </div>
       )}
 
