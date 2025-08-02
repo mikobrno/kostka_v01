@@ -36,7 +36,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   }, []);
   
   const [hasChildren, setHasChildren] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Inicializace hasChildren na základě existujících dat
   React.useEffect(() => {
