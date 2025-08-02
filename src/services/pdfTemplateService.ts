@@ -1,120 +1,128 @@
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export class PDFTemplateService {
   
   static async createBohemikaTemplate(): Promise<Uint8Array> {
-    // Vytvoříme nový PDF dokument
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4 size
-    
-    const { height } = page.getSize();
-    const fontSize = 12;
-    const titleFontSize = 16;
-    
-    // Přidáme hlavičku
-    page.drawText('BOHEMIKA', {
-      x: 50,
-      y: height - 50,
-      size: 20,
-      color: rgb(0, 0, 0),
-    });
-    
-    page.drawText('Průvodní list k úvěru', {
-      x: 50,
-      y: height - 75,
-      size: titleFontSize,
-      color: rgb(0, 0, 0),
-    });
-
-    // Definujeme pozice pro pole
-    let currentY = height - 120;
-    const leftMargin = 50;
-    const labelWidth = 150;
-    const fieldWidth = 200;
-    const lineHeight = 30;
-
-    // Funkce pro přidání pole
-    const addFormField = (label: string, fieldName: string, isMultiline = false) => {
-      // Label
-      page.drawText(label, {
-        x: leftMargin,
-        y: currentY,
-        size: fontSize,
+    try {
+      // Vytvoříme nový PDF dokument
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([595, 842]); // A4 size
+      
+      // Použijeme standardní font
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      
+      const { height } = page.getSize();
+      const fontSize = 12;
+      
+      // Přidáme hlavičku
+      page.drawText('BOHEMIKA', {
+        x: 50,
+        y: height - 50,
+        size: 20,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
+      
+      page.drawText('Pruvodny list k uveru', {
+        x: 50,
+        y: height - 75,
+        size: 16,
+        font: font,
         color: rgb(0, 0, 0),
       });
 
-      // Vytvoříme text field
-      const textField = pdfDoc.addTextField(fieldName);
-      textField.setFontSize(fontSize);
-      textField.enableMultiline(isMultiline);
-      
-      const fieldHeight = isMultiline ? 60 : 20;
-      
-      // Přidáme widget (vizuální reprezentaci pole)
-      textField.addToPage(page, {
-        x: leftMargin + labelWidth,
-        y: currentY - fieldHeight + 5,
-        width: fieldWidth,
-        height: fieldHeight,
-        borderColor: rgb(0.5, 0.5, 0.5),
-        borderWidth: 1,
+      // Jednoduchá statická verze s prostorem pro ruční přidání polí
+      let currentY = height - 120;
+      const leftMargin = 50;
+      const lineHeight = 25;
+
+      const formLabels = [
+        'Osobni udaje klienta:',
+        '',
+        'Jmeno a prijmeni: ____________________________',
+        'Rodne cislo: ____________________________',
+        'Adresa: ____________________________',
+        'Telefon: ____________________________',
+        'Email: ____________________________',
+        '',
+        'Zpracovatel:',
+        '',
+        'Jmeno zpracovatele: ____________________________',
+        'Telefon zpracovatele: ____________________________',
+        'Email zpracovatele: ____________________________',
+        '',
+        'Udaje o uveru:',
+        '',
+        'Castka uveru: ____________________________',
+        'Ucel uveru: ____________________________',
+        'Splatnost: ____________________________',
+        'Typ nemovitosti: ____________________________',
+        '',
+        'Poznamky:',
+        '________________________________________',
+        '________________________________________',
+        '________________________________________',
+        '',
+        'Datum: ____________________________'
+      ];
+
+      // Vykreslíme formulář
+      formLabels.forEach(label => {
+        if (label.includes(':') && !label.includes('____')) {
+          // Hlavičky sekcí
+          page.drawText(label, {
+            x: leftMargin,
+            y: currentY,
+            size: fontSize + 1,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
+        } else if (label.trim() !== '') {
+          // Pole s podtržítky
+          page.drawText(label, {
+            x: leftMargin + 10,
+            y: currentY,
+            size: fontSize,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
+        }
+        currentY -= lineHeight;
       });
 
-      currentY -= isMultiline ? 80 : lineHeight;
-    };
+      // Instrukce na konci
+      page.drawText('Instrukce:', {
+        x: 50,
+        y: 100,
+        size: 10,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      
+      page.drawText('Pro vytvoreni PDF s vyplnitelnymi poli pouzijte Adobe Acrobat', {
+        x: 50,
+        y: 85,
+        size: 9,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      
+      page.drawText('nebo online nastroj PDFEscape.com', {
+        x: 50,
+        y: 70,
+        size: 9,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
 
-    // Sekce osobních údajů
-    page.drawText('Osobní údaje klienta:', {
-      x: leftMargin,
-      y: currentY,
-      size: fontSize + 2,
-      color: rgb(0, 0, 0),
-    });
-    currentY -= 25;
-
-    addFormField('Jméno a příjmení:', 'jmeno_prijmeni');
-    addFormField('Rodné číslo:', 'rodne_cislo');
-    addFormField('Adresa:', 'adresa');
-    addFormField('Telefon:', 'telefon');
-    addFormField('Email:', 'email');
-
-    // Sekce zpracovatele
-    currentY -= 20;
-    page.drawText('Zpracovatel:', {
-      x: leftMargin,
-      y: currentY,
-      size: fontSize + 2,
-      color: rgb(0, 0, 0),
-    });
-    currentY -= 25;
-
-    addFormField('Jméno zpracovatele:', 'zpracovatel_jmeno');
-    addFormField('Telefon zpracovatele:', 'zpracovatel_telefon');
-    addFormField('Email zpracovatele:', 'zpracovatel_email');
-
-    // Sekce úvěru
-    currentY -= 20;
-    page.drawText('Údaje o úvěru:', {
-      x: leftMargin,
-      y: currentY,
-      size: fontSize + 2,
-      color: rgb(0, 0, 0),
-    });
-    currentY -= 25;
-
-    addFormField('Částka úvěru:', 'castka_uveru');
-    addFormField('Účel úvěru:', 'ucel_uveru');
-    addFormField('Splatnost:', 'splatnost');
-    addFormField('Typ nemovitosti:', 'typ_nemovitosti');
-    addFormField('Poznámky:', 'poznamky', true);
-
-    // Datum
-    currentY -= 20;
-    addFormField('Datum:', 'datum');
-
-    // Vygenerujeme PDF jako bytes
-    const pdfBytes = await pdfDoc.save();
-    return pdfBytes;
+      // Vygenerujeme PDF jako bytes
+      const pdfBytes = await pdfDoc.save();
+      return pdfBytes;
+      
+    } catch (error) {
+      console.error('Chyba při vytváření PDF template:', error);
+      throw new Error(`Nelze vytvořit PDF template: ${error}`);
+    }
   }
 
   static async saveBohemikaTemplate(): Promise<void> {
