@@ -18,8 +18,8 @@ interface PersonalInfoProps {
 
 export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [savingDocument, setSavingDocument] = useState<number | null>(null);
-  const [savedDocument, setSavedDocument] = useState<number | null>(null);
+  const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
+  const [savedDocument, setSavedDocument] = useState<string | number | null>(null);
   
   React.useEffect(() => {
     if (data.birthNumber && (!data.birthYear || !data.birthDate)) {
@@ -199,8 +199,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     onChange(updated);
   };
 
-  const saveDocument = async (documentId: number) => {
-    alert('🔥 FUNKCE SAVE DOCUMENT SE SPUSTILA! ID: ' + documentId);
+  const saveDocument = async (documentId: string | number) => {
     console.log('🔍 Pokus o uložení dokumentu s lokálním ID:', documentId);
     console.log('📝 ClientId:', clientId);
     console.log('📋 Data dokumentů:', data.documents);
@@ -214,7 +213,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     setSavingDocument(documentId);
     try {
       // Najdi specifický doklad
-      const document = (data.documents || []).find((doc: any) => doc.id === documentId);
+      const document = (data.documents || []).find((doc: any) => doc.id == documentId);
       console.log('📄 Nalezený dokument:', document);
       if (!document) {
         throw new Error('Doklad nebyl nalezen');
@@ -265,7 +264,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
         // Aktualizuj lokální data s novým supabase_id
         const updatedDocuments = (data.documents || []).map((doc: any) => 
-          doc.id === documentId 
+          doc.id == documentId 
             ? { ...doc, supabase_id: newDocument.id }
             : doc
         );
@@ -948,7 +947,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                   onClick={async () => {
                     // Získej celé ID dokumentu ze showDeleteConfirm (odstraň prefix "document-")
                     const documentId = showDeleteConfirm.replace('document-', '');
-                    alert('🔥 OPRAVENÉ MAZÁNÍ! ID: ' + documentId);
+                    console.log('�️ Pokus o smazání dokumentu s ID:', documentId);
                     
                     // Najdi doklad pro smazání podle správného ID
                     const documentToDelete = (data.documents || []).find(d => d.id == documentId);
