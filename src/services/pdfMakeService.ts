@@ -2,8 +2,18 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Nastavení fontů pro pdfMake
+// Nastavení fontů pro pdfMake s lepší podporou českých znaků
 (pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
+
+// Explicitní registrace fontů s UTF-8 podporou
+(pdfMake as any).fonts = {
+  Roboto: {
+    normal: 'Roboto-Regular.ttf',
+    bold: 'Roboto-Medium.ttf',
+    italics: 'Roboto-Italic.ttf',
+    bolditalics: 'Roboto-MediumItalic.ttf'
+  }
+};
 
 interface ClientData {
   applicant_title?: string;
@@ -92,39 +102,51 @@ export class PDFMakeService {
     // Vytvoření dokumentu
     const docDefinition = {
       content: [
-        // Hlavička
+        // Hlavička s lepším formátováním
         {
           text: `Klientský profil - ${clientName || 'Nový klient'}`,
           style: 'header',
-          alignment: 'center' as const
+          alignment: 'center' as const,
+          margin: [0, 0, 0, 5] as [number, number, number, number]
         },
         {
           text: `Datum vytvoření: ${today}`,
           style: 'subheader',
-          margin: [0, 10, 0, 20] as [number, number, number, number]
+          alignment: 'center' as const,
+          margin: [0, 0, 0, 20] as [number, number, number, number]
         },
 
-        // Žadatel
+        // Žadatel s lepším layoutem
         {
           text: 'Žadatel',
           style: 'sectionHeader'
         },
         {
           table: {
-            widths: ['30%', '70%'],
+            widths: ['25%', '75%'],
             body: [
-              ...(client.applicant_title ? [['Titul:', client.applicant_title]] : []),
-              ...(client.applicant_first_name ? [['Jméno:', client.applicant_first_name]] : []),
-              ...(client.applicant_last_name ? [['Příjmení:', client.applicant_last_name]] : []),
-              ...(client.applicant_maiden_name ? [['Rodné příjmení:', client.applicant_maiden_name]] : []),
-              ...(client.applicant_birth_number ? [['Rodné číslo:', client.applicant_birth_number]] : []),
-              ...(client.applicant_birth_date ? [['Datum narození:', this.formatDate(client.applicant_birth_date)]] : []),
-              ...(client.applicant_age ? [['Věk:', `${client.applicant_age} let`]] : []),
-              ...(client.applicant_marital_status ? [['Rodinný stav:', client.applicant_marital_status]] : []),
-              ...(client.applicant_housing_type ? [['Bydliště:', client.applicant_housing_type]] : []),
+              ...(client.applicant_title ? [['Titul:', { text: client.applicant_title, style: 'tableValue' }]] : []),
+              ...(client.applicant_first_name ? [['Jméno:', { text: client.applicant_first_name, style: 'tableValue' }]] : []),
+              ...(client.applicant_last_name ? [['Příjmení:', { text: client.applicant_last_name, style: 'tableValue' }]] : []),
+              ...(client.applicant_maiden_name ? [['Rodné příjmení:', { text: client.applicant_maiden_name, style: 'tableValue' }]] : []),
+              ...(client.applicant_birth_number ? [['Rodné číslo:', { text: client.applicant_birth_number, style: 'tableValue' }]] : []),
+              ...(client.applicant_birth_date ? [['Datum narození:', { text: this.formatDate(client.applicant_birth_date), style: 'tableValue' }]] : []),
+              ...(client.applicant_age ? [['Věk:', { text: `${client.applicant_age} let`, style: 'tableValue' }]] : []),
+              ...(client.applicant_marital_status ? [['Rodinný stav:', { text: client.applicant_marital_status, style: 'tableValue' }]] : []),
+              ...(client.applicant_housing_type ? [['Bydliště:', { text: client.applicant_housing_type, style: 'tableValue' }]] : []),
             ]
           },
-          layout: 'noBorders',
+          layout: {
+            hLineWidth: function(i: number, node: any) {
+              return (i === 0 || i === node.table.body.length) ? 0 : 0.5;
+            },
+            vLineWidth: function() { return 0; },
+            hLineColor: function() { return '#e2e8f0'; },
+            paddingLeft: function() { return 8; },
+            paddingRight: function() { return 8; },
+            paddingTop: function() { return 4; },
+            paddingBottom: function() { return 4; }
+          },
           margin: [0, 0, 0, 15] as [number, number, number, number]
         },
 
@@ -272,27 +294,42 @@ export class PDFMakeService {
         header: {
           fontSize: 18,
           bold: true,
-          margin: [0, 0, 0, 10] as [number, number, number, number]
+          margin: [0, 0, 0, 10] as [number, number, number, number],
+          color: '#1a365d'
         },
         subheader: {
           fontSize: 10,
-          italics: true
+          italics: true,
+          color: '#4a5568'
         },
         sectionHeader: {
           fontSize: 14,
           bold: true,
-          margin: [0, 15, 0, 8] as [number, number, number, number]
+          margin: [0, 15, 0, 8] as [number, number, number, number],
+          color: '#2d3748',
+          fillColor: '#edf2f7',
+          decoration: 'underline' as const
         },
         subsectionHeader: {
           fontSize: 12,
           bold: true,
-          margin: [0, 10, 0, 5] as [number, number, number, number]
+          margin: [0, 10, 0, 5] as [number, number, number, number],
+          color: '#4a5568'
+        },
+        tableLabel: {
+          bold: true,
+          color: '#2d3748'
+        },
+        tableValue: {
+          color: '#4a5568'
         }
       },
       defaultStyle: {
         fontSize: 10,
-        lineHeight: 1.3
-      }
+        lineHeight: 1.4,
+        font: 'Roboto'
+      },
+      pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
 
     // Vygenerování a stažení PDF

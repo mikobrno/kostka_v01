@@ -4,8 +4,8 @@ import { FileDown } from 'lucide-react';
 export const PDFTestButton: React.FC = () => {
   const handleTestPDF = async () => {
     try {
-      // Lazy loading PDFMakeService
-      const { PDFMakeService } = await import('../services/pdfMakeService');
+      // Lazy loading HybridPDFService
+      const { HybridPDFService } = await import('../services/hybridPDFService');
       
       // Test data s českou diakritikou
       const testClient = {
@@ -66,7 +66,7 @@ export const PDFTestButton: React.FC = () => {
         price: 8500000
       };
 
-      await PDFMakeService.generateClientPDF(testClient, testEmployers, testLiabilities, testProperty);
+      await HybridPDFService.generateClientPDF(testClient, testEmployers, testLiabilities, testProperty);
       
       alert('✅ PDF test s pdfMake úspěšný! Soubor byl stažen.');
     } catch (error) {
