@@ -387,7 +387,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                 <PersonalInfo 
                   data={formData.coApplicant}
                   onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
-                  prefix="coApplicant"
+                  prefix="co_applicant"
                   clientId={selectedClient?.id || currentClient?.id}
                   toast={toast}
                 />
