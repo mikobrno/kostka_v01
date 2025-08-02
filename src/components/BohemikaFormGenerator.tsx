@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
 import { PDFFormFillerService } from '../services/pdfFormFillerService';
-import { PDFTemplateService } from '../services/pdfTemplateService';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -141,11 +140,27 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
   const createPDFTemplate = async () => {
     try {
-      await PDFTemplateService.saveBohemikaTemplate();
-      toast?.success('PDF template vytvořen! Nahrajte ho do složky public/');
+      // Stáhneme existující PDF template z public složky
+      const response = await fetch('/bohemika_template.pdf');
+      if (!response.ok) {
+        throw new Error(`Template nenalezen: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'bohemika_template.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast?.success('PDF template stažen z public složky!');
     } catch (error) {
-      console.error('Chyba při vytváření template:', error);
-      toast?.error('Chyba při vytváření PDF template');
+      console.error('Chyba při stahování template:', error);
+      toast?.error('Chyba při stahování PDF template - soubor nenalezen v public/');
     }
   };
 
@@ -362,12 +377,12 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
         </button>
         
         <div className="text-center">
-          <p className="text-sm text-gray-600 mb-2">Pokud nemáte PDF template:</p>
+          <p className="text-sm text-gray-600 mb-2">Stáhnout existující PDF template:</p>
           <button
             onClick={createPDFTemplate}
             className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition duration-200 ease-in-out"
           >
-            Vytvořit PDF Template
+            Stáhnout PDF Template
           </button>
         </div>
       </div>
