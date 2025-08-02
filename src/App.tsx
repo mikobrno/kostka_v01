@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
@@ -10,6 +10,8 @@ import { ClientList } from './components/ClientList';
 import { MortgageCalculator } from './components/MortgageCalculator';
 import { AdminPanel } from './components/AdminPanel';
 import { NotesApp } from './components/NotesApp';
+import { FloatingSearch } from './components/FloatingSearch';
+import { SearchToggleButton } from './components/SearchToggleButton';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
@@ -20,6 +22,20 @@ function App() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+
+  // Keyboard shortcut pro otevření search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        setIsSearchVisible(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (loading) {
     return (
@@ -176,6 +192,18 @@ function App() {
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
           </>
         )}
+
+        {/* Search Toggle Button */}
+        <SearchToggleButton 
+          onClick={() => setIsSearchVisible(!isSearchVisible)}
+          isSearchVisible={isSearchVisible}
+        />
+        
+        {/* Floating Search */}
+        <FloatingSearch 
+          isVisible={isSearchVisible}
+          onToggle={() => setIsSearchVisible(!isSearchVisible)}
+        />
       </main>
     </div>
   );
