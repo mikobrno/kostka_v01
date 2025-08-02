@@ -75,7 +75,12 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   };
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        Informace o zaměstnavateli
+      </h3>
+      
+      <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           IČO
@@ -274,6 +279,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           />
           <CopyButton text={data.employedSince || ''} />
         </div>
+      </div>
       </div>
     </div>
   );

@@ -287,8 +287,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   };
 
   return (
-    <>
-    <div className="space-y-6">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        {prefix === 'applicant' ? 'Osobní údaje žadatele' : 'Osobní údaje spolužadatele'}
+      </h3>
+      
+      <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1091,8 +1095,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         )}
       </div>
+      </div>
     </div>
-    </>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
+import { PDFService } from '../services/pdfService';
 import { DynamicSectionManager } from './forms/DynamicSectionManager';
 import { PersonalInfo } from './forms/PersonalInfo';
 import { EmployerInfo } from './forms/EmployerInfo';
@@ -7,7 +8,7 @@ import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
 import { AutoResizeTextarea } from './AutoResizeTextarea';
-import { Save, Plus, Eye, X, FileText, User, Layers } from 'lucide-react';
+import { Save, Plus, Eye, X, FileText, User, Layers, FileDown } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
@@ -206,7 +207,80 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   };
 
   const handleExportPDF = async () => {
-    toast?.showInfo('PDF generování dočasně nedostupné', 'Funkce bude přidána v budoucí verzi');
+    try {
+      const client = selectedClient || currentClient;
+      if (!client) {
+        toast?.showError('Chyba', 'Nejsou dostupná data klienta pro export');
+        return;
+      }
+
+      // Připravení dat pro PDF
+      const clientData = {
+        applicant_title: client.applicant_title,
+        applicant_first_name: client.applicant_first_name,
+        applicant_last_name: client.applicant_last_name,
+        applicant_maiden_name: client.applicant_maiden_name,
+        applicant_birth_number: client.applicant_birth_number,
+        applicant_birth_date: client.applicant_birth_date,
+        applicant_age: client.applicant_age,
+        applicant_marital_status: client.applicant_marital_status,
+        applicant_permanent_address: client.applicant_permanent_address,
+        applicant_contact_address: client.applicant_contact_address,
+        applicant_phone: client.applicant_phone,
+        applicant_email: client.applicant_email,
+        applicant_housing_type: client.applicant_housing_type,
+        co_applicant_title: client.co_applicant_title,
+        co_applicant_first_name: client.co_applicant_first_name,
+        co_applicant_last_name: client.co_applicant_last_name,
+        co_applicant_maiden_name: client.co_applicant_maiden_name,
+        co_applicant_birth_number: client.co_applicant_birth_number,
+        co_applicant_birth_date: client.co_applicant_birth_date,
+        co_applicant_age: client.co_applicant_age,
+        co_applicant_marital_status: client.co_applicant_marital_status,
+        co_applicant_permanent_address: client.co_applicant_permanent_address,
+        co_applicant_contact_address: client.co_applicant_contact_address,
+        co_applicant_phone: client.co_applicant_phone,
+        co_applicant_email: client.co_applicant_email,
+        created_at: client.created_at,
+        id: client.id
+      };
+
+      // Zaměstnavatelé
+      const employers = (client.employers || []).map((emp: any) => ({
+        id: emp.id,
+        ico: emp.ico,
+        company_name: emp.company_name,
+        company_address: emp.company_address,
+        net_income: emp.net_income,
+        job_position: emp.job_position,
+        employed_since: emp.employed_since,
+        contract_type: emp.contract_type,
+        employer_type: emp.employer_type
+      }));
+
+      // Závazky z formData
+      const liabilities = formData.liabilities.map((liability: any) => ({
+        id: liability.id?.toString() || '',
+        institution: liability.institution,
+        type: liability.type,
+        amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : undefined,
+        payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : undefined,
+        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : undefined,
+        notes: liability.notes
+      }));
+
+      // Nemovitost
+      const property = {
+        address: formData.applicantProperty?.address || formData.coApplicantProperty?.address,
+        price: formData.applicantProperty?.price || formData.coApplicantProperty?.price
+      };
+
+      await PDFService.generateClientPDF(clientData, employers, liabilities, property);
+      toast?.showSuccess('PDF vytvořeno', 'Klientský profil byl úspěšně exportován do PDF');
+    } catch (error) {
+      console.error('Chyba při exportu PDF:', error);
+      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+    }
   };
 
   const handleNewClient = () => {
@@ -551,10 +625,10 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
           
           <button
             onClick={onExportPDF}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
           >
-            <FileText className="w-4 h-4 mr-2" />
-            PDF (brzy)
+            <FileDown className="w-4 h-4 mr-2" />
+            Export PDF
           </button>
         </div>
       </div>

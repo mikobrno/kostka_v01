@@ -121,10 +121,11 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Basic Personal Information */}
-      <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-6">Základní údaje</h3>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-8">
+        {/* Basic Personal Information */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border dark:border-gray-600 p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-6">Základní údaje</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -391,6 +392,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
             onChange={(children) => updateField('children', children)}
           />
         )}
+      </div>
       </div>
     </div>
   );

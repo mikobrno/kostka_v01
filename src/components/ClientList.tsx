@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User } from 'lucide-react';
+import { PDFService } from '../services/pdfService';
+import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientListProps {
@@ -112,6 +113,77 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
 
   const handleClientNameClick = (client: any) => {
     setShowClientPreview(client);
+  };
+
+  const handleExportPDF = async (client: any) => {
+    try {
+      // Připravení dat pro PDF
+      const clientData = {
+        applicant_title: client.applicant_title,
+        applicant_first_name: client.applicant_first_name,
+        applicant_last_name: client.applicant_last_name,
+        applicant_maiden_name: client.applicant_maiden_name,
+        applicant_birth_number: client.applicant_birth_number,
+        applicant_birth_date: client.applicant_birth_date,
+        applicant_age: client.applicant_age,
+        applicant_marital_status: client.applicant_marital_status,
+        applicant_permanent_address: client.applicant_permanent_address,
+        applicant_contact_address: client.applicant_contact_address,
+        applicant_phone: client.applicant_phone,
+        applicant_email: client.applicant_email,
+        applicant_housing_type: client.applicant_housing_type,
+        co_applicant_title: client.co_applicant_title,
+        co_applicant_first_name: client.co_applicant_first_name,
+        co_applicant_last_name: client.co_applicant_last_name,
+        co_applicant_maiden_name: client.co_applicant_maiden_name,
+        co_applicant_birth_number: client.co_applicant_birth_number,
+        co_applicant_birth_date: client.co_applicant_birth_date,
+        co_applicant_age: client.co_applicant_age,
+        co_applicant_marital_status: client.co_applicant_marital_status,
+        co_applicant_permanent_address: client.co_applicant_permanent_address,
+        co_applicant_contact_address: client.co_applicant_contact_address,
+        co_applicant_phone: client.co_applicant_phone,
+        co_applicant_email: client.co_applicant_email,
+        created_at: client.created_at,
+        id: client.id
+      };
+
+      // Zaměstnavatelé
+      const employers = (client.employers || []).map((emp: any) => ({
+        id: emp.id,
+        ico: emp.ico,
+        company_name: emp.company_name,
+        company_address: emp.company_address,
+        net_income: emp.net_income,
+        job_position: emp.job_position,
+        employed_since: emp.employed_since,
+        contract_type: emp.contract_type,
+        employer_type: emp.employer_type
+      }));
+
+      // Závazky
+      const liabilities = (client.liabilities || []).map((liability: any) => ({
+        id: liability.id?.toString() || '',
+        institution: liability.institution,
+        type: liability.type,
+        amount: liability.amount,
+        payment: liability.payment,
+        balance: liability.balance,
+        notes: liability.notes
+      }));
+
+      // Nemovitost
+      const property = {
+        address: client.properties?.[0]?.address,
+        price: client.properties?.[0]?.price
+      };
+
+      await PDFService.generateClientPDF(clientData, employers, liabilities, property);
+      toast?.showSuccess('PDF vytvořeno', `Klientský profil pro ${client.applicant_first_name} ${client.applicant_last_name} byl úspěšně exportován`);
+    } catch (error) {
+      console.error('Chyba při exportu PDF:', error);
+      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+    }
   };
 
   const closeClientPreview = () => {
@@ -331,6 +403,13 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                           title="Upravit"
                         >
                           <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleExportPDF(client)}
+                          className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-200 transition-colors"
+                          title="Export do PDF"
+                        >
+                          <FileDown className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {

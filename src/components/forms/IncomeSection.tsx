@@ -118,11 +118,12 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
   const totals = calculateTotals(currentIncomeData);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2 mb-6">
-        <DollarSign className="w-6 h-6 text-green-600" />
-        <h2 className="text-xl font-semibold text-gray-900">Příjmy</h2>
-      </div>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2 mb-6">
+          <DollarSign className="w-6 h-6 text-green-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Příjmy</h2>
+        </div>
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
@@ -571,6 +572,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

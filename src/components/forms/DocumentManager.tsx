@@ -106,73 +106,75 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <FileText className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-medium text-gray-900">Doklady totožnosti</h3>
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-            {documents.length} dokladů
-          </span>
-        </div>
-        <button
-          onClick={addNewDocument}
-          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Přidat doklad
-        </button>
-      </div>
-
-      {/* Document List */}
-      <div className="space-y-4">
-        {documents.map((document) => (
-          <DocumentCard
-            key={document.id}
-            document={document}
-            documentTypes={documentTypes}
-            isEditing={editingDocument === document.id}
-            onEdit={() => setEditingDocument(document.id)}
-            onSave={(updatedDoc) => saveDocument(updatedDoc)}
-            onCancel={() => setEditingDocument(null)}
-            onDelete={() => deleteDocument(document.id)}
-            onSetPrimary={() => setPrimaryDocument(document.id)}
-            formatDateForDisplay={formatDateForDisplay}
-            parseDateFromDisplay={parseDateFromDisplay}
-            calculateValidityDate={calculateValidityDate}
-          />
-        ))}
-
-        {/* New Document Form */}
-        {newDocument && (
-          <DocumentCard
-            document={newDocument}
-            documentTypes={documentTypes}
-            isEditing={true}
-            onSave={(updatedDoc) => saveDocument(updatedDoc)}
-            onCancel={() => setNewDocument(null)}
-            formatDateForDisplay={formatDateForDisplay}
-            parseDateFromDisplay={parseDateFromDisplay}
-            calculateValidityDate={calculateValidityDate}
-            isNew={true}
-          />
-        )}
-      </div>
-
-      {documents.length === 0 && !newDocument && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné doklady</h3>
-          <p className="text-gray-500 mb-6">Přidejte první doklad totožnosti klienta</p>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Doklady totožnosti</h3>
+            <span className="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+              {documents.length} dokladů
+            </span>
+          </div>
           <button
             onClick={addNewDocument}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Přidat první doklad
+            Přidat doklad
           </button>
         </div>
-      )}
+
+        {/* Document List */}
+        <div className="space-y-4">
+          {documents.map((document) => (
+            <DocumentCard
+              key={document.id}
+              document={document}
+              documentTypes={documentTypes}
+              isEditing={editingDocument === document.id}
+              onEdit={() => setEditingDocument(document.id)}
+              onSave={(updatedDoc) => saveDocument(updatedDoc)}
+              onCancel={() => setEditingDocument(null)}
+              onDelete={() => deleteDocument(document.id)}
+              onSetPrimary={() => setPrimaryDocument(document.id)}
+              formatDateForDisplay={formatDateForDisplay}
+              parseDateFromDisplay={parseDateFromDisplay}
+              calculateValidityDate={calculateValidityDate}
+            />
+          ))}
+
+          {/* New Document Form */}
+          {newDocument && (
+            <DocumentCard
+              document={newDocument}
+              documentTypes={documentTypes}
+              isEditing={true}
+              onSave={(updatedDoc) => saveDocument(updatedDoc)}
+              onCancel={() => setNewDocument(null)}
+              formatDateForDisplay={formatDateForDisplay}
+              parseDateFromDisplay={parseDateFromDisplay}
+              calculateValidityDate={calculateValidityDate}
+              isNew={true}
+            />
+          )}
+        </div>
+
+        {documents.length === 0 && !newDocument && (
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Žádné doklady</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Přidejte první doklad totožnosti klienta</p>
+            <button
+              onClick={addNewDocument}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Přidat první doklad
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -12,6 +12,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { NotesApp } from './components/NotesApp';
 import { FloatingSearch } from './components/FloatingSearch';
 import { SearchToggleButton } from './components/SearchToggleButton';
+import { PDFTestButton } from './components/PDFTestButton';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
@@ -114,6 +115,7 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <PDFTestButton />
               <ThemeToggle />
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 Přihlášen: {user.email}

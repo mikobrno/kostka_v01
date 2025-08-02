@@ -182,7 +182,8 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-6">
       {sections.length === 0 ? (
         /* No sections - show empty state */
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
@@ -360,6 +361,7 @@ export const DynamicSectionManager: React.FC<DynamicSectionManagerProps> = ({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

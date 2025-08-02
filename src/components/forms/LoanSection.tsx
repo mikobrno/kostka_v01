@@ -90,24 +90,25 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2 mb-6">
-        <CreditCard className="w-6 h-6 text-green-600" />
-        <h2 className="text-xl font-semibold text-gray-900">Úvěr</h2>
-      </div>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2 mb-6">
+          <CreditCard className="w-6 h-6 text-green-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Úvěr</h2>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Banka
-          </label>
-          <div className="flex">
-            <select
-              value={data.bank || ''}
-              onChange={(e) => updateField('bank', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-            >
-              <option value="">Vyberte banku</option>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Banka
+            </label>
+            <div className="flex">
+              <select
+                value={data.bank || ''}
+                onChange={(e) => updateField('bank', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              >
+                <option value="">Vyberte banku</option>
               {adminLists.banks.map(bank => (
                 <option key={bank} value={bank}>{bank}</option>
               ))}
@@ -321,12 +322,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               <div className="font-medium">{parseInt(data.propertyValue || propertyPrice).toLocaleString('cs-CZ')} Kč</div>
             </div>
             <div>
-              <span className="text-green-700">LTV poměr:</span>
-              <div className="font-bold text-lg text-green-800">{calculateLTV()}%</div>
+              <span className="text-green-700 dark:text-green-400">LTV poměr:</span>
+              <div className="font-bold text-lg text-green-800 dark:text-green-300">{calculateLTV()}%</div>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
