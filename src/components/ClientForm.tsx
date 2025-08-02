@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
-import { PDFService } from '../services/pdfService';
 import { DynamicSectionManager } from './forms/DynamicSectionManager';
 import { PersonalInfo } from './forms/PersonalInfo';
 import { EmployerInfo } from './forms/EmployerInfo';
@@ -208,6 +207,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   const handleExportPDF = async () => {
     try {
+      // Lazy loading PDFService
+      const { PDFService } = await import('../services/pdfService');
+      
       const client = selectedClient || currentClient;
       if (!client) {
         toast?.showError('Chyba', 'Nejsou dostupná data klienta pro export');

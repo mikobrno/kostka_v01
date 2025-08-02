@@ -1,10 +1,12 @@
 import React from 'react';
-import { PDFService } from '../services/pdfService';
 import { FileDown } from 'lucide-react';
 
 export const PDFTestButton: React.FC = () => {
   const handleTestPDF = async () => {
     try {
+      // Lazy loading PDFService
+      const { PDFService } = await import('../services/pdfService');
+      
       // Test data s českou diakritikou
       const testClient = {
         applicant_title: 'Ing.',

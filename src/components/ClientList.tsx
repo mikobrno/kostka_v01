@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { PDFService } from '../services/pdfService';
 import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -117,6 +116,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
 
   const handleExportPDF = async (client: any) => {
     try {
+      // Lazy loading PDFService
+      const { PDFService } = await import('../services/pdfService');
+      
       // Připravení dat pro PDF
       const clientData = {
         applicant_title: client.applicant_title,

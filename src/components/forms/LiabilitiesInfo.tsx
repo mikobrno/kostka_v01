@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase';
 import { CopyButton } from '../CopyButton';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { SimpleSearch } from '../SimpleSearch';
-import { PDFService } from '../../services/pdfService';
 import { formatNumber } from '../../utils/formatHelpers';
 import { Plus, Trash2, Save, Check, FileDown } from 'lucide-react';
 
@@ -174,6 +173,9 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
   // Funkce pro export do PDF
   const exportToPDF = async () => {
     try {
+      // Lazy loading PDFService
+      const { PDFService } = await import('../../services/pdfService');
+      
       const liabilitiesForPDF = data.map(liability => ({
         id: liability.id.toString(),
         institution: liability.institution,
