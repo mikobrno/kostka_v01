@@ -13,6 +13,7 @@ import { NotesApp } from './components/NotesApp';
 import { FloatingSearch } from './components/FloatingSearch';
 import { SearchToggleButton } from './components/SearchToggleButton';
 import { PDFTestButton } from './components/PDFTestButton';
+import BohemikaFormGenerator from './components/BohemikaFormGenerator';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
     { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'clientList', label: 'Seznam klientů', icon: Users },
     { id: 'calculator', label: 'Hypoteční kalkulačka', icon: Calculator },
+    { id: 'bohemika', label: 'Bohemika formulář', icon: FileText },
     { id: 'notes', label: 'Poznámky', icon: FileText },
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
@@ -190,6 +192,15 @@ function App() {
               <ClientList onSelectClient={handleSelectClient} toast={toast} refreshKey={clientListRefreshKey} />
             )}
             {activeTab === 'calculator' && !showClientForm && <MortgageCalculator />}
+            {activeTab === 'bohemika' && !showClientForm && (
+              <BohemikaFormGenerator 
+                toast={{
+                  success: (message: string) => toast.showSuccess('Úspěch', message),
+                  error: (message: string) => toast.showError('Chyba', message)
+                }}
+                selectedClientId={selectedClient ? (selectedClient as any).id : undefined}
+              />
+            )}
             {activeTab === 'notes' && !showClientForm && <NotesApp />}
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
           </>

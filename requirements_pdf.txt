@@ -1,0 +1,6 @@
+# Požadavky pro PDF Form Filler
+pypdf>=3.0.0
+
+# Alternativní knihovny (pokud pypdf nefunguje):
+# PyPDF2>=3.0.0
+# reportlab>=4.0.0
