@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
+import { PDFFormFillerService } from '../services/pdfFormFillerService';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -115,16 +116,25 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
   const generatePDF = async () => {
     try {
-      // Dočasné řešení - zobrazíme data klienta
-      const clientName = `${client.applicant_first_name} ${client.applicant_last_name}`;
-      const loanInfo = `Produkt: ${loan.product}, Výše: ${loan.amount} Kč`;
+      if (!client || !loan) {
+        toast?.error('Nejsou vybrána data klienta nebo úvěru');
+        return;
+      }
+
+      // Použijeme PDF form filler service
+      await PDFFormFillerService.fillBohemikaForm(client, loan);
       
-      alert(`Bohemika formulář pro:\n${clientName}\n${loanInfo}\n\nPDF generování bude implementováno po vyřešení TypeScript problémů.`);
-      
-      toast?.success('Formulář připraven - PDF generování bude brzy dostupné');
+      toast?.success('PDF úspěšně vygenerováno a staženo!');
     } catch (error) {
-      console.error('Chyba:', error);
-      toast?.error('Nastala chyba');
+      console.error('Chyba při generování PDF:', error);
+      
+      // Fallback - zobrazíme data klienta
+      const clientName = `${client?.applicant_first_name} ${client?.applicant_last_name}`;
+      const loanInfo = `Produkt: ${loan?.product}, Výše: ${loan?.amount} Kč`;
+      
+      alert(`Bohemika formulář pro:\n${clientName}\n${loanInfo}\n\nChyba při PDF generování: ${error}\n\nZkontrolujte, zda je nahrán PDF template v public/bohemika_template.pdf`);
+      
+      toast?.error('Chyba při generování PDF - zkontrolujte konzoli pro detaily');
     }
   };
 
