@@ -3,6 +3,7 @@ import { AdminService } from '../../services/adminService';
 import { supabase } from '../../lib/supabase';
 import { CopyButton } from '../CopyButton';
 import { FormattedNumberInput } from '../FormattedNumberInput';
+import { SimpleSearch } from '../SimpleSearch';
 import { formatNumber } from '../../utils/formatHelpers';
 import { Plus, Trash2, Save, Check } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | number | null>(null);
   const [saving, setSaving] = useState<string | number | null>(null);
   const [saved, setSaved] = useState<string | number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [adminLists, setAdminLists] = React.useState({
     institutions: [],
@@ -166,6 +168,22 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     }
   };
 
+  // Filtrování závazků podle search term
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    
+    return data.filter(liability => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (liability.institution && liability.institution.toLowerCase().includes(searchLower)) ||
+        (liability.type && liability.type.toLowerCase().includes(searchLower)) ||
+        (liability.amount && String(liability.amount).includes(searchTerm)) ||
+        (liability.payment && String(liability.payment).includes(searchTerm)) ||
+        (liability.balance && String(liability.balance).includes(searchTerm))
+      );
+    });
+  }, [data, searchTerm]);
+
   if (data.length === 0) {
     return (
       <div className="text-center py-12">
@@ -186,8 +204,18 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
   }
 
   return (
-    <div className="space-y-4">
-      {data.map((liability, index) => (
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        Závazky
+      </h3>
+      
+      <SimpleSearch 
+        onSearchChange={setSearchTerm}
+        placeholder="Hledat v závazcích..."
+      />
+
+      <div className="space-y-4 mt-4">
+        {filteredData.map((liability, index) => (
         <div key={liability.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-md font-medium text-gray-900 dark:text-white">
@@ -354,6 +382,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

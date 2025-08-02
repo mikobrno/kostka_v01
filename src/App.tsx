@@ -193,17 +193,16 @@ function App() {
           </>
         )}
 
-        {/* Search Toggle Button */}
-        <SearchToggleButton 
+        {/* Search Toggle Button - temporarily disabled due to performance issues */}
+        {/* <SearchToggleButton 
           onClick={() => setIsSearchVisible(!isSearchVisible)}
           isSearchVisible={isSearchVisible}
         />
         
-        {/* Floating Search */}
         <FloatingSearch 
           isVisible={isSearchVisible}
           onToggle={() => setIsSearchVisible(!isSearchVisible)}
-        />
+        /> */}
       </main>
     </div>
   );

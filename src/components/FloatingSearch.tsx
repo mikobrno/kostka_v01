@@ -17,108 +17,75 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
   const [results, setResults] = useState<SearchResult[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const originalScrollBehavior = useRef<string>('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Vyčištění highlightů
   const clearHighlights = () => {
-    const highlights = document.querySelectorAll('.search-highlight');
-    highlights.forEach(highlight => {
-      const parent = highlight.parentNode;
-      if (parent) {
-        parent.replaceChild(document.createTextNode(highlight.textContent || ''), highlight);
-        parent.normalize();
-      }
-    });
+    try {
+      const highlights = document.querySelectorAll('.search-highlight');
+      highlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(highlight.textContent || ''), highlight);
+        }
+      });
+      
+      // Normalize text nodes
+      const elements = document.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6, label, button');
+      elements.forEach(element => {
+        if (element.normalize) {
+          element.normalize();
+        }
+      });
+    } catch (error) {
+      console.error('Error clearing highlights:', error);
+    }
   };
 
   // Hledání textu v DOM
   const searchInDOM = useCallback((term: string): SearchResult[] => {
+    // Performance check - limit search term length
+    if (term.length < 2) return [];
+    
     clearHighlights();
     
     if (!term.trim()) return [];
 
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: (node) => {
-          // Přeskočit script, style tagy a náš search komponent
-          const parent = node.parentElement;
-          if (!parent) return NodeFilter.FILTER_REJECT;
-          
-          const tagName = parent.tagName.toLowerCase();
-          if (['script', 'style', 'noscript'].includes(tagName)) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          
-          // Přeskočit náš floating search komponent
-          if (parent.closest('.floating-search-container')) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          
-          return node.textContent && node.textContent.toLowerCase().includes(term.toLowerCase())
-            ? NodeFilter.FILTER_ACCEPT 
-            : NodeFilter.FILTER_REJECT;
-        }
-      }
-    );
-
     const results: SearchResult[] = [];
-    let node;
     let index = 0;
-
-    while ((node = walker.nextNode())) {
-      const textNode = node as Text;
-      const text = textNode.textContent || '';
-      const lowerText = text.toLowerCase();
-      const lowerTerm = term.toLowerCase();
+    
+    // Use more efficient search method
+    const elements = document.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6, label, button');
+    
+    for (const element of elements) {
+      // Skip our search components
+      if (element.closest('.floating-search-container')) continue;
       
-      let startIndex = 0;
-      let matchIndex;
+      const textContent = element.textContent || '';
+      if (!textContent.toLowerCase().includes(term.toLowerCase())) continue;
       
-      while ((matchIndex = lowerText.indexOf(lowerTerm, startIndex)) !== -1) {
-        // Vytvoř highlight element
-        const beforeText = text.substring(0, matchIndex);
-        const matchText = text.substring(matchIndex, matchIndex + term.length);
-        const afterText = text.substring(matchIndex + term.length);
+      // Limit results for performance
+      if (results.length >= 50) break;
+      
+      // Simple highlighting for performance
+      const innerHTML = element.innerHTML;
+      const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      
+      if (regex.test(textContent)) {
+        const highlightedHTML = innerHTML.replace(regex, '<span class="search-highlight bg-yellow-300 dark:bg-yellow-600 px-1 rounded">$1</span>');
+        element.innerHTML = highlightedHTML;
         
-        const parent = textNode.parentNode;
-        if (parent) {
-          // Nahraď textový uzel highlighted verzí
-          const fragment = document.createDocumentFragment();
-          
-          if (beforeText) {
-            fragment.appendChild(document.createTextNode(beforeText));
-          }
-          
-          const highlight = document.createElement('span');
-          highlight.className = 'search-highlight bg-yellow-300 dark:bg-yellow-600 px-1 rounded';
-          highlight.textContent = matchText;
-          fragment.appendChild(highlight);
-          
-          if (afterText) {
-            const afterNode = document.createTextNode(afterText);
-            fragment.appendChild(afterNode);
-            // Pokračuj hledáním v zbytku textu
-            textNode.textContent = afterText;
-            startIndex = 0;
-          } else {
-            textNode.remove();
-          }
-          
-          parent.insertBefore(fragment, textNode);
-          
+        const highlights = element.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
           results.push({
-            element: highlight,
-            text: matchText,
+            element: highlight as HTMLElement,
+            text: highlight.textContent || '',
             index: index++
           });
-          
-          if (!afterText) break;
-        } else {
-          break;
-        }
+        });
       }
     }
 
@@ -157,21 +124,43 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
     }
   }, [results]);
 
-  // Hledání při změně textu
+  // Hledání při změně textu s debounce
   useEffect(() => {
-    if (searchTerm.trim()) {
-      const searchResults = searchInDOM(searchTerm);
-      setResults(searchResults);
-      setCurrentIndex(0);
-      
-      if (searchResults.length > 0) {
-        scrollToResult(0);
-      }
-    } else {
-      clearHighlights();
-      setResults([]);
-      setCurrentIndex(0);
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchTerm.trim()) {
+        setIsSearching(true);
+        try {
+          const searchResults = searchInDOM(searchTerm);
+          setResults(searchResults);
+          setCurrentIndex(0);
+          
+          if (searchResults.length > 0) {
+            scrollToResult(0);
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          setResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        clearHighlights();
+        setResults([]);
+        setCurrentIndex(0);
+        setIsSearching(false);
+      }
+    }, 500); // Increased debounce to 500ms
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [searchTerm, searchInDOM, scrollToResult]);
 
   // Navigace výsledky
