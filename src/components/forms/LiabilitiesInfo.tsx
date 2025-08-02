@@ -90,9 +90,9 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     setShowDeleteConfirm(id);
   };
 
-  const updateLiability = (id: number, field: string, value: any) => {
+  const updateLiability = (id: string | number, field: string, value: any) => {
     onChange(data.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
+      item.id == id ? { ...item, [field]: value } : item
     ));
   };
 
@@ -152,7 +152,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       }
 
       setSaved(liabilityId);
-      toast?.showSuccess('Uloženo', `Závazek #${data.findIndex(item => item.id === liabilityId) + 1} byl úspěšně uložen`);
+      toast?.showSuccess('Uloženo', `Závazek #${data.findIndex(item => item.id == liabilityId) + 1} byl úspěšně uložen`);
       
       // Skryj ikonku checkmarku po 2 sekundách
       setTimeout(() => {
