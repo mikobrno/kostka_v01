@@ -34,95 +34,6 @@ export class PDFFormFillerService {
     }
   }
 
-  private static createSimplePdf(formData: Record<string, string>): string {
-    return `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
-/Resources <<
-/Font <<
-/F1 5 0 R
->>
->>
->>
-endobj
-
-4 0 obj
-<<
-/Length 400
->>
-stream
-BT
-/F1 16 Tf
-50 750 Td
-(BOHEMIKA - Pruvodny list k uveru) Tj
-0 -40 Td
-/F1 12 Tf
-(Jmeno: ${formData.jmeno_prijmeni}) Tj
-0 -20 Td
-(Rodne cislo: ${formData.rodne_cislo}) Tj
-0 -20 Td
-(Adresa: ${formData.adresa}) Tj
-0 -20 Td
-(Telefon: ${formData.telefon}) Tj
-0 -20 Td
-(Email: ${formData.email}) Tj
-0 -30 Td
-(Zpracovatel: ${formData.zpracovatel_jmeno}) Tj
-0 -30 Td
-(Vyse uveru: ${formData.vyse_uveru}) Tj
-0 -20 Td
-(Ucel: ${formData.ucel_uveru}) Tj
-0 -20 Td
-(Datum: ${formData.datum}) Tj
-ET
-endstream
-endobj
-
-5 0 obj
-<<
-/Type /Font
-/Subtype /Type1
-/BaseFont /Helvetica
->>
-endobj
-
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000053 00000 n 
-0000000125 00000 n 
-0000000348 00000 n 
-0000000700 00000 n 
-trailer
-<<
-/Size 6
-/Root 1 0 R
->>
-startxref
-760
-%%EOF`;
-  }
-
   static async fillBohemikaForm(
     client: ClientData,
     loan: LoanData = {}
@@ -139,28 +50,38 @@ startxref
         
         // Zpracovatel (pevné údaje)
         'zpracovatel_jmeno': 'Ing. Milan Kost',
-        'zpracovatel_cislo': '8680020061',
+        'zpracovatel_telefon': '608 123 456',
+        'zpracovatel_email': 'milan.kost@bohemika.cz',
         
         // Úvěr sekce
-        'produkt': loan.product || '',
-        'vyse_uveru': this.formatCurrency(loan.amount),
-        'ltv': loan.ltv ? `${loan.ltv}%` : '',
+        'castka_uveru': this.formatCurrency(loan.amount),
         'ucel_uveru': loan.purpose || '',
-        'mesicni_splatka': this.formatCurrency(loan.monthly_payment),
-        'datum_podpisu': this.formatDate(loan.contract_date),
+        'splatnost': loan.ltv ? `${loan.ltv} let` : '',
+        'typ_nemovitosti': 'Rodinný dům',
+        'poznamky': `Produkt: ${loan.product || ''}\nMěsíční splátka: ${this.formatCurrency(loan.monthly_payment)}\nDatum podpisu: ${this.formatDate(loan.contract_date)}`,
         
-        // Datum a místo
-        'datum': new Date().toLocaleDateString('cs-CZ'),
-        'misto': 'Brně'
+        // Datum
+        'datum': new Date().toLocaleDateString('cs-CZ')
       };
 
-      console.log('📋 Bohemika formulář - data připravena:', formData);
+      console.log('📋 Volám PDF form filler s daty:', formData);
       
-      // Vytvoříme jednoduché PDF s daty
-      const pdfContent = this.createSimplePdf(formData);
-      
-      // Převedeme na blob a stáhneme
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      // Zavoláme Netlify funkci pro vyplnění PDF template
+      const response = await fetch('/.netlify/functions/fill-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`PDF generování selhalo: ${response.status} - ${errorText}`);
+      }
+
+      // Stáhneme vyplněný PDF
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -171,10 +92,14 @@ startxref
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      console.log('✅ PDF úspěšně stažen!');
+      console.log('✅ Vyplněný PDF template úspěšně stažen!');
 
     } catch (error: unknown) {
-      console.error('Chyba při vyplňování PDF:', error);
+      console.error('Chyba při vyplňování PDF template:', error);
+      
+      // Fallback informace
+      alert(`❌ PDF template není dostupný.\n\nPro správné fungování potřebujete:\n1. Nahrát PDF šablonu do public/bohemika_template.pdf\n2. PDF musí mít vyplnitelná pole s názvy:\n   - jmeno_prijmeni\n   - rodne_cislo\n   - adresa\n   - telefon\n   - email\n   - zpracovatel_jmeno\n   - atd.\n\n💡 Můžete použít náš HTML template (bohemika_form_template.html) pro vytvoření PDF s vyplnitelnými poli.`);
+      
       throw error;
     }
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
 import { PDFFormFillerService } from '../services/pdfFormFillerService';
+import { PDFTemplateService } from '../services/pdfTemplateService';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -135,6 +136,16 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
       alert(`Bohemika formulář pro:\n${clientName}\n${loanInfo}\n\nChyba při PDF generování: ${error}\n\nZkontrolujte, zda je nahrán PDF template v public/bohemika_template.pdf`);
       
       toast?.error('Chyba při generování PDF - zkontrolujte konzoli pro detaily');
+    }
+  };
+
+  const createPDFTemplate = async () => {
+    try {
+      await PDFTemplateService.saveBohemikaTemplate();
+      toast?.success('PDF template vytvořen! Nahrajte ho do složky public/');
+    } catch (error) {
+      console.error('Chyba při vytváření template:', error);
+      toast?.error('Chyba při vytváření PDF template');
     }
   };
 
@@ -341,14 +352,24 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
         </div>
       </div>
 
-      {/* Tlačítko pro generování */}
-      <div className="text-center">
+      {/* Tlačítka pro generování */}
+      <div className="text-center space-y-4">
         <button
           onClick={generatePDF}
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition duration-200 ease-in-out transform hover:scale-105"
         >
           Vygenerovat Průvodní list PDF
         </button>
+        
+        <div className="text-center">
+          <p className="text-sm text-gray-600 mb-2">Pokud nemáte PDF template:</p>
+          <button
+            onClick={createPDFTemplate}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition duration-200 ease-in-out"
+          >
+            Vytvořit PDF Template
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 text-sm text-gray-600 text-center">
