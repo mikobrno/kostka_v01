@@ -373,6 +373,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                   data={formData.applicant}
                   onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
                   prefix="applicant"
+                  clientId={selectedClient?.id || currentClient?.id}
+                  toast={toast}
                 />
               </div>
             </div>
@@ -386,6 +388,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                   data={formData.coApplicant}
                   onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
                   prefix="coApplicant"
+                  clientId={selectedClient?.id || currentClient?.id}
+                  toast={toast}
                 />
               </div>
             </div>
