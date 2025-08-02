@@ -60,13 +60,13 @@ function App() {
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
 
-  const handleSelectClient = (client) => {
+  const handleSelectClient = (client: any) => {
     setSelectedClient(client);
     setActiveTab('newClient');
     setShowClientForm(true);
   };
 
-  const handleTabChange = (tabId) => {
+  const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     if (tabId === 'newClient') {
       setShowClientForm(true);
