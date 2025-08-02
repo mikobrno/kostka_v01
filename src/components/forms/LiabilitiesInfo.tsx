@@ -67,8 +67,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       type: '',
       amount: '',
       payment: '',
-      balance: '',
-      poznamky: ''
+      balance: ''
     };
     onChange([...data, newLiability]);
   };
@@ -104,13 +103,12 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
 
       // Připrav data pro Supabase (bez lokálního ID)
       const liabilityData = {
-        client_id: String(clientId),
+        client_id: clientId, // Už je UUID
         institution: liability.institution || null,
         type: liability.type || null,
         amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : null,
         payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : null,
-        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : null,
-        poznamky: liability.poznamky || null
+        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : null
       };
 
       // Pokud už závazek existuje v DB (má supabase_id), aktualizuj ho
