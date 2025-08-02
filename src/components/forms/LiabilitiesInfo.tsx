@@ -102,14 +102,46 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
         throw new Error('Závazek nebyl nalezen');
       }
 
-      // Aktualizuj přímo v supabase tabulce clients
-      const { error } = await supabase
-        .from('clients')
-        .update({ liabilities: data })
-        .eq('id', String(clientId));
+      // Připrav data pro Supabase (bez lokálního ID)
+      const liabilityData = {
+        client_id: String(clientId),
+        institution: liability.institution || null,
+        type: liability.type || null,
+        amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : null,
+        payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : null,
+        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : null,
+        poznamky: liability.poznamky || null
+      };
 
-      if (error) {
-        throw new Error(error.message || 'Chyba při ukládání závazku');
+      // Pokud už závazek existuje v DB (má supabase_id), aktualizuj ho
+      if (liability.supabase_id) {
+        const { error } = await supabase
+          .from('liabilities')
+          .update(liabilityData)
+          .eq('id', liability.supabase_id);
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při aktualizaci závazku');
+        }
+      } else {
+        // Jinak vytvoř nový záznam
+        const { data: newLiability, error } = await supabase
+          .from('liabilities')
+          .insert(liabilityData)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při vytváření závazku');
+        }
+
+        // Aktualizuj lokální data s novým supabase_id
+        const updatedData = data.map(item => 
+          item.id === liabilityId 
+            ? { ...item, supabase_id: newLiability.id }
+            : item
+        );
+        onChange(updatedData);
       }
 
       setSaved(liabilityId);
