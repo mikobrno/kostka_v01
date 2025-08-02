@@ -200,7 +200,13 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   };
 
   const saveDocument = async (documentId: number) => {
+    alert('🔥 FUNKCE SAVE DOCUMENT SE SPUSTILA! ID: ' + documentId);
+    console.log('🔍 Pokus o uložení dokumentu s lokálním ID:', documentId);
+    console.log('📝 ClientId:', clientId);
+    console.log('📋 Data dokumentů:', data.documents);
+    
     if (!clientId) {
+      console.error('❌ Chybí clientId pro uložení dokumentu.');
       toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení dokladu');
       return;
     }
@@ -209,6 +215,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     try {
       // Najdi specifický doklad
       const document = (data.documents || []).find((doc: any) => doc.id === documentId);
+      console.log('📄 Nalezený dokument:', document);
       if (!document) {
         throw new Error('Doklad nebyl nalezen');
       }
@@ -225,19 +232,25 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         place_of_birth: document.placeOfBirth || null,
         control_number: document.controlNumber || null
       };
+      
+      console.log('💾 Data pro uložení do Supabase:', documentData);
 
       // Pokud už doklad existuje v DB (má supabase_id), aktualizuj ho
       if (document.supabase_id) {
+        console.log('🔄 Aktualizuji existující dokument s Supabase ID:', document.supabase_id);
         const { error } = await supabase
           .from('documents')
           .update(documentData)
           .eq('id', document.supabase_id);
 
         if (error) {
+          console.error('❌ Chyba při aktualizaci dokumentu v Supabase:', error);
           throw new Error(error.message || 'Chyba při aktualizaci dokladu');
         }
+        console.log('✅ Dokument úspěšně aktualizován v Supabase.');
       } else {
         // Jinak vytvoř nový záznam
+        console.log('➕ Vytvářím nový záznam dokumentu v Supabase.');
         const { data: newDocument, error } = await supabase
           .from('documents')
           .insert(documentData)
@@ -245,8 +258,10 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           .single();
 
         if (error) {
+          console.error('❌ Chyba při vkládání nového dokumentu do Supabase:', error);
           throw new Error(error.message || 'Chyba při vytváření dokladu');
         }
+        console.log('✅ Nový dokument úspěšně vložen, Supabase ID:', newDocument.id);
 
         // Aktualizuj lokální data s novým supabase_id
         const updatedDocuments = (data.documents || []).map((doc: any) => 
@@ -932,12 +947,16 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 <button
                   onClick={async () => {
                     const documentId = parseInt(showDeleteConfirm.replace('document-', ''));
+                    alert('🔥 FUNKCE DELETE DOCUMENT SE SPUSTILA! ID: ' + documentId);
+                    console.log('🗑️ Pokus o smazání dokumentu s ID:', documentId);
                     
                     // Najdi doklad pro smazání
                     const documentToDelete = (data.documents || []).find(d => d.id === documentId);
+                    console.log('📄 Dokument k smazání:', documentToDelete);
 
                     // Pokud má doklad supabase_id, smaž ho i z databáze
                     if (documentToDelete?.supabase_id) {
+                      console.log('🗑️ Mažu dokument ze Supabase s ID:', documentToDelete.supabase_id);
                       try {
                         const { error } = await supabase
                           .from('documents')
@@ -945,18 +964,24 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                           .eq('id', documentToDelete.supabase_id);
 
                         if (error) {
+                          console.error('❌ Chyba při mazání dokumentu ze Supabase:', error);
                           toast?.showError('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
                           // Zastavíme se, pokud smazání z DB selže
                           return; 
                         }
+                        console.log('✅ Dokument úspěšně smazán ze Supabase.');
                         toast?.showSuccess('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
                       } catch (error) {
+                        console.error('❌ Došlo k výjimce při mazání:', error);
                         toast?.showError('Chyba', `Chyba při komunikaci s databází: ${error.message}`);
                         return;
                       }
+                    } else {
+                      console.log('ℹ️ Dokument nemá supabase_id, mažu pouze lokálně.');
                     }
 
                     // Smaž doklad z lokálního stavu
+                    console.log('🔄 Aktualizuji lokální stav.');
                     const updatedDocuments = (data.documents || []).filter(d => d.id !== documentId);
                     updateField('documents', updatedDocuments);
                     setShowDeleteConfirm(null);
