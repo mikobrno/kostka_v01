@@ -1,13 +1,6 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { formatNumber } from '../utils/formatHelpers';
-
-// Rozšíření jsPDF typu pro autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 interface ClientData {
   // Žadatel
@@ -284,7 +277,7 @@ export class PDFService {
       'Poznámka'
     ];
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [headers],
       body: tableData,
       startY: currentY,
