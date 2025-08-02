@@ -124,14 +124,14 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         <div className="flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mx-auto mb-4">
           <Users className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Seznam klientů</h1>
-        <p className="text-lg text-gray-600">Přehled všech zadaných klientů</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Seznam klientů</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-300">Přehled všech zadaných klientů</p>
       </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-80 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
@@ -147,7 +147,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               <div className="flex items-center justify-center space-x-3">
                 <button
                   onClick={cancelDeleteClient}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
                 >
                   Ne, zrušit
                 </button>
@@ -175,8 +175,8 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         />
       )}
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -190,13 +190,13 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
             </div>
             
             <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-300">
                 Celkem: {filteredClients.length} klientů
               </span>
               <button
                 onClick={loadClients}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Obnovit
@@ -206,13 +206,13 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         </div>
 
         {error && (
-          <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 dark:border-yellow-600">
             <div className="flex">
               <div className="ml-3">
-                <p className="text-sm text-yellow-700">
+                <p className="text-sm text-yellow-700 dark:text-yellow-200">
                   ⚠️ {error}
                 </p>
-                <p className="text-xs text-yellow-600 mt-1">
+                <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
                   Zkuste obnovit stránku nebo kontaktujte podporu.
                 </p>
               </div>
@@ -223,16 +223,16 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         <div className="overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-              <span className="ml-3 text-gray-600">Načítám klienty...</span>
+              <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
+              <span className="ml-3 text-gray-600 dark:text-gray-300">Načítám klienty...</span>
             </div>
           ) : filteredClients.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {searchTerm ? 'Žádní klienti nenalezeni' : 'Žádní klienti'}
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 dark:text-gray-300">
                 {searchTerm 
                   ? 'Zkuste upravit vyhledávací kritéria'
                   : 'Zatím nebyli zadáni žádní klienti'
@@ -240,40 +240,40 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               </p>
             </div>
           ) : (
-            <table className="w-full min-w-full divide-y divide-gray-200 table-fixed">
-              <thead className="bg-gray-50">
+            <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Klient
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Kontakt
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Nemovitost
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Datum zadání
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-1/6 px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Akce
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            <span className="text-sm font-medium text-blue-600 dark:text-blue-300">
                               {client.applicant_firstName?.[0]}{client.applicant_lastName?.[0]}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             <button
                               onClick={() => onSelectClient?.(client)}
                               className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
@@ -283,35 +283,35 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                               {client.applicant_first_name} {client.applicant_last_name}
                             </button>
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-300">
                             RČ: {client.applicant_birth_number}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-white">
                         <div className="flex items-center mb-1">
-                          <Phone className="w-3 h-3 text-gray-400 mr-1" />
+                          <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
                           {client.applicant_phone}
                         </div>
                         <div className="flex items-center">
-                          <Mail className="w-3 h-3 text-gray-400 mr-1" />
+                          <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
                           {client.applicant_email}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
                         {client.properties?.[0]?.address || 'Neuvedeno'}
                       </div>
-                      <div className="text-sm font-medium text-green-600">
+                      <div className="text-sm font-medium text-green-600 dark:text-green-400">
                         {client.properties?.[0]?.price ? formatPrice(client.properties[0].price.toString()) : 'Neuvedeno'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="w-3 h-3 mr-1" />
+                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-300">
+                        <Calendar className="w-3 h-3 mr-1 dark:text-gray-400" />
                         {formatDate(client.created_at)}
                       </div>
                     </td>
@@ -319,7 +319,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => onSelectClient?.(client)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded p-1"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 rounded p-1"
                           title="Zobrazit detail"
                           aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                         >
@@ -327,7 +327,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                         </button>
                         <button
                           onClick={() => onSelectClient?.(client)}
-                          className="text-green-600 hover:text-green-900 transition-colors"
+                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 transition-colors"
                           title="Upravit"
                         >
                           <Edit className="w-4 h-4" />
@@ -336,7 +336,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                           onClick={() => {
                             handleDeleteClient(client.id);
                           }}
-                          className="text-red-600 hover:text-red-900 transition-colors"
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200 transition-colors"
                           title="Smazat"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -351,8 +351,8 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         </div>
         
         {filteredClients.length > 0 && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-            <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-300">
               <span>
                 Zobrazeno {filteredClients.length} z {clients.length} klientů
               </span>

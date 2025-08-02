@@ -62,7 +62,8 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       type: '',
       amount: '',
       payment: '',
-      balance: ''
+      balance: '',
+      poznamky: ''
     };
     onChange([...data, newLiability]);
   };
@@ -202,6 +203,19 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                 <CopyButton text={liability.balance ? formatNumber(liability.balance) : ''} />
               </div>
             </div>
+          </div>
+          {/* Poznámka k závazku */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Poznámka
+            </label>
+            <textarea
+              value={liability.poznamky || ''}
+              onChange={e => updateLiability(liability.id, 'poznamky', e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              placeholder="Zde můžete zadat poznámku k závazku..."
+              rows={2}
+            />
           </div>
         </div>
       ))}
