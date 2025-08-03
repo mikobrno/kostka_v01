@@ -1,5 +1,5 @@
-import { PDFDocument, PDFFont } from 'pdf-lib';
-import { noto_sans_regular } from '../utils/NotoSans-Regular-normal.js';
+import { PDFDocument, PDFFont, PDFTextField } from 'pdf-lib';
+import noto_sans_regular from '../utils/NotoSans-Regular-normal.js';
 
 interface ClientData {
   applicant_first_name?: string;
