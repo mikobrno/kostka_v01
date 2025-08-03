@@ -7,6 +7,24 @@ interface NetlifyEvent {
   body: string | null;
 }
 
+interface RequestData {
+  // Form data
+  applicant_first_name?: string;
+  applicant_last_name?: string;
+  applicant_birth_number?: string;
+  applicant_permanent_address?: string;
+  applicant_phone?: string;
+  applicant_email?: string;
+  product?: string;
+  amount?: number;
+  ltv?: number;
+  purpose?: string;
+  monthly_payment?: number;
+  contract_date?: string;
+  // Template data
+  templateBase64?: string;
+}
+
 const handler = async (event: NetlifyEvent) => {
   // CORS headers
   const headers = {
@@ -33,16 +51,29 @@ const handler = async (event: NetlifyEvent) => {
   }
 
   try {
-    const formData = JSON.parse(event.body || '{}');
+    const formData: RequestData = JSON.parse(event.body || '{}');
     
-    // Načteme template PDF
-    const templatePath = path.join(process.cwd(), 'public', 'bohemika_template.pdf');
+    let existingPdfBytes: Buffer;
     
-    if (!fs.existsSync(templatePath)) {
-      throw new Error(`Template not found: ${templatePath}`);
+    // Pokud je template poslán z frontendu, použijeme ho
+    if (formData.templateBase64) {
+      console.log('Using template from frontend (base64)');
+      existingPdfBytes = Buffer.from(formData.templateBase64, 'base64');
+    } else {
+      // Jinak zkusíme načíst z file systému
+      const templatePath = path.join(process.cwd(), 'dist', 'bohemika_template.pdf');
+      const publicPath = path.join(process.cwd(), 'public', 'bohemika_template.pdf');
+      
+      if (fs.existsSync(templatePath)) {
+        console.log('Using template from dist folder (production)');
+        existingPdfBytes = fs.readFileSync(templatePath);
+      } else if (fs.existsSync(publicPath)) {
+        console.log('Using template from public folder (dev mode)');
+        existingPdfBytes = fs.readFileSync(publicPath);
+      } else {
+        throw new Error(`Template not found in both: ${templatePath} and ${publicPath}`);
+      }
     }
-    
-    const existingPdfBytes = fs.readFileSync(templatePath);
     
     // Načteme PDF dokument
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
