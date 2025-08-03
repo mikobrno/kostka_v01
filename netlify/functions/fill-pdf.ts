@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 const execAsync = promisify(exec);
 
@@ -42,7 +43,8 @@ const handler = async (event: NetlifyEvent) => {
     const scriptPath = path.join(process.cwd(), 'scripts', 'fill_bohemika_pdf_fitz.py');
     
     // Spustíme Python skript s daty - použijeme temp soubor pro bezpečné předání JSON
-    const tempFile = path.join(process.cwd(), `temp_${Date.now()}.json`);
+    // Používáme systémovou temp složku (cross-platform)
+    const tempFile = path.join(os.tmpdir(), `temp_${Date.now()}.json`);
     
     // Zapíšeme JSON do dočasného souboru
     fs.writeFileSync(tempFile, JSON.stringify(formData, null, 2));

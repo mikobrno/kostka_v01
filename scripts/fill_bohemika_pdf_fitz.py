@@ -7,6 +7,7 @@ import sys
 import json
 import base64
 import os
+import tempfile
 import fitz  # PyMuPDF
 
 def fill_pdf_with_fitz(template_path, output_path, form_data):
@@ -118,7 +119,9 @@ def main():
         
         # Cesty k souborům
         template_path = "public/bohemika_template.pdf"
-        output_path = "temp_filled.pdf"
+        # Používáme systémovou temp složku (cross-platform)
+        temp_dir = tempfile.gettempdir()
+        output_path = os.path.join(temp_dir, f"temp_filled_{os.getpid()}.pdf")
         
         # Vyplníme PDF
         success = fill_pdf_with_fitz(template_path, output_path, form_data)
