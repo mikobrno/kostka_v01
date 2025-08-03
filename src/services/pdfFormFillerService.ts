@@ -69,22 +69,33 @@ export class PDFFormFillerService {
 
       console.log('📋 Volám JavaScript PDF form filler s daty:', formData);
       
-      // Nejdříve načteme template z public složky
+      // Pro větší spolehlivost vždy pošleme template z frontendu
+      console.log('📄 Načítám template z frontendu...');
       const templateResponse = await fetch('/bohemika_template.pdf');
       if (!templateResponse.ok) {
         throw new Error(`Template nedostupný: ${templateResponse.status}`);
       }
       
-      // Převedeme template na base64
+      // Převedeme template na base64 pomocí FileReader (bezpečnější pro velké soubory)
       const templateBlob = await templateResponse.blob();
+      
+      // Zkusme jiný způsob převodu na base64
       const templateArrayBuffer = await templateBlob.arrayBuffer();
-      const templateBase64 = btoa(String.fromCharCode(...new Uint8Array(templateArrayBuffer)));
+      const bytes = new Uint8Array(templateArrayBuffer);
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const templateBase64 = btoa(binary);
       
       // Přidáme template k form datům
       const requestData = {
         ...formData,
         templateBase64
       };
+      
+      console.log('📄 Template načten, velikost base64:', templateBase64.length, 'znaků');
       
       // Zavoláme novou JavaScript Netlify funkci pro vyplnění PDF template
       const response = await fetch('/.netlify/functions/fill-pdf-js', {

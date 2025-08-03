@@ -57,12 +57,21 @@ const handler = async (event: NetlifyEvent) => {
     
     // Pokud je template poslán z frontendu, použijeme ho
     if (formData.templateBase64) {
-      console.log('Using template from frontend (base64)');
+      console.log('Using template from frontend (base64), size:', formData.templateBase64.length);
       existingPdfBytes = Buffer.from(formData.templateBase64, 'base64');
     } else {
       // Jinak zkusíme načíst z file systému
+      console.log('Working directory:', process.cwd());
+      console.log('Listing files in working directory:', fs.readdirSync(process.cwd()));
+      
       const templatePath = path.join(process.cwd(), 'dist', 'bohemika_template.pdf');
       const publicPath = path.join(process.cwd(), 'public', 'bohemika_template.pdf');
+      const rootPath = path.join(process.cwd(), 'bohemika_template.pdf');
+      
+      console.log('Checking paths:');
+      console.log('- Template path:', templatePath, 'exists:', fs.existsSync(templatePath));
+      console.log('- Public path:', publicPath, 'exists:', fs.existsSync(publicPath));
+      console.log('- Root path:', rootPath, 'exists:', fs.existsSync(rootPath));
       
       if (fs.existsSync(templatePath)) {
         console.log('Using template from dist folder (production)');
@@ -70,8 +79,11 @@ const handler = async (event: NetlifyEvent) => {
       } else if (fs.existsSync(publicPath)) {
         console.log('Using template from public folder (dev mode)');
         existingPdfBytes = fs.readFileSync(publicPath);
+      } else if (fs.existsSync(rootPath)) {
+        console.log('Using template from root folder');
+        existingPdfBytes = fs.readFileSync(rootPath);
       } else {
-        throw new Error(`Template not found in both: ${templatePath} and ${publicPath}`);
+        throw new Error(`Template not found in any location: ${templatePath}, ${publicPath}, ${rootPath}`);
       }
     }
     
