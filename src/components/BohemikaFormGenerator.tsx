@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { PDFFormFillerService } from '../services/pdfFormFillerService';
+import { SimpleBohemikaService } from '../services/simpleBohemikaService';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -121,8 +121,8 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
         return;
       }
 
-      // Použijeme PDF form filler service
-      await PDFFormFillerService.fillBohemikaForm(client, loan);
+      // Použijeme Simple Bohemika service pro generování a stažení
+      await SimpleBohemikaService.downloadBohemikaForm(client, loan);
       
       toast?.success('PDF úspěšně vygenerováno a staženo!');
     } catch (error) {
