@@ -1,5 +1,4 @@
-import { PDFDocument, PDFFont, PDFTextField } from 'pdf-lib';
-import noto_sans_regular from '../utils/NotoSans-Regular-normal.b64';
+import { PDFDocument } from 'pdf-lib';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -38,9 +37,6 @@ export class SimpleBohemikaService {
       
       // Načteme PDF dokument
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-      // Vložíme vlastní font pro podporu diakritiky
-      const customFont = await pdfDoc.embedFont(noto_sans_regular);
       
       const form = pdfDoc.getForm();
       
@@ -71,17 +67,9 @@ export class SimpleBohemikaService {
           try {
             const field = form.getField(fieldName);
             if (field) {
-              // Zkusíme různé typy polí a nastavíme vlastní font
+              // Zkusíme různé typy polí
               if ('setText' in field) {
                 (field as any).setText(value);
-                // U textových polí aktualizujeme i font, pokud je to možné
-                const widgets = (field as any).acroField.getWidgets();
-                widgets.forEach((widget: any) => {
-                    const da = widget.getDefaultAppearance() || '';
-                    if (da.includes('/Helv')) {
-                         widget.setDefaultAppearance(da.replace('/Helv', `/${customFont.name}`));
-                    }
-                });
                 console.log(`Filled field '${fieldName}' with value '${value}'`);
               } else if ('select' in field) {
                 (field as any).select(value);
