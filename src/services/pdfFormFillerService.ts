@@ -67,10 +67,10 @@ export class PDFFormFillerService {
         'V': 'Brno'
       };
 
-      console.log('📋 Volám PDF form filler s daty:', formData);
+      console.log('📋 Volám JavaScript PDF form filler s daty:', formData);
       
-      // Zavoláme Netlify funkci pro vyplnění PDF template
-      const response = await fetch('/.netlify/functions/fill-pdf', {
+      // Zavoláme novou JavaScript Netlify funkci pro vyplnění PDF template
+      const response = await fetch('/.netlify/functions/fill-pdf-js', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

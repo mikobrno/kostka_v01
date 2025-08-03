@@ -50,7 +50,9 @@ const handler = async (event: NetlifyEvent) => {
     fs.writeFileSync(tempFile, JSON.stringify(formData, null, 2));
     
     // Spustíme Python skript s cestou k temp souboru
-    const command = `py "${scriptPath}" "${tempFile}"`;
+    // V Netlify prostředí používáme python3, lokálně py
+    const pythonCmd = process.env.NETLIFY ? 'python3' : 'py';
+    const command = `${pythonCmd} "${scriptPath}" "${tempFile}"`;
     
     const { stdout, stderr } = await execAsync(command);
     

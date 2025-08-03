@@ -6,6 +6,7 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  PYTHON_VERSION = "3.8"
 
 [functions]
   # Enable Node.js 18.x runtime
