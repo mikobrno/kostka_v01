@@ -41,9 +41,9 @@ export class PDFFormFillerService {
     try {
       // Připravíme data pro vyplnění PDF formuláře podle skutečných názvů polí
       const formData = {
-        // Klient sekce - podle názvů z PDF template
-        'fill_1': `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim(),
-        'fill_2': client.applicant_birth_number || '',
+        // Klient sekce - podle skutečných názvů z PDF debug výstupu
+        'fill_11': `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim(),
+        'fill_12': client.applicant_birth_number || '',
         'Adresa': client.applicant_permanent_address || '',
         'Telefon': client.applicant_phone || '',
         'email': client.applicant_email || '',
@@ -64,7 +64,7 @@ export class PDFFormFillerService {
         // Číslo smlouvy a datum
         'fill_10': `SM-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
         'dne': new Date().toLocaleDateString('cs-CZ'),
-        'misto': 'Brně'
+        'V': 'Brno'
       };
 
       console.log('📋 Volám PDF form filler s daty:', formData);
@@ -89,7 +89,7 @@ export class PDFFormFillerService {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `bohemika_${formData.fill_1.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `bohemika_${formData.fill_11.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

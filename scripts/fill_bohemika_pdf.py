@@ -28,19 +28,36 @@ def fill_bohemika_pdf(form_data, template_path, output_path):
         output_path (str): Cesta k výstupnímu souboru
     """
     try:
+        print(f"DEBUG: Reading template from: {template_path}", file=sys.stderr)
         # Načteme šablonu PDF
         reader = PdfReader(template_path)
         writer = PdfWriter()
+        
+        print(f"DEBUG: Template has {len(reader.pages)} pages", file=sys.stderr)
         
         # Zkopírujeme všechny stránky
         for page in reader.pages:
             writer.add_page(page)
         
+        # Zjistíme dostupná pole v PDF
+        if "/AcroForm" in reader.trailer["/Root"]:
+            acro_form = reader.trailer["/Root"]["/AcroForm"]
+            if "/Fields" in acro_form:
+                fields = acro_form["/Fields"]
+                print(f"DEBUG: Found {len(fields)} fields in PDF", file=sys.stderr)
+                for field in fields:
+                    field_obj = field.get_object()
+                    if "/T" in field_obj:
+                        field_name = field_obj["/T"]
+                        print(f"DEBUG: Field name: {field_name}", file=sys.stderr)
+        else:
+            print("DEBUG: No AcroForm found in PDF", file=sys.stderr)
+        
         # Mapování polí z form_data na PDF pole (podle skutečných názvů v PDF)
         field_mapping = {
             # Klient sekce
-            'fill_1': form_data.get('fill_1', ''),  # Jméno a příjmení
-            'fill_2': form_data.get('fill_2', ''),  # Rodné číslo
+            'fill_11': form_data.get('fill_11', ''),  # Jméno a příjmení
+            'fill_12': form_data.get('fill_12', ''),  # Rodné číslo
             'Adresa': form_data.get('Adresa', ''),
             'Telefon': form_data.get('Telefon', ''),
             'email': form_data.get('email', ''),
@@ -60,15 +77,28 @@ def fill_bohemika_pdf(form_data, template_path, output_path):
             'fill_26': form_data.get('fill_26', ''),  # Datum podpisu úvěru
             
             # Datum a místo
-            'V': form_data.get('misto', 'Brně'),
-            'dne': form_data.get('datum', ''),
+            'V': form_data.get('V', 'Brno'),
+            'dne': form_data.get('dne', ''),
         }
         
-        # Vyplníme pole
-        if "/AcroForm" in reader.trailer["/Root"]:
-            writer.update_page_form_field_values(
-                writer.pages[0], field_mapping
-            )
+        print(f"DEBUG: Trying to fill fields: {list(field_mapping.keys())}", file=sys.stderr)
+        
+        # Vyplníme pole - zkusíme různé metody
+        try:
+            # Nejdříve zkopírujeme form data z readeru do writeru
+            if "/AcroForm" in reader.trailer["/Root"]:
+                writer.clone_reader_document_root(reader)
+                # Nyní zkusíme vyplnit pole
+                for page_num in range(len(writer.pages)):
+                    page = writer.pages[page_num]
+                    writer.update_page_form_field_values(page, field_mapping)
+                print("DEBUG: Used update_page_form_field_values with cloned form", file=sys.stderr)
+            else:
+                print("DEBUG: No AcroForm found in PDF - cannot fill fields", file=sys.stderr)
+                return False
+        except Exception as e:
+            print(f"DEBUG: Form filling failed: {e}", file=sys.stderr)
+            print("DEBUG: Continuing without field filling - saving empty PDF", file=sys.stderr)
         
         # Uložíme výsledek
         with open(output_path, "wb") as output_file:
@@ -83,16 +113,29 @@ def fill_bohemika_pdf(form_data, template_path, output_path):
 def main():
     """Hlavní funkce pro CLI použití"""
     if len(sys.argv) < 2:
-        print("Usage: python fill_bohemika_pdf.py <json_data>")
+        print("Usage: python fill_bohemika_pdf.py <json_file_or_json_data>")
         sys.exit(1)
     
     try:
-        # Načteme JSON data z argumentu
-        json_data = sys.argv[1]
-        form_data = json.loads(json_data)
+        # Načteme JSON data z argumentu (buď soubor nebo přímo JSON string)
+        arg = sys.argv[1]
+        if os.path.isfile(arg):
+            # Je to soubor - načteme z něj
+            with open(arg, 'r', encoding='utf-8') as f:
+                form_data = json.load(f)
+            print(f"DEBUG: Loaded data from file: {arg}", file=sys.stderr)
+        else:
+            # Je to JSON string
+            form_data = json.loads(arg)
+            print(f"DEBUG: Parsed JSON string", file=sys.stderr)
+        
+        print(f"DEBUG: Form data: {form_data}", file=sys.stderr)
         
         # Najdeme šablonu PDF (v public složce)
         script_dir = Path(__file__).parent
+        template_path = script_dir.parent / "public" / "bohemika_template.pdf"
+        print(f"DEBUG: Template path: {template_path}", file=sys.stderr)
+        print(f"DEBUG: Template exists: {template_path.exists()}", file=sys.stderr)
         template_path = script_dir.parent / "public" / "bohemika_template.pdf"
         
         if not template_path.exists():

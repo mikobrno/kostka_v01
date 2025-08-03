@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import * as fs from 'fs';
 
 const execAsync = promisify(exec);
 
@@ -38,13 +39,25 @@ const handler = async (event: NetlifyEvent) => {
     const formData = JSON.parse(event.body || '{}');
     
     // Cesta k Python skriptu
-    const scriptPath = path.join(process.cwd(), 'scripts', 'fill_bohemika_pdf.py');
+    const scriptPath = path.join(process.cwd(), 'scripts', 'fill_bohemika_pdf_fitz.py');
     
-    // Spustíme Python skript s daty
-    const jsonData = JSON.stringify(formData);
-    const command = `py "${scriptPath}" '${jsonData}'`;
+    // Spustíme Python skript s daty - použijeme temp soubor pro bezpečné předání JSON
+    const tempFile = path.join(process.cwd(), `temp_${Date.now()}.json`);
+    
+    // Zapíšeme JSON do dočasného souboru
+    fs.writeFileSync(tempFile, JSON.stringify(formData, null, 2));
+    
+    // Spustíme Python skript s cestou k temp souboru
+    const command = `py "${scriptPath}" "${tempFile}"`;
     
     const { stdout, stderr } = await execAsync(command);
+    
+    // Vyčistíme temp soubor
+    try {
+      fs.unlinkSync(tempFile);
+    } catch (e) {
+      console.error('Failed to clean temp file:', e);
+    }
     
     if (stderr) {
       console.error('Python script error:', stderr);
