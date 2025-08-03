@@ -105,8 +105,25 @@ export class SimpleBohemikaService {
             if (field) {
               // Zkusíme různé typy polí
               if ('setText' in field) {
-                (field as any).setText(value);
-                console.log(`Filled field '${fieldName}' with value '${value}'`);
+                try {
+                  // Nejprve zkusíme originální text s diakritikou
+                  const originalValue = fieldName === 'fill_11' ? clientName :
+                                      fieldName === 'fill_12' ? (client.applicant_birth_number || '') :
+                                      fieldName === 'Adresa' ? (client.applicant_permanent_address || '') :
+                                      fieldName === 'Telefon' ? (client.applicant_phone || '') :
+                                      fieldName === 'email' ? (client.applicant_email || '') :
+                                      fieldName === 'Produkt' ? (loan.product || 'Např. Hypoteční úvěr') :
+                                      fieldName === 'fill_24' ? (loan.purpose || 'Nákup nemovitosti') :
+                                      value;
+                  
+                  (field as any).setText(originalValue);
+                  console.log(`Filled field '${fieldName}' with original value '${originalValue}'`);
+                } catch (diacriticError) {
+                  // Pokud se nepodaří s diakritikou, použijeme verzi bez diakritiky
+                  console.warn(`Diacritics failed for '${fieldName}', using fallback:`, diacriticError);
+                  (field as any).setText(value);
+                  console.log(`Filled field '${fieldName}' with fallback value '${value}'`);
+                }
               } else if ('select' in field) {
                 (field as any).select(value);
                 console.log(`Selected field '${fieldName}' with value '${value}'`);
