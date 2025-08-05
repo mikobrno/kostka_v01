@@ -45,6 +45,7 @@ export class ClientService {
         applicant_email: formData.applicant.email || null,
         applicant_bank: formData.applicant.bank || null,
         applicant_education: formData.applicant.education || null,
+        applicant_citizenship: formData.applicant.citizenship || null,
         // Spolužadatel
         co_applicant_title: formData.coApplicant.title || null,
         co_applicant_first_name: formData.coApplicant.firstName || null,
@@ -65,6 +66,7 @@ export class ClientService {
         co_applicant_email: formData.coApplicant.email || null,
         co_applicant_bank: formData.coApplicant.bank || null,
         co_applicant_education: formData.coApplicant.education || null,
+        co_applicant_citizenship: formData.coApplicant.citizenship || null,
       }
 
       const { data: client, error: clientError } = await supabase
@@ -248,6 +250,7 @@ export class ClientService {
         applicant_email: formData.applicant.email || null,
         applicant_bank: formData.applicant.bank || null,
         applicant_education: formData.applicant.education || null,
+        applicant_citizenship: formData.applicant.citizenship || null,
         // Spolužadatel
         co_applicant_title: formData.coApplicant.title || null,
         co_applicant_first_name: formData.coApplicant.firstName || null,
@@ -268,6 +271,7 @@ export class ClientService {
         co_applicant_email: formData.coApplicant.email || null,
         co_applicant_bank: formData.coApplicant.bank || null,
         co_applicant_education: formData.coApplicant.education || null,
+        co_applicant_citizenship: formData.coApplicant.citizenship || null,
       }
 
       const { data: client, error: clientError } = await supabase
