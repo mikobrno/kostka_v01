@@ -60,6 +60,17 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       'Rusko',
       'Jiné'
     ],
+    educationLevels: [
+      'Základní',
+      'Vyučen',
+      'Vyučen s maturitou',
+      'Středoškolské',
+      'Vyšší odborné',
+      'Vysokoškolské - bakalářské',
+      'Vysokoškolské - magisterské',
+      'Vysokoškolské - doktorské',
+      'Bez vzdělání'
+    ],
     housingTypes: [
       'vlastní byt',
       'vlastní dům',
@@ -89,7 +100,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             documentTypes: [],
             banks: [],
             citizenships: adminLists.citizenships, // Keep default citizenships
-            housingTypes: adminLists.housingTypes  // Keep default housing types
+            housingTypes: adminLists.housingTypes,  // Keep default housing types
+            educationLevels: adminLists.educationLevels // Keep default education levels
           };
 
           data.forEach(item => {
@@ -111,6 +123,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 break;
               case 'housing_types':
                 lists.housingTypes = item.items;
+                break;
+              case 'education_levels':
+                lists.educationLevels = item.items;
                 break;
             }
           });
@@ -383,6 +398,25 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               ))}
             </select>
             <CopyButton text={data.housingType || ''} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nejvyšší dosažené vzdělání
+          </label>
+          <div className="flex">
+            <select
+              value={data.education || ''}
+              onChange={(e) => updateField('education', e.target.value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              <option value="">Vyberte vzdělání</option>
+              {adminLists.educationLevels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+            </select>
+            <CopyButton text={data.education || ''} />
           </div>
         </div>
       </div>

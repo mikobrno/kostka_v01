@@ -51,6 +51,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
     housingTypes: {
       name: 'Druhy bydlení',
       items: ['vlastní byt', 'vlastní dům', 'nájemní byt', 'nájemní dům', 'družstevní byt', 'služební byt', 'u rodičů/příbuzných', 'jiné']
+    },
+    educationLevels: {
+      name: 'Úrovně vzdělání',
+      items: ['Základní', 'Vyučen', 'Vyučen s maturitou', 'Středoškolské', 'Vyšší odborné', 'Vysokoškolské - bakalářské', 'Vysokoškolské - magisterské', 'Vysokoškolské - doktorské', 'Bez vzdělání']
     }
   };
 

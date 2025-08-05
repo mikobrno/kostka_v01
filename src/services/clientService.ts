@@ -44,6 +44,7 @@ export class ClientService {
         applicant_phone: formData.applicant.phone || null,
         applicant_email: formData.applicant.email || null,
         applicant_bank: formData.applicant.bank || null,
+        applicant_education: formData.applicant.education || null,
         // Spolužadatel
         co_applicant_title: formData.coApplicant.title || null,
         co_applicant_first_name: formData.coApplicant.firstName || null,
@@ -63,6 +64,7 @@ export class ClientService {
         co_applicant_phone: formData.coApplicant.phone || null,
         co_applicant_email: formData.coApplicant.email || null,
         co_applicant_bank: formData.coApplicant.bank || null,
+        co_applicant_education: formData.coApplicant.education || null,
       }
 
       const { data: client, error: clientError } = await supabase
@@ -245,6 +247,7 @@ export class ClientService {
         applicant_phone: formData.applicant.phone || null,
         applicant_email: formData.applicant.email || null,
         applicant_bank: formData.applicant.bank || null,
+        applicant_education: formData.applicant.education || null,
         // Spolužadatel
         co_applicant_title: formData.coApplicant.title || null,
         co_applicant_first_name: formData.coApplicant.firstName || null,
@@ -264,6 +267,7 @@ export class ClientService {
         co_applicant_phone: formData.coApplicant.phone || null,
         co_applicant_email: formData.coApplicant.email || null,
         co_applicant_bank: formData.coApplicant.bank || null,
+        co_applicant_education: formData.coApplicant.education || null,
       }
 
       const { data: client, error: clientError } = await supabase
@@ -511,32 +515,59 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = {
         ...data,
-        // Transformace dětí
-        children: data.children?.map((child: any) => ({
-          ...child,
-          birthDate: child.birth_date,
-          parentType: child.parent_type
-        })) || [],
-        // Transformace podnikání
-        businesses: data.businesses?.map((business: any) => ({
-          ...business,
-          companyName: business.company_name,
-          companyAddress: business.company_address,
-          businessStartDate: business.business_start_date,
-          parentType: business.parent_type
-        })) || [],
-        // Transformace dokladů totožnosti
-        documents: data.documents?.map((document: any) => ({
-          ...document,
-          documentType: document.document_type,
-          documentNumber: document.document_number,
-          documentIssueDate: document.document_issue_date,
-          documentValidUntil: document.document_valid_until,
-          issuingAuthority: document.issuing_authority,
-          placeOfBirth: document.place_of_birth,
-          controlNumber: document.control_number,
-          parentType: document.parent_type
-        })) || []
+        // Transformace údajů žadatele
+        applicant: {
+          title: data.applicant_title,
+          firstName: data.applicant_first_name,
+          lastName: data.applicant_last_name,
+          maidenName: data.applicant_maiden_name,
+          birthNumber: data.applicant_birth_number,
+          housingType: data.applicant_housing_type,
+          age: data.applicant_age,
+          birthYear: data.applicant_birth_year,
+          birthDate: data.applicant_birth_date,
+          maritalStatus: data.applicant_marital_status,
+          permanentAddress: data.applicant_permanent_address,
+          contactAddress: data.applicant_contact_address,
+          documentType: data.applicant_document_type,
+          documentNumber: data.applicant_document_number,
+          documentIssueDate: data.applicant_document_issue_date,
+          documentValidUntil: data.applicant_document_valid_until,
+          phone: data.applicant_phone,
+          email: data.applicant_email,
+          bank: data.applicant_bank,
+          education: data.applicant_education,
+          citizenship: data.applicant_citizenship,
+          children: data.children?.filter((child: any) => child.parent_type === 'applicant') || [],
+          businesses: data.businesses?.filter((business: any) => business.parent_type === 'applicant') || [],
+          documents: data.documents?.filter((document: any) => document.parent_type === 'applicant') || []
+        },
+        // Transformace údajů spolužadatele
+        coApplicant: {
+          title: data.co_applicant_title,
+          firstName: data.co_applicant_first_name,
+          lastName: data.co_applicant_last_name,
+          maidenName: data.co_applicant_maiden_name,
+          birthNumber: data.co_applicant_birth_number,
+          age: data.co_applicant_age,
+          birthYear: data.co_applicant_birth_year,
+          birthDate: data.co_applicant_birth_date,
+          maritalStatus: data.co_applicant_marital_status,
+          permanentAddress: data.co_applicant_permanent_address,
+          contactAddress: data.co_applicant_contact_address,
+          documentType: data.co_applicant_document_type,
+          documentNumber: data.co_applicant_document_number,
+          documentIssueDate: data.co_applicant_document_issue_date,
+          documentValidUntil: data.co_applicant_document_valid_until,
+          phone: data.co_applicant_phone,
+          email: data.co_applicant_email,
+          bank: data.co_applicant_bank,
+          education: data.co_applicant_education,
+          citizenship: data.co_applicant_citizenship,
+          children: data.children?.filter((child: any) => child.parent_type === 'co_applicant') || [],
+          businesses: data.businesses?.filter((business: any) => business.parent_type === 'co_applicant') || [],
+          documents: data.documents?.filter((document: any) => document.parent_type === 'co_applicant') || []
+        }
       }
 
       return { data: transformedData, error: null }

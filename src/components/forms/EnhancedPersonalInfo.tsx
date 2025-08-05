@@ -34,6 +34,17 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
       'Ukrajina',
       'Rusko',
       'Jiné'
+    ],
+    educationLevels: [
+      'Základní',
+      'Vyučen',
+      'Vyučen s maturitou',
+      'Středoškolské',
+      'Vyšší odborné',
+      'Vysokoškolské - bakalářské',
+      'Vysokoškolské - magisterské',
+      'Vysokoškolské - doktorské',
+      'Bez vzdělání'
     ]
   });
 
@@ -53,7 +64,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
             maritalStatuses: [],
             documentTypes: [],
             banks: [],
-            citizenships: adminLists.citizenships // Keep default citizenships
+            citizenships: adminLists.citizenships, // Keep default citizenships
+            educationLevels: adminLists.educationLevels // Keep default education levels
           };
 
           data.forEach(item => {
@@ -69,6 +81,9 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 break;
               case 'banks':
                 lists.banks = item.items;
+                break;
+              case 'education_levels':
+                lists.educationLevels = item.items;
                 break;
             }
           });
@@ -234,6 +249,26 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 </select>
               </div>
               <CopyButton text={data.citizenship || ''} />
+            </div>
+          </div>
+
+          {/* NEW: Education Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nejvyšší dosažené vzdělání
+            </label>
+            <div className="flex">
+              <select
+                value={data.education || ''}
+                onChange={(e) => updateField('education', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">Vyberte vzdělání</option>
+                {adminLists.educationLevels.map(level => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+              <CopyButton text={data.education || ''} />
             </div>
           </div>
         </div>
