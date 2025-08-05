@@ -80,19 +80,19 @@ export class SimpleBohemikaService {
       const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
       
       const formData = {
-        'fill_11': this.removeDiacritics(clientName),
-        'fill_12': this.removeDiacritics(client.applicant_birth_number || ''),
-        'Adresa': this.removeDiacritics(client.applicant_permanent_address || ''),
-        'Telefon': this.removeDiacritics(client.applicant_phone || ''),
-        'email': this.removeDiacritics(client.applicant_email || ''),
+        'fill_11': clientName,
+        'fill_12': client.applicant_birth_number || '',
+        'Adresa': client.applicant_permanent_address || '',
+        'Telefon': client.applicant_phone || '',
+        'email': client.applicant_email || '',
         'fill_16': 'Ing. Milan Kost', // Zpracovatel
         'fill_17': '8680020061', // IČO zpracovatele
-        'Produkt': this.removeDiacritics(loan.product || 'Napr. Hypotecni uver'),
-        'fill_21': loan.amount ? `${loan.amount} Kc` : '',
-        'fill_22': loan.amount ? `${loan.amount} Kc` : '',
+        'Produkt': loan.product || 'Např. Hypoteční úvěr',
+        'fill_21': loan.amount ? `${loan.amount} Kč` : '',
+        'fill_22': loan.amount ? `${loan.amount} Kč` : '',
         'LTV': loan.ltv ? `${loan.ltv}%` : '',
-        'fill_24': this.removeDiacritics(loan.purpose || 'Nakup nemovitosti'),
-        'fill_25': loan.monthly_payment ? `${loan.monthly_payment} Kc` : '',
+        'fill_24': loan.purpose || 'Nákup nemovitosti',
+        'fill_25': loan.monthly_payment ? `${loan.monthly_payment} Kč` : '',
         'V': 'Brno',
         'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
       };
