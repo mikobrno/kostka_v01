@@ -13,6 +13,7 @@ export interface DynamicSectionContent {
     propertyValue?: number;
     maturityYears?: number;
     preferredFixationYears?: number;
+    vlastniProstredky?: number;
   };
   files?: Array<{
     id: string;

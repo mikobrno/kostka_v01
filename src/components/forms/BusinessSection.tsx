@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building, Search, Plus, Edit, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { CopyButton } from '../CopyButton';
+import { AresService } from '../../services/aresService';
 
 interface BusinessData {
   id: string;
@@ -68,37 +69,42 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
     'Jiné'
   ];
 
-  // Mock Business Registry API call
+  // ARES Business Registry API call
   const searchBusinessByIco = async (ico: string) => {
     setIsSearching(true);
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call ARES service
+      const result = await AresService.searchByIco(ico);
       
-      // Mock data - in production, this would call actual Business Registry API
-      const mockBusinessData: Partial<BusinessData> = {
-        ico: ico,
-        company_name: `Vzorová společnost ${ico} s.r.o.`,
-        legal_form: 's.r.o.',
-        registration_date: '2020-01-15',
-        business_address: 'Václavské náměstí 1, 110 00 Praha 1',
-        business_activity: 'Výroba a prodej software',
-        nace_code: '62010',
-        employee_count: 25,
-        business_status: 'active',
-        sync_status: 'synced',
-        last_sync_date: new Date().toISOString(),
-        is_active: true,
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      if (!result.data) {
+        throw new Error('Firma s tímto IČO nebyla nalezena');
+      }
+
+      // Transform ARES data to BusinessData format
+      const businessData: Partial<BusinessData> = {
+        ico: result.data.ico,
+        company_name: result.data.companyName,
+        legal_form: result.data.legalForm,
+        registration_date: result.data.registrationDate,
+        business_address: result.data.address,
+        business_status: result.data.isActive ? 'active' : 'inactive',
+        is_active: result.data.isActive,
         registry_data: {
-          source: 'business_registry_api',
-          fetched_at: new Date().toISOString(),
-          raw_data: { /* mock raw API response */ }
-        }
+          source: 'ares_api',
+          dic: result.data.dic,
+          last_updated: new Date().toISOString()
+        },
+        last_sync_date: new Date().toISOString(),
+        sync_status: 'synced'
       };
 
-      return mockBusinessData;
+      return businessData;
     } catch (error) {
-      throw new Error('Nepodařilo se načíst data z obchodního rejstříku');
+      throw new Error(`Nepodařilo se načíst data z ARES: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     } finally {
       setIsSearching(false);
     }
@@ -125,7 +131,7 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
       });
       setSearchIco('');
     } catch (error) {
-      alert(`Chyba při vyhledávání: ${error.message}`);
+      alert(`Chyba při vyhledávání: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     }
   };
 
@@ -187,117 +193,119 @@ export const BusinessSection: React.FC<BusinessSectionProps> = ({
       onChange(updated);
       alert('Data byla úspěšně aktualizována');
     } catch (error) {
-      alert(`Chyba při aktualizaci: ${error.message}`);
+      alert(`Chyba při aktualizaci: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Building className="w-6 h-6 text-purple-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Podnikání</h2>
-          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-            {businesses.filter(b => b.is_active).length} aktivních
-          </span>
-        </div>
-      </div>
-
-      {/* Business Search */}
-      <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Vyhledat firmu podle IČO</h3>
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={searchIco}
-              onChange={(e) => setSearchIco(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-              placeholder="Zadejte 8-místné IČO"
-              maxLength={8}
-            />
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Building className="w-6 h-6 text-purple-600" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Podnikání</h2>
+            <span className="bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+              {businesses.filter(b => b.is_active).length} aktivních
+            </span>
           </div>
-          <button
-            onClick={handleIcoSearch}
-            disabled={isSearching || searchIco.length !== 8}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSearching ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4 mr-2" />
-            )}
-            {isSearching ? 'Vyhledávám...' : 'Vyhledat'}
-          </button>
-          <button
-            onClick={addBusiness}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Přidat ručně
-          </button>
         </div>
-        <p className="mt-2 text-sm text-gray-500">
-          Vyhledání automaticky načte data z obchodního rejstříku
-        </p>
-      </div>
 
-      {/* Business List */}
-      <div className="space-y-4">
-        {businesses.map((business) => (
-          <BusinessCard
-            key={business.id}
-            business={business}
-            legalForms={legalForms}
-            businessStatuses={businessStatuses}
-            positions={positions}
-            isEditing={editingBusiness === business.id}
-            onEdit={() => setEditingBusiness(business.id)}
-            onSave={(updatedBiz) => saveBusiness(updatedBiz)}
-            onCancel={() => setEditingBusiness(null)}
-            onDelete={() => deleteBusiness(business.id)}
-            onRefresh={() => refreshBusinessData(business.id)}
-          />
-        ))}
-
-        {/* New Business Form */}
-        {newBusiness && (
-          <BusinessCard
-            business={newBusiness}
-            legalForms={legalForms}
-            businessStatuses={businessStatuses}
-            positions={positions}
-            isEditing={true}
-            onSave={(updatedBiz) => saveBusiness(updatedBiz)}
-            onCancel={() => setNewBusiness(null)}
-            isNew={true}
-          />
-        )}
-      </div>
-
-      {businesses.length === 0 && !newBusiness && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné firmy</h3>
-          <p className="text-gray-500 mb-6">Přidejte první firmu klienta</p>
-          <div className="flex justify-center space-x-4">
+        {/* Business Search */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border dark:border-gray-600 p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Vyhledat firmu podle IČO</h3>
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={searchIco}
+                onChange={(e) => setSearchIco(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                className="block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                placeholder="Zadejte 8-místné IČO"
+                maxLength={8}
+              />
+            </div>
             <button
-              onClick={() => setSearchIco('')}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+              onClick={handleIcoSearch}
+              disabled={isSearching || searchIco.length !== 8}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Search className="w-4 h-4 mr-2" />
-              Vyhledat podle IČO
+              {isSearching ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4 mr-2" />
+              )}
+              {isSearching ? 'Vyhledávám...' : 'Vyhledat'}
             </button>
             <button
               onClick={addBusiness}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
               Přidat ručně
             </button>
           </div>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Vyhledání automaticky načte data z obchodního rejstříku
+          </p>
         </div>
-      )}
+
+        {/* Business List */}
+        <div className="space-y-4">
+          {businesses.map((business) => (
+            <BusinessCard
+              key={business.id}
+              business={business}
+              legalForms={legalForms}
+              businessStatuses={businessStatuses}
+              positions={positions}
+              isEditing={editingBusiness === business.id}
+              onEdit={() => setEditingBusiness(business.id)}
+              onSave={(updatedBiz) => saveBusiness(updatedBiz)}
+              onCancel={() => setEditingBusiness(null)}
+              onDelete={() => deleteBusiness(business.id)}
+              onRefresh={() => refreshBusinessData(business.id)}
+            />
+          ))}
+
+          {/* New Business Form */}
+          {newBusiness && (
+            <BusinessCard
+              business={newBusiness}
+              legalForms={legalForms}
+              businessStatuses={businessStatuses}
+              positions={positions}
+              isEditing={true}
+              onSave={(updatedBiz) => saveBusiness(updatedBiz)}
+              onCancel={() => setNewBusiness(null)}
+              isNew={true}
+            />
+          )}
+        </div>
+
+        {businesses.length === 0 && !newBusiness && (
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+            <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Žádné firmy</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Přidejte první firmu klienta</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setSearchIco('')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Vyhledat podle IČO
+              </button>
+              <button
+                onClick={addBusiness}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Přidat ručně
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

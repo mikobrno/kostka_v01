@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DynamicSection as DynamicSectionType, DynamicSectionContent } from '../../services/dynamicSectionService';
-import { FileStorageService, UploadedFile } from '../../services/fileStorageService';
+import { FileStorageService } from '../../services/fileStorageService';
 import { CopyButton } from '../CopyButton';
 import { 
   Edit, 
@@ -13,9 +13,12 @@ import {
   Upload, 
   ExternalLink,
   Calculator,
-  Settings
+
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { formatNumber } from '../../utils/formatHelpers';
+import { NotesEditor } from '../NotesEditor';
 
 interface DynamicSectionProps {
   section: DynamicSectionType;
@@ -36,7 +39,11 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [sectionName, setSectionName] = useState(section.section_name);
   const [content, setContent] = useState<DynamicSectionContent>(section.content);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'notes' | 'parameters' | 'files' | 'fields'>('notes');
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showLinkDeleteConfirm, setShowLinkDeleteConfirm] = useState<string | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -58,10 +65,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     }
   };
 
-  // Notes & Links handlers
+  // Notes handlers
+  const handleNotesSave = async () => {
+    await updateContent(content);
+    setIsEditingNotes(false);
+    toast?.showSuccess('Poznámky uloženy', 'Poznámky byly úspěšně aktualizovány');
+  };
+
   const updateNotes = async (notes: string) => {
     const newContent = { ...content, notes };
-    await updateContent(newContent);
+    setContent(newContent);
   };
 
   const addLink = async () => {
@@ -88,15 +101,29 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   };
 
   const removeLink = async (linkId: string) => {
+    setShowLinkDeleteConfirm(null);
     const newContent = {
       ...content,
       links: (content.links || []).filter(link => link.id !== linkId)
     };
     await updateContent(newContent);
+    toast?.showSuccess('Odkaz smazán', 'Odkaz byl úspěšně odstraněn');
+  };
+
+  const handleLinkDelete = (linkId: string) => {
+    setShowLinkDeleteConfirm(linkId);
+  };
+
+  const confirmLinkDelete = async (linkId: string) => {
+    await removeLink(linkId);
+  };
+
+  const cancelLinkDelete = () => {
+    setShowLinkDeleteConfirm(null);
   };
 
   // Basic Parameters handlers
-  const updateBasicParameter = async (field: string, value: any) => {
+  const updateBasicParameter = async (field: string, value: string | number) => {
     const newContent = {
       ...content,
       basicParameters: {
@@ -109,7 +136,14 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
   // File handlers
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target) return;
     const files = event.target.files;
+    await uploadFiles(files);
+    event.target.value = ''; // Reset the input
+  };
+
+  // Enhanced file upload function to handle both input and drag-drop
+  const uploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     // Validate each file before upload
@@ -137,12 +171,57 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       toast?.showSuccess('Soubory nahrány', `Úspěšně nahráno ${uploadedFiles.length} souborů`);
     } catch (error) {
       console.error('File upload error:', error);
-      toast?.showError('Chyba při nahrávání', error.message);
+      const err = error as Error;
+      toast?.showError('Chyba při nahrávání', err.message || 'Neznámá chyba');
     } finally {
       setIsUploading(false);
       // Reset file input
       event.target.value = '';
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set drag over to false if we're leaving the drop zone entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    await uploadFiles(droppedFiles);
+  };
+
+  // Enhanced file deletion with confirmation
+  const handleFileDelete = (fileId: string) => {
+    setShowDeleteConfirm(fileId);
+  };
+
+  const confirmFileDelete = async (fileId: string) => {
+    await removeFile(fileId);
+    setShowDeleteConfirm(null);
+  };
+
+  const cancelFileDelete = () => {
+    setShowDeleteConfirm(null);
   };
 
   const renameFile = async (fileId: string, newName: string) => {
@@ -173,47 +252,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     toast?.showSuccess('Soubor smazán', 'Soubor byl úspěšně odstraněn');
   };
 
-  // General Fields handlers
-  const addGeneralField = async () => {
-    const newField = {
-      id: `field-${Date.now()}`,
-      label: '',
-      value: ''
-    };
-    const newContent = {
-      ...content,
-      generalFields: [...(content.generalFields || []), newField]
-    };
-    await updateContent(newContent);
-  };
-
-  const updateGeneralField = async (fieldId: string, field: 'label' | 'value', value: string) => {
-    const newContent = {
-      ...content,
-      generalFields: (content.generalFields || []).map(item =>
-        item.id === fieldId ? { ...item, [field]: value } : item
-      )
-    };
-    await updateContent(newContent);
-  };
-
-  const removeGeneralField = async (fieldId: string) => {
-    const newContent = {
-      ...content,
-      generalFields: (content.generalFields || []).filter(item => item.id !== fieldId)
-    };
-    await updateContent(newContent);
-  };
-
-  const tabs = [
-    { id: 'notes', label: 'Poznámky a Odkazy', icon: FileText },
-    { id: 'parameters', label: 'Základní Parametry', icon: Calculator },
-    { id: 'files', label: 'Soubory', icon: Upload },
-    { id: 'fields', label: 'Obecná pole', icon: Settings }
-  ];
+  /* 
+   * TODO: Add general fields functionality
+   * - addGeneralField
+   * - updateGeneralField
+   * - removeGeneralField
+   */
 
   return (
-    <div className="bg-white rounded-lg shadow border p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
       {/* Section Header - only show if not hidden */}
       {!hideHeader && (
         <div className="flex items-center justify-between mb-6">
@@ -224,7 +271,9 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="text"
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
-                  className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none"
+                  className="text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
+                  placeholder="Název sekce"
+                  title="Název sekce"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
                     if (e.key === 'Escape') {
@@ -236,7 +285,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 />
                 <button
                   onClick={handleSaveName}
-                  className="text-green-600 hover:text-green-800"
+                  className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                  title="Uložit změny"
                 >
                   <Save className="w-4 h-4" />
                 </button>
@@ -245,17 +295,18 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                     setSectionName(section.section_name);
                     setIsEditingName(false);
                   }}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
+                  title="Zrušit úpravy"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <>
-                <h3 className="text-xl font-semibold text-gray-900">{section.section_name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{section.section_name}</h3>
                 <button
                   onClick={() => setIsEditingName(true)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   title="Upravit název"
                 >
                   <Edit className="w-4 h-4" />
@@ -265,7 +316,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
           </div>
           <button
             onClick={handleDeleteSection}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
             title="Smazat sekci"
           >
             <Trash2 className="w-5 h-5" />
@@ -273,130 +324,88 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as any)}
-              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      <div className="space-y-6">
-        {/* Notes & Links Tab */}
-        {activeTab === 'notes' && (
-          <div className="space-y-6">
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Poznámky
-              </label>
-              <textarea
-                value={content.notes || ''}
-                onChange={(e) => updateNotes(e.target.value)}
-                rows={4}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="Zadejte poznámky k této sekci..."
-              />
-            </div>
-
-            {/* Links */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Odkazy
-                </label>
-                <button
-                  onClick={addLink}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Přidat odkaz
-                </button>
+      {/* File Deletion Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
               </div>
-
-              <div className="space-y-3">
-                {(content.links || []).map((link) => (
-                  <div key={link.id} className="bg-gray-50 rounded-lg p-4 border">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          URL
-                        </label>
-                        <div className="flex">
-                          <input
-                            type="url"
-                            value={link.url}
-                            onChange={(e) => updateLink(link.id, 'url', e.target.value)}
-                            className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                            placeholder="https://example.com"
-                          />
-                          <CopyButton text={link.url} />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Název (volitelný)
-                        </label>
-                        <input
-                          type="text"
-                          value={link.title || ''}
-                          onChange={(e) => updateLink(link.id, 'title', e.target.value)}
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                          placeholder="Popis odkazu"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      {link.url && (
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          {link.title || new URL(link.url).hostname}
-                        </a>
-                      )}
-                      <button
-                        onClick={() => removeLink(link.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {(!content.links || content.links.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p>Žádné odkazy nejsou přidány</p>
-                  </div>
-                )}
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat soubor
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento soubor? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={cancelFileDelete}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => confirmFileDelete(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Basic Parameters Tab */}
-        {activeTab === 'parameters' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Link Deletion Confirmation Modal */}
+      {showLinkDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                  <LinkIcon className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 text-center mb-4">
+                Smazat odkaz
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Opravdu chcete smazat tento odkaz? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={cancelLinkDelete}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => confirmLinkDelete(showLinkDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Ano, smazat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vertical Stack Content */}
+      <div className="space-y-6">
+        {/* 1. Základní Parametry (Basic Parameters) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-2 mb-4">
+            <Calculator className="w-5 h-5 text-green-600" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Základní Parametry</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Účel financování
               </label>
               <div className="flex">
@@ -404,49 +413,58 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="text"
                   value={content.basicParameters?.financingPurpose || ''}
                   onChange={(e) => updateBasicParameter('financingPurpose', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Koupě nemovitosti, refinancování..."
                 />
                 <CopyButton text={content.basicParameters?.financingPurpose || ''} />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Požadovaná výše úvěru (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={content.basicParameters?.requestedLoanAmount || ''}
-                  onChange={(e) => updateBasicParameter('requestedLoanAmount', parseFloat(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="1500000"
-                  min="0"
+                  onChange={(value) => updateBasicParameter('requestedLoanAmount', parseFloat(value) || 0)}
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="1 500 000"
                 />
-                <CopyButton text={content.basicParameters?.requestedLoanAmount?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            </div>            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hodnota nemovitosti (Kč)
               </label>
               <div className="flex">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={content.basicParameters?.propertyValue || ''}
-                  onChange={(e) => updateBasicParameter('propertyValue', parseFloat(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="2000000"
-                  min="0"
+                  onChange={(value) => updateBasicParameter('propertyValue', parseFloat(value) || 0)}
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="2 000 000"
                 />
-                <CopyButton text={content.basicParameters?.propertyValue?.toString() || ''} />
+                <CopyButton text={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vlastní prostředky (Kč)
+              </label>
+              <div className="flex">
+                <FormattedNumberInput
+                  value={content.basicParameters?.vlastniProstredky || ''}
+                  onChange={(value) => updateBasicParameter('vlastniProstredky', parseFloat(value) || 0)}
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="500 000"
+                />
+                <CopyButton text={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Splatnost v letech
               </label>
               <div className="flex">
@@ -454,17 +472,17 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.maturityYears || ''}
                   onChange={(e) => updateBasicParameter('maturityYears', parseInt(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="30"
                   min="1"
                   max="50"
                 />
-                <CopyButton text={content.basicParameters?.maturityYears?.toString() || ''} />
+                <CopyButton text={String(content.basicParameters?.maturityYears || '')} />
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Délka fixace preferovaná (roky)
               </label>
               <div className="flex">
@@ -472,56 +490,272 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   type="number"
                   value={content.basicParameters?.preferredFixationYears || ''}
                   onChange={(e) => updateBasicParameter('preferredFixationYears', parseInt(e.target.value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="5"
                   min="1"
                   max="30"
                 />
-                <CopyButton text={content.basicParameters?.preferredFixationYears?.toString() || ''} />
+                <CopyButton text={String(content.basicParameters?.preferredFixationYears || '')} />
               </div>
             </div>
+          </div>
 
-            {/* LTV Calculation */}
-            {content.basicParameters?.requestedLoanAmount && content.basicParameters?.propertyValue && (
-              <div className="md:col-span-2 bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Výpočet LTV</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-blue-700">Výše úvěru:</span>
-                    <div className="font-medium">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Hodnota nemovitosti:</span>
-                    <div className="font-medium">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">LTV poměr:</span>
-                    <div className="font-bold text-lg text-blue-800">
-                      {((content.basicParameters.requestedLoanAmount / content.basicParameters.propertyValue) * 100).toFixed(2)}%
-                    </div>
+          {/* LTV Calculation */}
+          {content.basicParameters?.requestedLoanAmount && content.basicParameters?.propertyValue && (
+            <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Výpočet LTV</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-700 dark:text-blue-300">Výše úvěru:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">{content.basicParameters.requestedLoanAmount.toLocaleString('cs-CZ')} Kč</div>
+                </div>
+                <div>
+                  <span className="text-blue-700 dark:text-blue-300">Hodnota nemovitosti:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">{content.basicParameters.propertyValue.toLocaleString('cs-CZ')} Kč</div>
+                </div>
+                <div>
+                  <span className="text-blue-700 dark:text-blue-300">LTV poměr:</span>
+                  <div className="font-bold text-lg text-blue-800 dark:text-blue-200">
+                    {((content.basicParameters.requestedLoanAmount / content.basicParameters.propertyValue) * 100).toFixed(2)}%
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Poznámky (Notes) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
+            </div>
+            <button
+              onClick={() => isEditingNotes ? handleNotesSave() : setIsEditingNotes(true)}
+              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isEditingNotes 
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300'
+              }`}
+              title={isEditingNotes ? 'Uložit změny v poznámkách' : 'Upravit poznámky'}
+            >
+              {isEditingNotes ? (
+                <>
+                  <Save className="w-4 h-4 mr-1.5" />
+                  Uložit
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4 mr-1.5" />
+                  Upravit
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className="prose prose-sm max-w-none dark:prose-invert border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {isEditingNotes ? (
+              <NotesEditor
+                value={content.notes || ''}
+                onChange={(value: string) => updateContent({ ...content, notes: value })}
+                placeholder="Zadejte poznámky k této sekci..."
+                className="min-h-[200px]"
+              />
+            ) : content.notes ? (
+              <div 
+                className="p-4 min-h-[100px]"
+                dangerouslySetInnerHTML={{ __html: content.notes }}
+              />
+            ) : (
+              <div className="p-4 text-gray-500 dark:text-gray-400 text-center">
+                <FileText className="w-8 h-8 mx-auto mb-2" />
+                Klikněte na tlačítko "Upravit" pro přidání poznámek...
+              </div>
             )}
           </div>
-        )}
+        </div>
 
-        {/* Files Tab */}
-        {activeTab === 'files' && (
+        {/* 3. Odkazy (Links) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-2 mb-4">
+            <LinkIcon className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Odkazy</h3>
+          </div>
+          
+          <div>
+            {/* Links */}
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Webové odkazy
+              </label>
+              <button
+                onClick={addLink}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Přidat odkaz
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(content.links || []).map((link) => (
+                <div key={link.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                  {editingLinkId === link.id ? (
+                    // Editing mode
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            URL
+                          </label>
+                          <div className="flex">
+                            <input
+                              type="url"
+                              value={link.url}
+                              onChange={(e) => updateLink(link.id, 'url', e.target.value)}
+                              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                              placeholder="https://example.com"
+                            />
+                            <CopyButton text={link.url} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Název (volitelný)
+                          </label>
+                          <input
+                            type="text"
+                            value={link.title || ''}
+                            onChange={(e) => updateLink(link.id, 'title', e.target.value)}
+                            className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            placeholder="Popis odkazu"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-3">
+                        <button
+                          onClick={() => setEditingLinkId(null)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Uložit
+                        </button>
+                        <button
+                          onClick={() => setEditingLinkId(null)}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Zrušit
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    // Display mode - only show link title/name, hide URL
+                    <div className="flex items-center justify-between">
+                      {link.url && (
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
+                        >
+                          <LinkIcon className="w-4 h-4 mr-2" />
+                          {link.title || 'Odkaz bez názvu'}
+                        </a>
+                      )}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setEditingLinkId(link.id)}
+                          className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          title="Upravit odkaz"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleLinkDelete(link.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          title="Smazat odkaz"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(!content.links || content.links.length === 0) && (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <LinkIcon className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                  <p>Žádné odkazy nejsou přidány</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+
+        {/* 4. Soubory (Files) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-2 mb-4">
+            <Upload className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Soubory</h3>
+          </div>
+          
           <div className="space-y-6">
-            {/* File Upload */}
+            {/* File List - Now displayed ABOVE upload area */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Nahrané soubory ({(content.files || []).length})
+              </h4>
+              <div className="space-y-2">
+                {(content.files || []).map((file) => (
+                  <FileListItem
+                    key={file.id}
+                    file={file}
+                    onRename={(newName) => renameFile(file.id, newName)}
+                    onDelete={() => handleFileDelete(file.id)}
+                  />
+                ))}
+
+                {(!content.files || content.files.length === 0) && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                    <p>Žádné soubory nejsou nahrány</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* File Upload Area - Now positioned at the BOTTOM */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nahrát soubory
               </label>
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+              <div
+                className={`flex items-center justify-center w-full transition-all duration-200 border-2 border-dashed rounded-lg ${
+                  isDragOver 
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-400' 
+                    : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+              >
+                <label className="flex flex-col items-center justify-center w-full h-32 cursor-pointer">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                    <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Klikněte pro nahrání</span> nebo přetáhněte soubory
+                    <Upload className={`w-8 h-8 mb-4 transition-colors ${
+                      isDragOver ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
+                    }`} />
+                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="font-semibold">
+                        {isDragOver ? 'Pusťte soubory zde' : 'Klikněte pro nahrání'}
+                      </span>
+                      {!isDragOver && ' nebo přetáhněte soubory'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Maximální velikost: 5MB na soubor
                     </p>
                   </div>
@@ -536,146 +770,147 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 </label>
               </div>
               {isUploading && (
-                <div className="mt-2 text-sm text-blue-600">
+                <div className="mt-2 text-sm text-purple-600 dark:text-purple-400 flex items-center">
+                  <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full mr-2" />
                   Nahrávám soubory...
                 </div>
               )}
             </div>
-
-            {/* File List */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
-                Nahrané soubory ({(content.files || []).length})
-              </h4>
-              <div className="space-y-2">
-                {(content.files || []).map((file) => (
-                  <div key={file.id} className="bg-gray-50 rounded-lg p-3 border flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">
-                        {FileStorageService.getFileIcon(file.type)}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {file.originalName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {FileStorageService.formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('cs-CZ')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Otevřít soubor"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                      <button
-                        onClick={() => {
-                          const newName = prompt('Nový název souboru:', file.originalName);
-                          if (newName && newName.trim()) {
-                            renameFile(file.id, newName.trim());
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Přejmenovat"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => removeFile(file.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Smazat"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {(!content.files || content.files.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p>Žádné soubory nejsou nahrány</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-        )}
+        </div>
+      </div>
+    </div>
+  );
+};
+// File List Item Component with inline editing
+interface FileListItemProps {
+  file: {
+    id: string;
+    name: string;
+    originalName: string;
+    type: string;
+    size: number;
+    url: string;
+    uploadedAt: string;
+  };
+  onRename: (newName: string) => void;
+  onDelete: () => void;
+}
 
-        {/* General Fields Tab */}
-        {activeTab === 'fields' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-gray-700">
-                Obecná pole
-              </h4>
-              <button
-                onClick={addGeneralField}
-                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Přidat pole
-              </button>
-            </div>
+const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(file.originalName);
+  const [isValidName, setIsValidName] = useState(true);
 
-            <div className="space-y-4">
-              {(content.generalFields || []).map((field) => (
-                <div key={field.id} className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Název pole
-                      </label>
-                      <input
-                        type="text"
-                        value={field.label}
-                        onChange={(e) => updateGeneralField(field.id, 'label', e.target.value)}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                        placeholder="Např. Poznámka, Speciální požadavek..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Hodnota
-                      </label>
-                      <div className="flex">
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={(e) => updateGeneralField(field.id, 'value', e.target.value)}
-                          className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                          placeholder="Zadejte hodnotu..."
-                        />
-                        <CopyButton text={field.value} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-3">
-                    <button
-                      onClick={() => removeGeneralField(field.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+  // Validate filename
+  const validateFilename = (name: string): boolean => {
+    if (!name.trim()) return false;
+    // Check for invalid characters
+    const invalidChars = /[<>:"/\\|?*]/;
+    return !invalidChars.test(name);
+  };
 
-              {(!content.generalFields || content.generalFields.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  <Settings className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>Žádná obecná pole nejsou přidána</p>
-                  <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole</p>
-                </div>
+  const handleSave = () => {
+    const trimmedName = editName.trim();
+    if (!validateFilename(trimmedName)) {
+      setIsValidName(false);
+      return;
+    }
+    
+    onRename(trimmedName);
+    setIsEditing(false);
+    setIsValidName(true);
+  };
+
+  const handleCancel = () => {
+    setEditName(file.originalName);
+    setIsEditing(false);
+    setIsValidName(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  const handleNameChange = (value: string) => {
+    setEditName(value);
+    setIsValidName(validateFilename(value));
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+      <div className="flex items-center space-x-3 flex-1">
+        <span className="text-lg">
+          {FileStorageService.getFileIcon(file.type)}
+        </span>
+        <div className="flex-1">
+          {isEditing ? (
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                  isValidName 
+                    ? 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500' 
+                    : 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500'
+                }`}
+                autoFocus
+              />
+              {!isValidName && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Neplatný název souboru. Nesmí obsahovat: &lt; &gt; : " / \ | ? *
+                </p>
               )}
             </div>
-          </div>
+          ) : (
+            <p 
+              className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              onClick={() => setIsEditing(true)}
+              title="Klikněte pro úpravu názvu"
+            >
+              {file.originalName}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {FileStorageService.formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('cs-CZ')}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          title="Otevřít soubor"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            title="Přejmenovat"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
         )}
+        <button
+          onClick={onDelete}
+          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+          title="Smazat"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

@@ -62,21 +62,21 @@ export const MortgageCalculator: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Kalkulačka podle kupní ceny */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Kalkulace podle kupní ceny</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Kalkulace podle kupní ceny</h2>
           
           <div className="mb-6">
-            <label className="block text-lg font-medium text-gray-700 mb-3">
+            <label className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-3">
               <Home className="inline w-5 h-5 mr-2" />
               Kupní cena nemovitosti
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">Kč</span>
+              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 font-medium">Kč</span>
               <input
                 type="number"
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(e.target.value)}
-                className="block w-full pl-12 pr-4 py-4 text-xl border-2 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full pl-12 pr-4 py-4 text-xl border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 placeholder="2000000"
                 min="0"
               />

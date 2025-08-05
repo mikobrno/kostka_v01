@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
+import { supabase } from '../../lib/supabase';
 import { CopyButton } from '../CopyButton';
-import { Plus, Trash2 } from 'lucide-react';
+import { FormattedNumberInput } from '../FormattedNumberInput';
+import { SimpleSearch } from '../SimpleSearch';
+import { formatNumber } from '../../utils/formatHelpers';
+import { Plus, Trash2, Save, Check, FileDown } from 'lucide-react';
 
 interface LiabilitiesInfoProps {
   data: any[];
   onChange: (data: any[]) => void;
+  clientId?: string | number;
+  toast?: any;
 }
 
-export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onChange }) => {
+export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onChange, clientId, toast }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | number | null>(null);
+  const [saving, setSaving] = useState<string | number | null>(null);
+  const [saved, setSaved] = useState<string | number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [adminLists, setAdminLists] = React.useState({
     institutions: [],
     liabilityTypes: []
@@ -58,158 +69,373 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       type: '',
       amount: '',
       payment: '',
-      balance: ''
+      balance: '',
+      notes: ''
     };
     onChange([...data, newLiability]);
   };
 
-  const removeLiability = (id: number) => {
-    onChange(data.filter(item => item.id !== id));
+  const removeLiability = async (id: string | number) => {
+    setShowDeleteConfirm(null);
+    const liability = data.find(item => item.id == id);
+    if (liability?.supabase_id) {
+      try {
+        const { error } = await supabase.from('liabilities').delete().eq('id', liability.supabase_id);
+        if (error) throw new Error(error.message);
+      } catch (e) {
+        toast?.showError('Chyba', 'Smazání v databázi selhalo');
+      }
+    }
+    onChange(data.filter(item => item.id != id));
   };
 
-  const updateLiability = (id: number, field: string, value: any) => {
+  const handleDeleteLiability = (id: string | number) => {
+    setShowDeleteConfirm(id);
+  };
+
+  const updateLiability = (id: string | number, field: string, value: any) => {
     onChange(data.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
+      item.id == id ? { ...item, [field]: value } : item
     ));
   };
 
-  if (data.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <Trash2 className="w-12 h-12 mx-auto" />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné závazky</h3>
-        <p className="text-gray-500 mb-6">Přidejte závazky klienta pomocí tlačítka níže.</p>
-        <button
-          onClick={addLiability}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Přidat závazek
-        </button>
-      </div>
-    );
-  }
+  const saveLiability = async (liabilityId: string | number) => {
+    if (!clientId) {
+      toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení závazku');
+      return;
+    }
+
+    setSaving(liabilityId);
+    try {
+      // Najdi specifický závazek
+      const liability = data.find(item => item.id == liabilityId);
+      if (!liability) {
+        throw new Error('Závazek nebyl nalezen');
+      }
+
+      // Připrav data pro Supabase (bez lokálního ID)
+      const liabilityData = {
+        client_id: clientId, // Už je UUID
+        institution: liability.institution || null,
+        type: liability.type || null,
+        amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : null,
+        payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : null,
+        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : null,
+        notes: liability.notes || null
+      };
+
+      // Pokud už závazek existuje v DB (má supabase_id), aktualizuj ho
+      if (liability.supabase_id) {
+        const { error } = await supabase
+          .from('liabilities')
+          .update(liabilityData)
+          .eq('id', liability.supabase_id);
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při aktualizaci závazku');
+        }
+      } else {
+        // Jinak vytvoř nový záznam
+        const { data: newLiability, error } = await supabase
+          .from('liabilities')
+          .insert(liabilityData)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(error.message || 'Chyba při vytváření závazku');
+        }
+
+        // Aktualizuj lokální data s novým supabase_id
+        const updatedData = data.map(item => 
+          item.id == liabilityId 
+            ? { ...item, supabase_id: newLiability.id }
+            : item
+        );
+        onChange(updatedData);
+      }
+
+      setSaved(liabilityId);
+      toast?.showSuccess('Uloženo', `Závazek #${data.findIndex(item => item.id == liabilityId) + 1} byl úspěšně uložen`);
+      
+      // Skryj ikonku checkmarku po 2 sekundách
+      setTimeout(() => {
+        setSaved(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Chyba při ukládání závazku:', error);
+      toast?.showError('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit závazek');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  // Funkce pro export do PDF
+  const exportToPDF = async () => {
+    try {
+      // Lazy loading PDFService
+      const { PDFService } = await import('../../services/pdfService');
+      
+      const liabilitiesForPDF = data.map(liability => ({
+        id: liability.id.toString(),
+        institution: liability.institution,
+        type: liability.type,
+        amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : undefined,
+        payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : undefined,
+        balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : undefined,
+        notes: liability.notes
+      }));
+
+      await PDFService.generateLiabilitiesPDF(liabilitiesForPDF);
+      toast?.showSuccess('PDF vytvořeno', 'Seznam závazků byl úspěšně exportován do PDF');
+    } catch (error) {
+      console.error('Chyba při exportu PDF:', error);
+      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+    }
+  };
+
+  // Filtrování závazků podle search term
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    
+    return data.filter(liability => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (liability.institution && liability.institution.toLowerCase().includes(searchLower)) ||
+        (liability.type && liability.type.toLowerCase().includes(searchLower)) ||
+        (liability.amount && String(liability.amount).includes(searchTerm)) ||
+        (liability.payment && String(liability.payment).includes(searchTerm)) ||
+        (liability.balance && String(liability.balance).includes(searchTerm)) ||
+        (liability.notes && liability.notes.toLowerCase().includes(searchLower))
+      );
+    });
+  }, [data, searchTerm]);
 
   return (
-    <div className="space-y-4">
-      {data.map((liability, index) => (
-        <div key={liability.id} className="bg-gray-50 rounded-lg p-4 border">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-md font-medium text-gray-900">
-              Závazek #{index + 1}
-            </h4>
-            <button
-              onClick={() => removeLiability(liability.id)}
-              className="text-red-600 hover:text-red-800 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+          Závazky
+        </h3>
+        {data.length > 0 && (
+          <button
+            onClick={exportToPDF}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Exportovat závazky do PDF"
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            Export PDF
+          </button>
+        )}
+      </div>
+      
+      <SimpleSearch 
+        onSearchChange={setSearchTerm}
+        placeholder="Hledat v závazcích..."
+      />
+
+      {data.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-400 dark:text-gray-500 mb-4">
+            <Trash2 className="w-12 h-12 mx-auto" />
           </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Žádné závazky</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Přidejte závazky klienta pomocí tlačítka níže.</p>
+          <button
+            onClick={addLiability}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Přidat závazek
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4 mt-4">
+          {filteredData.map((liability, index) => (
+            <div key={liability.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                  Závazek #{index + 1}
+                </h4>
+                <div className="flex items-center space-x-2">
+                  {/* Tlačítko pro uložení */}
+                  <button
+                    onClick={() => saveLiability(liability.id)}
+                    disabled={saving === liability.id}
+                    className="p-1 text-blue-600 hover:text-blue-800 disabled:text-blue-400 transition-colors"
+                    title="Uložit závazek"
+                  >
+                    {saving === liability.id ? (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : saved === liability.id ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {/* Tlačítko pro smazání */}
+                  <button
+                    onClick={() => handleDeleteLiability(liability.id)}
+                    className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                    title="Smazat závazek"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Instituce
-              </label>
-              <div className="flex">
-                <select
-                  value={liability.institution || ''}
-                  onChange={(e) => updateLiability(liability.id, 'institution', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Instituce
+                  </label>
+                  <div className="flex">
+                    <select
+                      value={liability.institution || ''}
+                      onChange={(e) => updateLiability(liability.id, 'institution', e.target.value)}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      title="Vyberte instituci"
+                    >
+                      <option value="">Vyberte instituci</option>
+                      {adminLists.institutions.map(inst => (
+                        <option key={inst} value={inst}>{inst}</option>
+                      ))}
+                    </select>
+                    <CopyButton text={liability.institution || ''} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Typ závazku
+                  </label>
+                  <div className="flex">
+                    <select
+                      value={liability.type || ''}
+                      onChange={(e) => updateLiability(liability.id, 'type', e.target.value)}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      title="Vyberte typ závazku"
+                    >
+                      <option value="">Vyberte typ</option>
+                      {adminLists.liabilityTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    <CopyButton text={liability.type || ''} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Výše úvěru (Kč)
+                  </label>
+                  <div className="flex">
+                    <FormattedNumberInput
+                      value={liability.amount || ''}
+                      onChange={(value) => updateLiability(liability.id, 'amount', value)}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="500 000"
+                    />
+                    <CopyButton text={liability.amount ? formatNumber(liability.amount) : ''} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Splátka (Kč)
+                  </label>
+                  <div className="flex">
+                    <FormattedNumberInput
+                      value={liability.payment || ''}
+                      onChange={(value) => updateLiability(liability.id, 'payment', value)}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="5 000"
+                    />
+                    <CopyButton text={liability.payment ? formatNumber(liability.payment) : ''} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Zůstatek (Kč)
+                  </label>
+                  <div className="flex">
+                    <FormattedNumberInput
+                      value={liability.balance || ''}
+                      onChange={(value) => updateLiability(liability.id, 'balance', value)}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="450 000"
+                    />
+                    <CopyButton text={liability.balance ? formatNumber(liability.balance) : ''} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Poznámka
+                </label>
+                <div className="flex">
+                  <textarea
+                    value={liability.notes || ''}
+                    onChange={(e) => updateLiability(liability.id, 'notes', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="Poznámky k závazku..."
+                    rows={3}
+                  />
+                  <CopyButton text={liability.notes || ''} />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={addLiability}
+            className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Přidat další závazek
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Liabilities */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
+                Smazat závazek
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                Opravdu chcete smazat tento závazek? Tato akce je nevratná.
+              </p>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
                 >
-                  <option value="">Vyberte instituci</option>
-                  {adminLists.institutions.map(inst => (
-                    <option key={inst} value={inst}>{inst}</option>
-                  ))}
-                </select>
-                <CopyButton text={liability.institution || ''} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Typ závazku
-              </label>
-              <div className="flex">
-                <select
-                  value={liability.type || ''}
-                  onChange={(e) => updateLiability(liability.id, 'type', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  Ne, zrušit
+                </button>
+                <button
+                  onClick={() => removeLiability(showDeleteConfirm)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-500 border border-transparent rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400"
                 >
-                  <option value="">Vyberte typ</option>
-                  {adminLists.liabilityTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-                <CopyButton text={liability.type || ''} />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Výše úvěru (Kč)
-              </label>
-              <div className="flex">
-                <input
-                  type="number"
-                  value={liability.amount || ''}
-                  onChange={(e) => updateLiability(liability.id, 'amount', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="500000"
-                  min="0"
-                />
-                <CopyButton text={liability.amount || ''} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Splátka (Kč)
-              </label>
-              <div className="flex">
-                <input
-                  type="number"
-                  value={liability.payment || ''}
-                  onChange={(e) => updateLiability(liability.id, 'payment', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="5000"
-                  min="0"
-                />
-                <CopyButton text={liability.payment || ''} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zůstatek (Kč)
-              </label>
-              <div className="flex">
-                <input
-                  type="number"
-                  value={liability.balance || ''}
-                  onChange={(e) => updateLiability(liability.id, 'balance', e.target.value)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="450000"
-                  min="0"
-                />
-                <CopyButton text={liability.balance || ''} />
+                  Ano, smazat
+                </button>
               </div>
             </div>
           </div>
         </div>
-      ))}
-
-      <button
-        onClick={addLiability}
-        className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
-      >
-        <Plus className="w-5 h-5 mr-2" />
-        Přidat další závazek
-      </button>
+      )}
     </div>
   );
 };

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bohemika - Průvodní list k úvěru</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, textarea { width: 300px; padding: 5px; border: 1px solid #ccc; }
+        textarea { height: 80px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .section { margin-bottom: 25px; }
+        .row { display: flex; gap: 20px; }
+        .row .form-group { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BOHEMIKA</h1>
+        <h2>Průvodní list k úvěru</h2>
+    </div>
+
+    <div class="section">
+        <h3>Osobní údaje klienta</h3>
+        <div class="row">
+            <div class="form-group">
+                <label for="jmeno_prijmeni">Jméno a příjmení:</label>
+                <input type="text" name="jmeno_prijmeni" id="jmeno_prijmeni">
+            </div>
+            <div class="form-group">
+                <label for="rodne_cislo">Rodné číslo:</label>
+                <input type="text" name="rodne_cislo" id="rodne_cislo">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="adresa">Adresa:</label>
+            <input type="text" name="adresa" id="adresa">
+        </div>
+        
+        <div class="row">
+            <div class="form-group">
+                <label for="telefon">Telefon:</label>
+                <input type="text" name="telefon" id="telefon">
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" name="email" id="email">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Zpracovatel</h3>
+        <div class="row">
+            <div class="form-group">
+                <label for="zpracovatel_jmeno">Jméno zpracovatele:</label>
+                <input type="text" name="zpracovatel_jmeno" id="zpracovatel_jmeno">
+            </div>
+            <div class="form-group">
+                <label for="zpracovatel_telefon">Telefon zpracovatele:</label>
+                <input type="text" name="zpracovatel_telefon" id="zpracovatel_telefon">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="zpracovatel_email">Email zpracovatele:</label>
+            <input type="email" name="zpracovatel_email" id="zpracovatel_email">
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Údaje o úvěru</h3>
+        <div class="row">
+            <div class="form-group">
+                <label for="castka_uveru">Částka úvěru:</label>
+                <input type="text" name="castka_uveru" id="castka_uveru">
+            </div>
+            <div class="form-group">
+                <label for="splatnost">Splatnost:</label>
+                <input type="text" name="splatnost" id="splatnost">
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="form-group">
+                <label for="ucel_uveru">Účel úvěru:</label>
+                <input type="text" name="ucel_uveru" id="ucel_uveru">
+            </div>
+            <div class="form-group">
+                <label for="typ_nemovitosti">Typ nemovitosti:</label>
+                <input type="text" name="typ_nemovitosti" id="typ_nemovitosti">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="form-group">
+            <label for="poznamky">Poznámky:</label>
+            <textarea name="poznamky" id="poznamky"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="datum">Datum:</label>
+            <input type="text" name="datum" id="datum">
+        </div>
+    </div>
+
+    <script>
+        // Instrukce pro konverzi do PDF s vyplnitelnými poli
+        console.log("Pro vytvoření PDF s vyplnitelnými poli:");
+        console.log("1. Otevřete tento HTML soubor v prohlížeči");
+        console.log("2. Vytiskněte jako PDF");
+        console.log("3. Otevřete PDF v Adobe Acrobat Pro");
+        console.log("4. Tools > Prepare Form > Automaticky detekovat pole");
+        console.log("5. Uložte jako bohemika_template.pdf");
+    </script>
+</body>
+</html>

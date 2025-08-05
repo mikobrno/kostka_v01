@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { CopyButton } from '../CopyButton';
 import { AddressInput } from '../AddressInput';
 import { Search, Building, MapPin } from 'lucide-react';
+// Importujte AresService a AresCompanyData
+import { AresService, AresCompanyData } from '../../services/aresService'; // Zkontrolujte, zda je cesta správná
 
 interface EmployerInfoProps {
   data: any;
@@ -10,36 +12,75 @@ interface EmployerInfoProps {
 
 export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) => {
   const [isLoadingAres, setIsLoadingAres] = useState(false);
+  const [aresError, setAresError] = useState<string | null>(null); // Nový stav pro chyby z ARES
 
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
   };
 
+  // Funkce pro formátování čísel s mezerami jako tisícové oddělovače
+  const formatNumber = (value: string | number): string => {
+    if (!value) return '';
+    const numStr = value.toString().replace(/\s/g, ''); // Odebere všechny mezery
+    if (!/^\d+$/.test(numStr)) return value.toString(); // Pokud není číslo, vrátí původní hodnotu
+    return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // Přidá mezery každé 3 cifry
+  };
+
+  // Funkce pro odstranění formátování (mezery) z čísla
+  const unformatNumber = (value: string): string => {
+    return value.replace(/\s/g, '');
+  };
+
   const fetchAresData = async (ico: string) => {
-    if (ico.length !== 8) return;
-    
+    // Validace IČO před voláním ARES služby
+    if (!ico || ico.length !== 8 || !/^\d{8}$/.test(ico)) {
+      setAresError('IČO musí být 8místné číslo.');
+      updateField('companyName', '');
+      updateField('companyAddress', '');
+      return;
+    }
+
     setIsLoadingAres(true);
+    setAresError(null); // Vyčistíme předchozí chyby
+    updateField('companyName', ''); // Vyčistíme data před načítáním
+    updateField('companyAddress', '');
+
     try {
-      // Mock ARES API call - v produkci nahradit skutečným API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Skutečné volání ARES API pomocí AresService
+      const { data: companyAresData, error } = await AresService.searchByIco(ico);
       
-      // Mock data
-      const mockData = {
-        name: 'Vzorová společnost s.r.o.',
-        address: 'Václavské náměstí 1, 110 00 Praha 1'
-      };
-      
-      updateField('companyName', mockData.name);
-      updateField('companyAddress', mockData.address);
-    } catch (error) {
-      console.error('Chyba při načítání dat z ARES:', error);
+      // Můžete použít i mock data pro vývoj/testování (odkomentujte a zakomentujte řádek výše):
+      // const { data: companyAresData, error } = await AresService.getMockData(ico);
+
+      if (error) {
+        setAresError(error); // Nastavíme chybu z ARES služby
+      } else if (companyAresData) {
+        // Pokud data z ARES existují, aktualizujeme pole formuláře
+        updateField('companyName', companyAresData.companyName);
+        updateField('companyAddress', companyAresData.address);
+        // Zde můžete také aktualizovat další pole, jako je DIC, právní forma atd.
+        // updateField('dic', companyAresData.dic);
+        // updateField('legalForm', companyAresData.legalForm);
+      } else {
+        // Pokud data nejsou nalezena (data je null a error je také null, což by nemělo nastat
+        // pokud ARES service správně zpracovává "firma nenalezena" jako chybu)
+        setAresError('Firma s tímto IČO nebyla nalezena.');
+      }
+    } catch (unexpectedError: any) {
+      console.error('Neočekávaná chyba při volání ARES API:', unexpectedError);
+      setAresError(`Neočekávaná chyba při načítání dat: ${unexpectedError.message}`);
     } finally {
       setIsLoadingAres(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        Informace o zaměstnavateli
+      </h3>
+      
+      <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           IČO
@@ -49,20 +90,23 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             type="text"
             value={data.ico || ''}
             onChange={(e) => {
-              updateField('ico', e.target.value);
-              if (e.target.value.length === 8) {
-                fetchAresData(e.target.value);
-              }
+              const newIco = e.target.value.replace(/\D/g, ''); // Pouze číslice
+              updateField('ico', newIco);
             }}
-            className="flex-1 block w-full border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="12345678"
+            className="flex-1 block w-full p-2 border border-gray-300 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="Zadejte IČO (8 číslic)"
             maxLength={8}
-            style={{ borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}
+            autoComplete="off"
           />
           <button
-            onClick={() => fetchAresData(data.ico)}
-            disabled={isLoadingAres || data.ico?.length !== 8}
-            className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              const ico = data.ico?.replace(/\D/g, '') || '';
+              if (ico.length === 8) {
+                fetchAresData(ico);
+              }
+            }}
+            disabled={isLoadingAres}
+            className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-r"
           >
             {isLoadingAres ? (
               <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -72,6 +116,9 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           </button>
           <CopyButton text={data.ico || ''} />
         </div>
+        {aresError && (
+          <p className="mt-1 text-sm text-red-600">{aresError}</p>
+        )}
         <p className="mt-1 text-xs text-gray-500">
           Zadáním IČO se automaticky vyplní název a adresa firmy z ARES
         </p>
@@ -117,14 +164,17 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
         </label>
         <div className="flex">
           <input
-            type="number"
-            value={data.netIncome || ''}
-            onChange={(e) => updateField('netIncome', e.target.value)}
+            type="text"
+            value={formatNumber(data.netIncome || '')}
+            onChange={(e) => {
+              const unformattedValue = unformatNumber(e.target.value);
+              updateField('netIncome', unformattedValue);
+            }}
             className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="50000"
-            min="0"
+            placeholder="50 000"
+            pattern="[0-9\s]*"
           />
-          <CopyButton text={data.netIncome || ''} />
+          <CopyButton text={formatNumber(data.netIncome || '')} />
         </div>
       </div>
 
@@ -229,6 +279,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           />
           <CopyButton text={data.employedSince || ''} />
         </div>
+      </div>
       </div>
     </div>
   );

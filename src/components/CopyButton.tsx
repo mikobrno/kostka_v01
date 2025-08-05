@@ -25,8 +25,8 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, className = '' }) 
     <button
       onClick={handleCopy}
       disabled={!text}
-      className={`px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${
-        copied ? 'bg-green-100 text-green-600 border-green-300' : ''
+      className={`px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${
+        copied ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 border-green-300 dark:border-green-600' : ''
       } ${className}`}
       style={{ 
         borderTopRightRadius: '0.375rem', 
