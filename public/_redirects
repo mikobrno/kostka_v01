@@ -1,1 +1,5 @@
+# Servíruj přímo všechny soubory s příponou (fonty, js, css, obrázky, pdf, ...)
+/*.*   /:splat   200
+
+# SPA fallback pro ostatní cesty bez přípony
 /*    /index.html   200
