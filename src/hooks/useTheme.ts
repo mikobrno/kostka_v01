@@ -1,28 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Zkontroluj localStorage
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      return savedTheme;
+    // Prefer saved theme
+    try {
+      const savedTheme = localStorage.getItem('theme') as Theme | null;
+      if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    } catch (e) {
+      if (import.meta && import.meta.env && import.meta.env.DEV) {
+        console.debug('Cannot read theme from localStorage:', e);
+      }
     }
-    
-    // Vždy nastav světlý jako výchozí
+
+    // Fallback to OS preference
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return prefersDark ? 'dark' as Theme : 'light';
+    }
+
     return 'light';
   });
 
-  useEffect(() => {
-    // Ulož do localStorage
-    localStorage.setItem('theme', theme);
-    
-    // Aplikuj na document
+  // Apply theme class ASAP to minimize flash
+  useLayoutEffect(() => {
+    const root = document.documentElement;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      if (import.meta && import.meta.env && import.meta.env.DEV) {
+        console.debug('Cannot write theme to localStorage:', e);
+      }
     }
   }, [theme]);
 
