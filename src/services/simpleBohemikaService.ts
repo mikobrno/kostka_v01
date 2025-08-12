@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFFont } from 'pdf-lib';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -56,6 +56,63 @@ export class SimpleBohemikaService {
     return text.replace(/[^\x20-\x7E]/g, (char) => diacriticMap[char] || char);
   }
 
+  // Bezpečné nastavení textu do libovolného pole formuláře –
+  // nejdřív zkusí originál s diakritikou, při chybě použije fallback bez diakritiky
+  private static trySetFieldValue(field: unknown, value: string) {
+    if (!value) return;
+    const hasSetText = (obj: unknown): obj is { setText: (v: string) => void } => {
+      return !!obj && typeof obj === 'object' && 'setText' in (obj as Record<string, unknown>);
+    };
+    const hasSelect = (obj: unknown): obj is { select: (v: string) => void } => {
+      return !!obj && typeof obj === 'object' && 'select' in (obj as Record<string, unknown>);
+    };
+    // Pole s textem (TextField)
+    if (hasSetText(field)) {
+      try {
+        field.setText(value);
+      } catch {
+        // pdf-lib může vyhodit chybu při nepodporovaných znacích – použijeme bezdiakritický fallback
+        const safe = this.removeDiacritics(value);
+        field.setText(safe);
+        console.warn('PDF: znak(y) mimo podporu fontu – použit fallback bez diakritiky v jednom poli');
+      }
+      return;
+    }
+    // Výběrová pole
+    if (hasSelect(field)) {
+      try {
+        field.select(value);
+      } catch {
+        const safe = this.removeDiacritics(value);
+        field.select(safe);
+        console.warn('PDF: select fallback bez diakritiky');
+      }
+    }
+  }
+
+  // Pokusné načtení TTF fontu z několika možných umístění
+  private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
+    const candidates = [
+      '/fonts/NotoSans-Regular.ttf', // public/fonts v dev/build
+      '/NotoSans-Regular.ttf',       // kořen public pro případ přesunu
+    ];
+    for (const url of candidates) {
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const buf = await resp.arrayBuffer();
+          const font = await pdfDoc.embedFont(new Uint8Array(buf), { subset: true });
+          console.log(`PDF: Načten vlastní TTF font z ${url} – diakritika povolena`);
+          return font;
+        }
+      } catch {
+        // zkusíme další variantu
+      }
+    }
+    console.warn('PDF: Nepodařilo se načíst TTF font z /fonts – generuji bez záruky diakritiky');
+    return null;
+  }
+
   static async generateBohemikaForm(
     client: ClientData,
     loan: LoanData = {}
@@ -74,32 +131,17 @@ export class SimpleBohemikaService {
   // Načteme PDF dokument
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
-      // Volitelně načteme TTF font z public/ (pokud existuje), abychom podpořili diakritiku
-      // Očekávané umístění: public/fonts/NotoSans-Regular.ttf
-      let customFont: any | null = null;
-      try {
-        const fontResp = await fetch('/fonts/NotoSans-Regular.ttf');
-        if (fontResp.ok) {
-          const fontBuf = await fontResp.arrayBuffer();
-          customFont = await pdfDoc.embedFont(new Uint8Array(fontBuf), { subset: true });
-          // Pozn.: updateFieldAppearances zavoláme až po nastavení hodnot
-          console.log('PDF: Vlastní TTF font načten a vložen – diakritika povolena');
-        } else {
-          console.warn('PDF: TTF font nebyl nalezen v /fonts, použiji fallback bez diakritiky');
-        }
-      } catch (e) {
-        console.warn('PDF: Chyba při načítání TTF fontu – použiji fallback bez diakritiky', e);
-      }
+      // Pokus o načtení TTF fontu pro diakritiku
+  const customFont = await this.loadCustomFont(pdfDoc);
 
       
   // Připravíme pomocné proměnné a form
   const form = pdfDoc.getForm();
   const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
-  // Pokud máme vlastní font, můžeme bezpečně použít originální texty s diakritikou
-  const useOriginal = !!customFont;
-  const sanitize = (t?: string) => (useOriginal ? (t || '') : this.removeDiacritics(t || ''));
-  const currency = (n?: number) => (n ? `${n} ${useOriginal ? 'Kč' : 'Kc'}` : '');
-  const defaultProduct = useOriginal ? 'Např. Hypoteční úvěr' : 'Napr. Hypotecni uver';
+  // Preferujeme originální texty; fallback aplikujeme jen pokud zápis selže
+  const sanitize = (t?: string) => (t || '');
+  const currency = (n?: number) => (n ? `${n} Kč` : '');
+  const defaultProduct = 'Např. Hypoteční úvěr';
 
   const formData: Record<string, string> = {
         'fill_11': sanitize(clientName),
@@ -113,38 +155,33 @@ export class SimpleBohemikaService {
         'fill_21': currency(loan.amount),
         'fill_22': currency(loan.amount),
         'LTV': loan.ltv ? `${loan.ltv}%` : '',
-        'fill_24': sanitize(loan.purpose || (useOriginal ? 'Nákup nemovitosti' : 'Nakup nemovitosti')),
+  'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
         'fill_25': currency(loan.monthly_payment),
         'V': 'Brno',
         'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
   };
-      // Vyplníme pole formuláře
+      // Vyplníme pole formuláře (s chytrým fallbackem)
       for (const [fieldName, value] of Object.entries(formData)) {
-        if (value) {
-          try {
-            const field = form.getField(fieldName);
-            if (field) {
-              // Zkusíme různé typy polí
-              if ('setText' in field) {
-                (field as any).setText(value);
-                console.log(`Filled field '${fieldName}' with value '${value}'`);
-              } else if ('select' in field) {
-                (field as any).select(value);
-                console.log(`Selected field '${fieldName}' with value '${value}'`);
-              }
-            }
-          } catch (error) {
-            console.warn(`Could not fill field '${fieldName}':`, error);
+        if (!value) continue;
+        try {
+          const field = form.getField(fieldName);
+          if (field) {
+            this.trySetFieldValue(field, value);
+            console.log(`Filled field '${fieldName}' with value '${value}'`);
           }
+        } catch (error) {
+          console.warn(`Could not fill field '${fieldName}':`, error);
         }
       }
       
   // Pokud máme vlastní font, aktualizujeme vzhled polí tímto fontem
-      if (customFont) {
+    if (customFont) {
         try {
-          form.updateFieldAppearances(customFont);
+      form.updateFieldAppearances(customFont);
+          // Pro maximální kompatibilitu vložíme hodnoty napevno do PDF (odstraní editační pole)
+          form.flatten();
         } catch (e) {
-          console.warn('PDF: Nepodařilo se aktualizovat vzhled polí vlastním fontem – pokračuji', e);
+          console.warn('PDF: Nepodařilo se aktualizovat vzhled/flatten polí vlastním fontem – pokračuji', e);
         }
       }
 
@@ -163,10 +200,11 @@ export class SimpleBohemikaService {
     loan: LoanData = {}
   ): Promise<void> {
     try {
-      const pdfBytes = await this.generateBohemikaForm(client, loan);
+  const pdfBytes = await this.generateBohemikaForm(client, loan);
       
-      // Vytvoříme blob a spustíme download
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  // Vytvoříme blob a spustíme download
+  // TS může být přísný na BlobPart typy – provedeme úzký cast
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
