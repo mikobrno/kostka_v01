@@ -113,11 +113,14 @@ export class SimpleBohemikaService {
           }
           const buf = await resp.arrayBuffer();
           const bytes = new Uint8Array(buf);
-          // Ověříme TTF/OTF signaturu (0x00010000 nebo "OTTO")
+          // Ověříme TTF/OTF signaturu (0x00010000, "OTTO" nebo "ttcf")
           const sig = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-          const isTTF = sig === 0x00010000 || (bytes[0] === 0x4f && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4f);
+          const isTTF =
+            sig === 0x00010000 ||
+            (bytes[0] === 0x4f && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4f) || // OTTO (OTF)
+            (bytes[0] === 0x74 && bytes[1] === 0x74 && bytes[2] === 0x63 && bytes[3] === 0x66);     // ttcf (TrueType Collection)
           if (!isTTF) {
-            console.warn('PDF: Načtený soubor nevypadá jako TTF/OTF – přeskočeno');
+            console.warn('PDF: Načtený soubor nevypadá jako TTF/OTF – přeskočeno (content-type:', ct, 'first4:', bytes.slice(0,4), ')');
             continue;
           }
           const font = await pdfDoc.embedFont(bytes, { subset: true });
