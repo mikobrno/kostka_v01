@@ -104,93 +104,121 @@ export class SimpleBohemikaService {
     }
   }
 
+  // Interní metoda pro generování s možností vynucení sanitizace diakritiky
+  private static async generateBohemikaFormInternal(
+    client: ClientData,
+    loan: LoanData = {},
+    forceSanitize: boolean = false
+  ): Promise<Uint8Array> {
+    // Načteme template PDF
+    const templatePath = '/bohemika_template.pdf';
+    const response = await fetch(templatePath);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to load template: ${response.statusText}`);
+    }
+    
+    const existingPdfBytes = await response.arrayBuffer();
+    
+    // Načteme PDF dokument
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+    // Pokus o načtení fontu (standardní Helvetica)
+    const customFont = await this.loadCustomFont(pdfDoc);
+
+    // Připravíme pomocné proměnné a form
+    const form = pdfDoc.getForm();
+    const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
+    
+    // Funkce pro sanitizaci podle toho, zda vynucujeme odstranění diakritiky
+    const sanitize = (t?: string) => {
+      if (!t) return '';
+      return forceSanitize ? this.removeDiacritics(t) : t;
+    };
+    
+    const currency = (n?: number) => (n ? `${n} Kc` : ''); // Použijeme 'Kc' místo 'Kč' pokud sanitizujeme
+    const defaultProduct = forceSanitize ? 'Napr. Hypotecni uver' : 'Např. Hypoteční úvěr';
+
+    const formData: Record<string, string> = {
+      'fill_11': sanitize(clientName),
+      'fill_12': sanitize(client.applicant_birth_number),
+      'Adresa': sanitize(client.applicant_permanent_address),
+      'Telefon': sanitize(client.applicant_phone),
+      'email': sanitize(client.applicant_email),
+      'fill_16': 'Ing. Milan Kost', // Zpracovatel
+      'fill_17': '8680020061', // IČO zpracovatele
+      'Produkt': sanitize(loan.product || defaultProduct),
+      'fill_21': currency(loan.amount),
+      'fill_22': currency(loan.amount),
+      'LTV': loan.ltv ? `${loan.ltv}%` : '',
+      'fill_24': sanitize(loan.purpose || (forceSanitize ? 'Nakup nemovitosti' : 'Nákup nemovitosti')),
+      'fill_25': currency(loan.monthly_payment),
+      'V': 'Brno',
+      'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
+    };
+
+    // Pokud máme vlastní font, nastavíme jej hned, aby setText používal správnou sadu znaků
+    if (customFont) {
+      try {
+        form.updateFieldAppearances(customFont);
+      } catch (e) {
+        console.warn('PDF: Nepodařilo se připravit vzhled polí vlastním fontem – pokračuji', e);
+      }
+    }
+
+    // Vyplníme pole formuláře
+    for (const [fieldName, value] of Object.entries(formData)) {
+      if (!value) continue;
+      try {
+        const field = form.getField(fieldName);
+        if (field) {
+          this.trySetFieldValue(field, value, !forceSanitize); // Pokud nevynucujeme sanitizaci, zkusíme s diakritkou
+          console.log(`Filled field '${fieldName}' with value '${value}'`);
+        }
+      } catch (error) {
+        console.warn(`Could not fill field '${fieldName}':`, error);
+      }
+    }
+    
+    if (customFont) {
+      try {
+        // Po vyplnění ještě jednou přestylujeme a zafixujeme vzhled
+        form.updateFieldAppearances(customFont);
+        // Pro maximální kompatibilitu vložíme hodnoty napevno do PDF (odstraní editační pole)
+        form.flatten();
+      } catch (e) {
+        console.warn('PDF: Nepodařilo se aktualizovat vzhled/flatten polí vlastním fontem – pokračuji', e);
+      }
+    }
+
+    // Vygenerujeme PDF
+    const pdfBytes = await pdfDoc.save();
+    return pdfBytes;
+  }
+
   static async generateBohemikaForm(
     client: ClientData,
     loan: LoanData = {}
   ): Promise<Uint8Array> {
     try {
-      // Načteme template PDF
-      const templatePath = '/bohemika_template.pdf';
-      const response = await fetch(templatePath);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load template: ${response.statusText}`);
-      }
-      
-      const existingPdfBytes = await response.arrayBuffer();
-      
-      // Načteme PDF dokument
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-      // Pokus o načtení fontu (standardní Helvetica)
-      const customFont = await this.loadCustomFont(pdfDoc);
-
-      // Připravíme pomocné proměnné a form
-      const form = pdfDoc.getForm();
-      const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
-      // Standardní Helvetica má omezenou podporu diakritiky, ale zkusíme to
-      const sanitize = (t?: string) => (t || '');
-      const currency = (n?: number) => (n ? `${n} Kč` : '');
-      const defaultProduct = 'Např. Hypoteční úvěr';
-
-      const formData: Record<string, string> = {
-        'fill_11': sanitize(clientName),
-        'fill_12': sanitize(client.applicant_birth_number),
-        'Adresa': sanitize(client.applicant_permanent_address),
-        'Telefon': sanitize(client.applicant_phone),
-        'email': sanitize(client.applicant_email),
-        'fill_16': 'Ing. Milan Kost', // Zpracovatel
-        'fill_17': '8680020061', // IČO zpracovatele
-        'Produkt': sanitize(loan.product || defaultProduct),
-        'fill_21': currency(loan.amount),
-        'fill_22': currency(loan.amount),
-        'LTV': loan.ltv ? `${loan.ltv}%` : '',
-        'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
-        'fill_25': currency(loan.monthly_payment),
-        'V': 'Brno',
-        'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
-      };
-
-      // Pokud máme vlastní font, nastavíme jej hned, aby setText používal správnou sadu znaků
-      if (customFont) {
-        try {
-          form.updateFieldAppearances(customFont);
-        } catch (e) {
-          console.warn('PDF: Nepodařilo se připravit vzhled polí vlastním fontem – pokračuji', e);
-        }
-      }
-
-      // Vyplníme pole formuláře (s chytrým fallbackem) – povolíme diakritiku jen pokud je font načten
-      const allowDiacritics = !!customFont;
-      for (const [fieldName, value] of Object.entries(formData)) {
-        if (!value) continue;
-        try {
-          const field = form.getField(fieldName);
-          if (field) {
-            this.trySetFieldValue(field, value, allowDiacritics);
-            console.log(`Filled field '${fieldName}' with value '${value}'`);
-          }
-        } catch (error) {
-          console.warn(`Could not fill field '${fieldName}':`, error);
-        }
-      }
-      
-      if (customFont) {
-        try {
-          // Po vyplnění ještě jednou přestylujeme a zafixujeme vzhled
-          form.updateFieldAppearances(customFont);
-          // Pro maximální kompatibilitu vložíme hodnoty napevno do PDF (odstraní editační pole)
-          form.flatten();
-        } catch (e) {
-          console.warn('PDF: Nepodařilo se aktualizovat vzhled/flatten polí vlastním fontem – pokračuji', e);
-        }
-      }
-
-      // Vygenerujeme PDF
-      const pdfBytes = await pdfDoc.save();
-      return pdfBytes;
+      console.log('PDF: Pokus o generování s diakritikou...');
+      // Nejprve zkusíme s diakritikou
+      return await this.generateBohemikaFormInternal(client, loan, false);
       
     } catch (error) {
+      // Pokud to selže kvůli WinAnsi encoding chybě, zkusíme bez diakritiky
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('WinAnsi') || errorMessage.includes('cannot encode')) {
+        console.warn('PDF: Diakritika způsobila chybu, zkouším bez diakritiky...', error);
+        try {
+          return await this.generateBohemikaFormInternal(client, loan, true);
+        } catch (fallbackError) {
+          console.error('PDF: Selhalo i generování bez diakritiky:', fallbackError);
+          throw fallbackError;
+        }
+      }
+      
+      // Pokud to není chyba související s enkódováním, prohodíme původní chybu
       console.error('Error generating Bohemika PDF:', error);
       throw error;
     }
