@@ -1,5 +1,8 @@
 import { PDFDocument, PDFFont, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+// Vite: import URL fontu jako asset (zajistí správné servírování v dev i build)
+// Pozn.: soubor je v public/fonts/NotoSans-Regular.ttf
+import notoSansUrl from '/fonts/NotoSans-Regular.ttf?url';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -96,19 +99,31 @@ export class SimpleBohemikaService {
   // Načte vlastní TTF font s plnou podporou diakritiky
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
     try {
-      // Načteme soubor s fontem
-      const fontUrl = '/fonts/NotoSans-Regular.ttf';
-      const fontBytes = await fetch(fontUrl).then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
-        }
-        return res.arrayBuffer();
-      });
+      const fontUrl = notoSansUrl || '/fonts/NotoSans-Regular.ttf';
+  const res = await fetch(fontUrl, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
+      }
+      const contentType = res.headers.get('content-type') || '';
+  console.log('PDF: Font fetch', { fontUrl, contentType });
+      if (contentType.includes('text/html')) {
+        throw new Error(`Font URL returned HTML instead of font (content-type: ${contentType})`);
+      }
+      const ab = await res.arrayBuffer();
+      const fontBytes = new Uint8Array(ab);
+      // Validace hlavičky souboru (TTF: 00 01 00 00, OTF: 'OTTO')
+      const sig0 = fontBytes[0], sig1 = fontBytes[1], sig2 = fontBytes[2], sig3 = fontBytes[3];
+      const sigStr = String.fromCharCode(sig0, sig1, sig2, sig3);
+      const isTTF = sig0 === 0x00 && sig1 === 0x01 && sig2 === 0x00 && sig3 === 0x00;
+      const isOTF = sigStr === 'OTTO';
+      if (!isTTF && !isOTF) {
+        throw new Error(`Invalid font binary signature: [${sig0.toString(16)},${sig1.toString(16)},${sig2.toString(16)},${sig3.toString(16)}] (likely not a TTF/OTF file)`);
+      }
 
       // Zaregistrujeme fontkit
       pdfDoc.registerFontkit(fontkit);
 
-      // Vložíme font do PDF
+      // Vložíme font do PDF (subset kvůli velikosti)
       const customFont = await pdfDoc.embedFont(fontBytes, { subset: true });
       console.log('PDF: Úspěšně načten vlastní font NotoSans-Regular.ttf');
       return customFont;
