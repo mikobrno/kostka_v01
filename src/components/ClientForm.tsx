@@ -213,8 +213,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   const handleExportPDF = async () => {
     try {
-      // Lazy loading PDFService
-      const { PDFService } = await import('../services/pdfService');
+      // Lazy load PDFMakeService – používá vestavěný Roboto font (diakritika)
+      const { PDFMakeService } = await import('../services/pdfMakeService');
       
       const client = selectedClient || currentClient;
       if (!client) {
@@ -283,7 +283,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         price: formData.applicantProperty?.price || formData.coApplicantProperty?.price
       };
 
-      await PDFService.generateClientPDF(clientData, employers, liabilities, property);
+  await PDFMakeService.generateClientPDF(clientData, employers, liabilities, property);
       toast?.showSuccess('PDF vytvořeno', 'Klientský profil byl úspěšně exportován do PDF');
     } catch (error) {
       console.error('Chyba při exportu PDF:', error);
@@ -443,10 +443,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           <button
             onClick={handleExportPDF}
             disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <FileText className="w-4 h-4 mr-2" />
-            PDF (brzy)
+            Export PDF
           </button>
         </div>
       </div>
