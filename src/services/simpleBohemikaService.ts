@@ -58,7 +58,7 @@ export class SimpleBohemikaService {
 
   // Bezpečné nastavení textu do libovolného pole formuláře –
   // nejdřív zkusí originál s diakritikou, při chybě použije fallback bez diakritiky
-  private static trySetFieldValue(field: unknown, value: string) {
+  private static trySetFieldValue(field: unknown, value: string, allowDiacritics: boolean) {
     if (!value) return;
     const hasSetText = (obj: unknown): obj is { setText: (v: string) => void } => {
       return !!obj && typeof obj === 'object' && 'setText' in (obj as Record<string, unknown>);
@@ -66,13 +66,15 @@ export class SimpleBohemikaService {
     const hasSelect = (obj: unknown): obj is { select: (v: string) => void } => {
       return !!obj && typeof obj === 'object' && 'select' in (obj as Record<string, unknown>);
     };
-    // Pole s textem (TextField)
+  // Pokud není povolena diakritika, předem očistíme
+  const prepared = allowDiacritics ? value : this.removeDiacritics(value);
+  // Pole s textem (TextField)
     if (hasSetText(field)) {
       try {
-        field.setText(value);
+    field.setText(prepared);
       } catch {
         // pdf-lib může vyhodit chybu při nepodporovaných znacích – použijeme bezdiakritický fallback
-        const safe = this.removeDiacritics(value);
+    const safe = this.removeDiacritics(prepared);
         field.setText(safe);
         console.warn('PDF: znak(y) mimo podporu fontu – použit fallback bez diakritiky v jednom poli');
       }
@@ -81,9 +83,9 @@ export class SimpleBohemikaService {
     // Výběrová pole
     if (hasSelect(field)) {
       try {
-        field.select(value);
+    field.select(prepared);
       } catch {
-        const safe = this.removeDiacritics(value);
+    const safe = this.removeDiacritics(prepared);
         field.select(safe);
         console.warn('PDF: select fallback bez diakritiky');
       }
@@ -160,13 +162,23 @@ export class SimpleBohemikaService {
         'V': 'Brno',
         'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
   };
-      // Vyplníme pole formuláře (s chytrým fallbackem)
+      // Pokud máme vlastní font, nastavíme jej hned, aby setText používal správnou sadu znaků
+      if (customFont) {
+        try {
+          form.updateFieldAppearances(customFont);
+        } catch (e) {
+          console.warn('PDF: Nepodařilo se připravit vzhled polí vlastním fontem – pokračuji', e);
+        }
+      }
+
+      // Vyplníme pole formuláře (s chytrým fallbackem) – povolíme diakritiku jen pokud je font načten
+      const allowDiacritics = !!customFont;
       for (const [fieldName, value] of Object.entries(formData)) {
         if (!value) continue;
         try {
           const field = form.getField(fieldName);
           if (field) {
-            this.trySetFieldValue(field, value);
+            this.trySetFieldValue(field, value, allowDiacritics);
             console.log(`Filled field '${fieldName}' with value '${value}'`);
           }
         } catch (error) {
@@ -177,6 +189,7 @@ export class SimpleBohemikaService {
   // Pokud máme vlastní font, aktualizujeme vzhled polí tímto fontem
     if (customFont) {
         try {
+      // Po vyplnění ještě jednou přestylujeme a zafixujeme vzhled
       form.updateFieldAppearances(customFont);
           // Pro maximální kompatibilitu vložíme hodnoty napevno do PDF (odstraní editační pole)
           form.flatten();
