@@ -94,13 +94,17 @@ export class SimpleBohemikaService {
 
   // Pokusné načtení TTF fontu z několika možných umístění
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
+    const ts = Date.now();
     const candidates = [
-      '/fonts/NotoSans-Regular.ttf', // public/fonts v dev/build
-      '/NotoSans-Regular.ttf',       // kořen public pro případ přesunu
+      `/fonts/NotoSans-Regular.ttf?ts=${ts}`,     // standardní cesta z public/
+      `/fonts/NotoSans-Regular?ts=${ts}`,         // kdyby chyběla přípona
+      `/NotoSans-Regular.ttf?ts=${ts}`,           // kořen public
+      `/NotoSans-Regular?ts=${ts}`
     ];
     for (const url of candidates) {
       try {
-        const resp = await fetch(url);
+        const resp = await fetch(url, { cache: 'no-store' });
+        console.log('PDF: Pokus o načtení fontu z', url, 'status:', resp.status);
         if (resp.ok) {
           const buf = await resp.arrayBuffer();
           const font = await pdfDoc.embedFont(new Uint8Array(buf), { subset: true });
