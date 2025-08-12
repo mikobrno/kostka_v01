@@ -1,4 +1,5 @@
 import { PDFDocument, PDFFont, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -92,15 +93,36 @@ export class SimpleBohemikaService {
     }
   }
 
-  // Jednoduchá verze bez externího fontu - použije standardní Helvetica s omezenou diakritikou
+  // Načte vlastní TTF font s plnou podporou diakritiky
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
     try {
-      const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      console.log('PDF: Použit standardní Helvetica font (základní diakritika)');
-      return helveticaFont;
+      // Načteme soubor s fontem
+      const fontUrl = '/fonts/NotoSans-Regular.ttf';
+      const fontBytes = await fetch(fontUrl).then(res => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
+        }
+        return res.arrayBuffer();
+      });
+
+      // Zaregistrujeme fontkit
+      pdfDoc.registerFontkit(fontkit);
+
+      // Vložíme font do PDF
+      const customFont = await pdfDoc.embedFont(fontBytes, { subset: true });
+      console.log('PDF: Úspěšně načten vlastní font NotoSans-Regular.ttf');
+      return customFont;
     } catch (e) {
-      console.warn('PDF: Chyba při načítání standardního fontu:', e);
-      return null;
+      console.error('PDF: Chyba při načítání vlastního fontu, zkouším fallback na Helvetica:', e);
+      try {
+        // Fallback na standardní font, pokud vlastní selže
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        console.log('PDF: Použit standardní Helvetica font (základní diakritika)');
+        return helveticaFont;
+      } catch (helveticaError) {
+        console.error('PDF: Selhalo i načtení standardního fontu Helvetica:', helveticaError);
+        return null;
+      }
     }
   }
 
@@ -136,8 +158,8 @@ export class SimpleBohemikaService {
       return forceSanitize ? this.removeDiacritics(t) : t;
     };
     
-    const currency = (n?: number) => (n ? `${n} Kc` : ''); // Použijeme 'Kc' místo 'Kč' pokud sanitizujeme
-    const defaultProduct = forceSanitize ? 'Napr. Hypotecni uver' : 'Např. Hypoteční úvěr';
+    const currency = (n?: number) => (n ? `${n} Kč` : ''); // Vrátíme zpět "Kč"
+    const defaultProduct = 'Např. Hypoteční úvěr';
 
     const formData: Record<string, string> = {
       'fill_11': sanitize(clientName),
@@ -151,7 +173,7 @@ export class SimpleBohemikaService {
       'fill_21': currency(loan.amount),
       'fill_22': currency(loan.amount),
       'LTV': loan.ltv ? `${loan.ltv}%` : '',
-      'fill_24': sanitize(loan.purpose || (forceSanitize ? 'Nakup nemovitosti' : 'Nákup nemovitosti')),
+      'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
       'fill_25': currency(loan.monthly_payment),
       'V': 'Brno',
       'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
