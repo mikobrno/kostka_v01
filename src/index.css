@@ -2,6 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global dark-mode improvements for form controls and common backgrounds */
+@layer base {
+  /* Respect OS dark appearance for native controls (date, select, etc.) */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Baseline styles for inputs/selects/textareas (light) */
+  input,
+  select,
+  textarea {
+    @apply bg-white text-gray-900 border border-gray-300 placeholder-gray-400;
+  }
+
+  /* Dark mode variants applied globally when component lacks explicit classes */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    @apply bg-gray-800 text-gray-100 border-gray-600 placeholder-gray-400;
+  }
+
+  /* Focus ring for accessibility */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply outline-none ring-2 ring-blue-500 border-blue-500;
+  }
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus {
+    @apply outline-none ring-2 ring-blue-500 border-blue-500;
+  }
+
+  /* Disabled/read-only subtle backgrounds */
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  input[readonly],
+  textarea[readonly] {
+    @apply bg-gray-100 text-gray-500;
+  }
+  .dark input:disabled,
+  .dark select:disabled,
+  .dark textarea:disabled,
+  .dark input[readonly],
+  .dark textarea[readonly] {
+    @apply bg-gray-700 text-gray-400 border-gray-600;
+  }
+
+  /* Checkbox/Radio accent color in dark */
+  .dark input[type="checkbox"],
+  .dark input[type="radio"] {
+    accent-color: #3b82f6; /* blue-500 */
+  }
+
+  /* Improve readability of common light-only utility backgrounds in dark */
+  .dark .bg-gray-50 { @apply bg-gray-700; }
+  .dark .bg-blue-50 { @apply bg-blue-950; }
+  .dark .bg-green-50 { @apply bg-green-950; }
+  .dark .bg-purple-50 { @apply bg-purple-950; }
+
+  /* Tweak frequently used light text utilities when on dark to ensure contrast */
+  .dark .text-gray-700 { @apply text-gray-200; }
+  .dark .text-gray-600 { @apply text-gray-300; }
+  .dark .text-gray-500 { @apply text-gray-400; }
+  .dark .text-gray-900 { @apply text-white; }
+  .dark .text-blue-900 { @apply text-blue-300; }
+  .dark .text-green-900 { @apply text-green-300; }
+  .dark .text-purple-900 { @apply text-purple-300; }
+
+  /* Borders often missing explicit dark overrides */
+  .dark .border-gray-300 { @apply border-gray-600; }
+  .dark .divide-gray-200 { @apply divide-gray-700; }
+
+  /* Provide a fallback for components using plain bg-white/bg-gray-100 without dark: variants */
+  .dark .bg-white { @apply bg-gray-800; }
+  .dark .bg-gray-100 { @apply bg-gray-700; }
+
+  /* Native date/time pickers icons visibility */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.8);
+  }
+}
+
 /* Rich Text Editor Styles */
 .prose {
   max-width: none;
