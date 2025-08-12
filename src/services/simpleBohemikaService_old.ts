@@ -56,7 +56,8 @@ export class SimpleBohemikaService {
     return text.replace(/[^\x20-\x7E]/g, (char) => diacriticMap[char] || char);
   }
 
-  // Bezpečné nastavení textu do libovolného pole formuláře
+  // Bezpečné nastavení textu do libovolného pole formuláře –
+  // nejdřív zkusí originál s diakritikou, při chybě použije fallback bez diakritiky
   private static trySetFieldValue(field: unknown, value: string, allowDiacritics: boolean) {
     if (!value) return;
     const hasSetText = (obj: unknown): obj is { setText: (v: string) => void } => {
@@ -65,16 +66,15 @@ export class SimpleBohemikaService {
     const hasSelect = (obj: unknown): obj is { select: (v: string) => void } => {
       return !!obj && typeof obj === 'object' && 'select' in (obj as Record<string, unknown>);
     };
-
-    // Pokud není povolena diakritika, předem očistíme
-    const prepared = allowDiacritics ? value : this.removeDiacritics(value);
-    // Pole s textem (TextField)
+  // Pokud není povolena diakritika, předem očistíme
+  const prepared = allowDiacritics ? value : this.removeDiacritics(value);
+  // Pole s textem (TextField)
     if (hasSetText(field)) {
       try {
-        field.setText(prepared);
+    field.setText(prepared);
       } catch {
         // pdf-lib může vyhodit chybu při nepodporovaných znacích – použijeme bezdiakritický fallback
-        const safe = this.removeDiacritics(prepared);
+    const safe = this.removeDiacritics(prepared);
         field.setText(safe);
         console.warn('PDF: znak(y) mimo podporu fontu – použit fallback bez diakritiky v jednom poli');
       }
@@ -83,25 +83,75 @@ export class SimpleBohemikaService {
     // Výběrová pole
     if (hasSelect(field)) {
       try {
-        field.select(prepared);
+    field.select(prepared);
       } catch {
-        const safe = this.removeDiacritics(prepared);
+    const safe = this.removeDiacritics(prepared);
         field.select(safe);
         console.warn('PDF: select fallback bez diakritiky');
       }
     }
   }
 
-  // Jednoduchá verze bez externího fontu - použije standardní Helvetica s omezenou diakritikou
+  // Pokusné načtení TTF fontu z několika možných umístění
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
+    // Registrace fontkit je nutná pro vkládání vlastních TTF/OTF fontů
     try {
-      const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      console.log('PDF: Použit standardní Helvetica font (základní diakritika)');
-      return helveticaFont;
+      // Některé verze typů pdf-lib nemají registerFontkit; zavoláme ji přes volnější signaturu
+      (pdfDoc as unknown as { registerFontkit?: (fk: unknown) => void }).registerFontkit?.(fontkit as unknown);
     } catch (e) {
-      console.warn('PDF: Chyba při načítání standardního fontu:', e);
-      return null;
+      console.warn('PDF: Nepodařilo se zaregistrovat fontkit, vkládání TTF může selhat', e);
     }
+    const ts = Date.now();
+    const candidates = [
+      `/fonts/NotoSans-Regular.ttf?ts=${ts}`,     // standardní cesta z public/
+      `/fonts/NotoSans-Regular?ts=${ts}`,         // kdyby chyběla přípona
+      `/NotoSans-Regular.ttf?ts=${ts}`,           // kořen public
+      `/NotoSans-Regular?ts=${ts}`
+    ];
+    for (const url of candidates) {
+      try {
+        const resp = await fetch(url, { cache: 'no-store' });
+        console.log('PDF: Pokus o načtení fontu z', url, 'status:', resp.status);
+        if (resp.ok) {
+          const ct = resp.headers.get('content-type') || '';
+          if (ct.includes('text/html')) {
+            console.warn('PDF: Místo TTF vrácen HTML (pravděpodobně SPA redirect), zkouším další variantu');
+            continue;
+          }
+          const buf = await resp.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          // Pokud Content-Type vypadá jako font/binární, zkusíme vložit bez striktní kontroly signatury
+          const maybeBinary = ct.startsWith('font/') || ct === 'application/octet-stream' || ct === '';
+          if (!maybeBinary) {
+            // Ponecháme volnější kontrolu signatury (TTF/OTF/TTC), ale nebudeme blokovat, jen zalogujeme
+            const sig = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+            const looksLikeFont =
+              sig === 0x00010000 ||
+              (bytes[0] === 0x4f && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4f) ||
+              (bytes[0] === 0x74 && bytes[1] === 0x74 && bytes[2] === 0x63 && bytes[3] === 0x66);
+            if (!looksLikeFont) {
+              console.warn('PDF: Podezřelý obsah fontu (CT=', ct, ' first4=', Array.from(bytes.slice(0, 4)), ') – přesto zkouším vložit');
+            }
+          }
+          let font: PDFFont | null = null;
+          try {
+            font = await pdfDoc.embedFont(bytes, { subset: true });
+          } catch (err) {
+            console.warn('PDF: Vkládání fontu selhalo:', err);
+            font = null;
+          }
+          if (!font) {
+            continue;
+          }
+          console.log(`PDF: Načten vlastní TTF font z ${url} – diakritika povolena`);
+          return font;
+        }
+      } catch {
+        // zkusíme další variantu
+      }
+    }
+    console.warn('PDF: Nepodařilo se načíst TTF font z /fonts – generuji bez záruky diakritiky');
+    return null;
   }
 
   static async generateBohemikaForm(
@@ -119,21 +169,22 @@ export class SimpleBohemikaService {
       
       const existingPdfBytes = await response.arrayBuffer();
       
-      // Načteme PDF dokument
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  // Načteme PDF dokument
+  const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
-      // Pokus o načtení fontu (standardní Helvetica)
-      const customFont = await this.loadCustomFont(pdfDoc);
+      // Pokus o načtení TTF fontu pro diakritiku
+  const customFont = await this.loadCustomFont(pdfDoc);
 
-      // Připravíme pomocné proměnné a form
-      const form = pdfDoc.getForm();
-      const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
-      // Standardní Helvetica má omezenou podporu diakritiky, ale zkusíme to
-      const sanitize = (t?: string) => (t || '');
-      const currency = (n?: number) => (n ? `${n} Kč` : '');
-      const defaultProduct = 'Např. Hypoteční úvěr';
+      
+  // Připravíme pomocné proměnné a form
+  const form = pdfDoc.getForm();
+  const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
+  // Preferujeme originální texty; fallback aplikujeme jen pokud zápis selže
+  const sanitize = (t?: string) => (t || '');
+  const currency = (n?: number) => (n ? `${n} Kč` : '');
+  const defaultProduct = 'Např. Hypoteční úvěr';
 
-      const formData: Record<string, string> = {
+  const formData: Record<string, string> = {
         'fill_11': sanitize(clientName),
         'fill_12': sanitize(client.applicant_birth_number),
         'Adresa': sanitize(client.applicant_permanent_address),
@@ -145,12 +196,11 @@ export class SimpleBohemikaService {
         'fill_21': currency(loan.amount),
         'fill_22': currency(loan.amount),
         'LTV': loan.ltv ? `${loan.ltv}%` : '',
-        'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
+  'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
         'fill_25': currency(loan.monthly_payment),
         'V': 'Brno',
         'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
-      };
-
+  };
       // Pokud máme vlastní font, nastavíme jej hned, aby setText používal správnou sadu znaků
       if (customFont) {
         try {
@@ -175,10 +225,11 @@ export class SimpleBohemikaService {
         }
       }
       
-      if (customFont) {
+  // Pokud máme vlastní font, aktualizujeme vzhled polí tímto fontem
+    if (customFont) {
         try {
-          // Po vyplnění ještě jednou přestylujeme a zafixujeme vzhled
-          form.updateFieldAppearances(customFont);
+      // Po vyplnění ještě jednou přestylujeme a zafixujeme vzhled
+      form.updateFieldAppearances(customFont);
           // Pro maximální kompatibilitu vložíme hodnoty napevno do PDF (odstraní editační pole)
           form.flatten();
         } catch (e) {
@@ -186,9 +237,9 @@ export class SimpleBohemikaService {
         }
       }
 
-      // Vygenerujeme PDF
-      const pdfBytes = await pdfDoc.save();
-      return pdfBytes;
+  // Vygenerujeme PDF
+  const pdfBytes = await pdfDoc.save();
+  return pdfBytes;
       
     } catch (error) {
       console.error('Error generating Bohemika PDF:', error);
@@ -201,11 +252,11 @@ export class SimpleBohemikaService {
     loan: LoanData = {}
   ): Promise<void> {
     try {
-      const pdfBytes = await this.generateBohemikaForm(client, loan);
+  const pdfBytes = await this.generateBohemikaForm(client, loan);
       
-      // Vytvoříme blob a spustíme download
-      // TS může být přísný na BlobPart typy – provedeme úzký cast
-      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+  // Vytvoříme blob a spustíme download
+  // TS může být přísný na BlobPart typy – provedeme úzký cast
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
