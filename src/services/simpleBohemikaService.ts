@@ -106,8 +106,21 @@ export class SimpleBohemikaService {
         const resp = await fetch(url, { cache: 'no-store' });
         console.log('PDF: Pokus o načtení fontu z', url, 'status:', resp.status);
         if (resp.ok) {
+          const ct = resp.headers.get('content-type') || '';
+          if (ct.includes('text/html')) {
+            console.warn('PDF: Místo TTF vrácen HTML (pravděpodobně SPA redirect), zkouším další variantu');
+            continue;
+          }
           const buf = await resp.arrayBuffer();
-          const font = await pdfDoc.embedFont(new Uint8Array(buf), { subset: true });
+          const bytes = new Uint8Array(buf);
+          // Ověříme TTF/OTF signaturu (0x00010000 nebo "OTTO")
+          const sig = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+          const isTTF = sig === 0x00010000 || (bytes[0] === 0x4f && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4f);
+          if (!isTTF) {
+            console.warn('PDF: Načtený soubor nevypadá jako TTF/OTF – přeskočeno');
+            continue;
+          }
+          const font = await pdfDoc.embedFont(bytes, { subset: true });
           console.log(`PDF: Načten vlastní TTF font z ${url} – diakritika povolena`);
           return font;
         }
