@@ -71,32 +71,53 @@ export class SimpleBohemikaService {
       
       const existingPdfBytes = await response.arrayBuffer();
       
-      // Načteme PDF dokument
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  // Načteme PDF dokument
+  const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+      // Volitelně načteme TTF font z public/ (pokud existuje), abychom podpořili diakritiku
+      // Očekávané umístění: public/fonts/NotoSans-Regular.ttf
+      let customFont: any | null = null;
+      try {
+        const fontResp = await fetch('/fonts/NotoSans-Regular.ttf');
+        if (fontResp.ok) {
+          const fontBuf = await fontResp.arrayBuffer();
+          customFont = await pdfDoc.embedFont(new Uint8Array(fontBuf), { subset: true });
+          // Pozn.: updateFieldAppearances zavoláme až po nastavení hodnot
+          console.log('PDF: Vlastní TTF font načten a vložen – diakritika povolena');
+        } else {
+          console.warn('PDF: TTF font nebyl nalezen v /fonts, použiji fallback bez diakritiky');
+        }
+      } catch (e) {
+        console.warn('PDF: Chyba při načítání TTF fontu – použiji fallback bez diakritiky', e);
+      }
+
       
-      const form = pdfDoc.getForm();
-      
-      // Mapování dat na pole formuláře (podle Python scriptu)
-      const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
-      
-      const formData = {
-        'fill_11': clientName,
-        'fill_12': client.applicant_birth_number || '',
-        'Adresa': client.applicant_permanent_address || '',
-        'Telefon': client.applicant_phone || '',
-        'email': client.applicant_email || '',
+  // Připravíme pomocné proměnné a form
+  const form = pdfDoc.getForm();
+  const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
+  // Pokud máme vlastní font, můžeme bezpečně použít originální texty s diakritikou
+  const useOriginal = !!customFont;
+  const sanitize = (t?: string) => (useOriginal ? (t || '') : this.removeDiacritics(t || ''));
+  const currency = (n?: number) => (n ? `${n} ${useOriginal ? 'Kč' : 'Kc'}` : '');
+  const defaultProduct = useOriginal ? 'Např. Hypoteční úvěr' : 'Napr. Hypotecni uver';
+
+  const formData: Record<string, string> = {
+        'fill_11': sanitize(clientName),
+        'fill_12': sanitize(client.applicant_birth_number),
+        'Adresa': sanitize(client.applicant_permanent_address),
+        'Telefon': sanitize(client.applicant_phone),
+        'email': sanitize(client.applicant_email),
         'fill_16': 'Ing. Milan Kost', // Zpracovatel
         'fill_17': '8680020061', // IČO zpracovatele
-        'Produkt': loan.product || 'Např. Hypoteční úvěr',
-        'fill_21': loan.amount ? `${loan.amount} Kč` : '',
-        'fill_22': loan.amount ? `${loan.amount} Kč` : '',
+        'Produkt': sanitize(loan.product || defaultProduct),
+        'fill_21': currency(loan.amount),
+        'fill_22': currency(loan.amount),
         'LTV': loan.ltv ? `${loan.ltv}%` : '',
-        'fill_24': loan.purpose || 'Nákup nemovitosti',
-        'fill_25': loan.monthly_payment ? `${loan.monthly_payment} Kč` : '',
+        'fill_24': sanitize(loan.purpose || (useOriginal ? 'Nákup nemovitosti' : 'Nakup nemovitosti')),
+        'fill_25': currency(loan.monthly_payment),
         'V': 'Brno',
         'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
-      };
-      
+  };
       // Vyplníme pole formuláře
       for (const [fieldName, value] of Object.entries(formData)) {
         if (value) {
@@ -118,9 +139,18 @@ export class SimpleBohemikaService {
         }
       }
       
-      // Vygenerujeme PDF
-      const pdfBytes = await pdfDoc.save();
-      return pdfBytes;
+  // Pokud máme vlastní font, aktualizujeme vzhled polí tímto fontem
+      if (customFont) {
+        try {
+          form.updateFieldAppearances(customFont);
+        } catch (e) {
+          console.warn('PDF: Nepodařilo se aktualizovat vzhled polí vlastním fontem – pokračuji', e);
+        }
+      }
+
+  // Vygenerujeme PDF
+  const pdfBytes = await pdfDoc.save();
+  return pdfBytes;
       
     } catch (error) {
       console.error('Error generating Bohemika PDF:', error);
