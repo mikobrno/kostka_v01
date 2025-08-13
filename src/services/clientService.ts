@@ -36,34 +36,54 @@ export class ClientService {
     return Number.isFinite(i) ? i : null
   }
 
-  // Helper: attempts to insert into 'loans' and if Postgres returns
+  // Helper: attempts to upsert into 'loans' and if Postgres returns
   // "column ... does not exist", it removes that key from payload and retries.
-  private static async insertLoanWithColumnFallback(initialPayload: Record<string, unknown>) {
-  const basePayload = { ...initialPayload }
-  let removedKeys: string[] = []
+  private static async upsertLoanWithColumnFallback(clientId: string, initialPayload: Record<string, unknown>) {
+    const basePayload = { ...initialPayload }
+    let removedKeys: string[] = []
+    
     // Try a few times in case multiple columns are missing
     for (let attempt = 0; attempt < 6; attempt++) {
       const payload = Object.fromEntries(
         Object.entries(basePayload).filter(([k]) => !removedKeys.includes(k))
       )
-      const { error } = await supabase.from('loans').insert(payload)
+      
+      // First try to update existing loan
+      const { data: existingLoan } = await supabase
+        .from('loans')
+        .select('id')
+        .eq('client_id', clientId)
+        .single()
+      
+      let error
+      if (existingLoan) {
+        // Update existing loan
+        const updateResult = await supabase
+          .from('loans')
+          .update(payload)
+          .eq('client_id', clientId)
+        error = updateResult.error
+      } else {
+        // Insert new loan
+        const insertResult = await supabase.from('loans').insert(payload)
+        error = insertResult.error
+      }
+      
       if (!error) return { error: null }
 
       const message = (error as any)?.message || (error as any)?.toString?.() || ''
       // Postgres typically reports: column "foo" of relation "loans" does not exist
       const m = message.match(/column\s+"([^"]+)"\s+of\s+relation\s+"loans"\s+does\s+not\s+exist/i)
-  if (m && m[1] && Object.prototype.hasOwnProperty.call(basePayload, m[1])) {
+      if (m && m[1] && Object.prototype.hasOwnProperty.call(basePayload, m[1])) {
         // Drop the missing column and retry
-  removedKeys = [...removedKeys, m[1]]
+        removedKeys = [...removedKeys, m[1]]
         continue
       }
       // Unknown error type -> stop and return
       return { error }
     }
-    return { error: new Error('Failed to insert loan after multiple attempts') }
-  }
-
-  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
+    return { error: new Error('Failed to upsert loan after multiple attempts') }
+  }  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('clients')
@@ -251,7 +271,7 @@ export class ClientService {
           monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
           maturity_years: ClientService.asInt(formData.loan.maturityYears),
         }
-        const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
+        const { error: loanError } = await ClientService.upsertLoanWithColumnFallback(client.id, loanData)
         if (loanError) {
           return { data: client, error: loanError }
         }
@@ -421,10 +441,8 @@ export class ClientService {
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
       await supabase.from('documents').delete().eq('client_id', clientId)
-  await supabase.from('liabilities').delete().eq('client_id', clientId)
-  await supabase.from('loans').delete().eq('client_id', clientId)
-
-      // Znovu vytvoření dat (stejný kód jako v createClient)
+      await supabase.from('liabilities').delete().eq('client_id', clientId)
+      // Poznámka: loans se nemazou, budou se aktualizovat v upsertLoanWithColumnFallback      // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
         const employerData = {
           client_id: clientId,
@@ -495,7 +513,7 @@ export class ClientService {
           monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
           maturity_years: ClientService.asInt(formData.loan.maturityYears),
         }
-        const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
+        const { error: loanError } = await ClientService.upsertLoanWithColumnFallback(clientId, loanData)
         if (loanError) {
           return { data: client, error: loanError }
         }
