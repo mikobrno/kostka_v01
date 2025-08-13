@@ -15,6 +15,27 @@ export interface ClientFormData {
 }
 
 export class ClientService {
+  // Safe parsers for numeric inputs that may come as string or number
+  private static asNumber(value: any): number | null {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null
+    }
+    const raw = String(value)
+    // remove spaces and percent signs, normalize comma to dot
+    const cleaned = raw.replace(/[\s%]/g, '').replace(',', '.')
+    if (cleaned === '') return null
+    const n = parseFloat(cleaned)
+    return Number.isFinite(n) ? n : null
+  }
+
+  private static asInt(value: any): number | null {
+    const n = ClientService.asNumber(value)
+    if (n === null) return null
+    const i = Math.trunc(n)
+    return Number.isFinite(i) ? i : null
+  }
+
   // Helper: attempts to insert into 'loans' and if Postgres returns
   // "column ... does not exist", it removes that key from payload and retries.
   private static async insertLoanWithColumnFallback(initialPayload: Record<string, unknown>) {
@@ -221,14 +242,14 @@ export class ClientService {
           advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
             ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
             : null),
-          loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
+          loan_amount: ClientService.asNumber(formData.loan.loanAmount),
           loan_amount_words: formData.loan.loanAmountWords || null,
-          fixation_years: formData.loan.fixationYears && formData.loan.fixationYears.trim() ? parseInt(formData.loan.fixationYears) : null,
-          interest_rate: formData.loan.interestRate && formData.loan.interestRate.trim() ? parseFloat(formData.loan.interestRate) : null,
+          fixation_years: ClientService.asInt(formData.loan.fixationYears),
+          interest_rate: ClientService.asNumber(formData.loan.interestRate),
           insurance: formData.loan.insurance || null,
-          property_value: formData.loan.propertyValue && formData.loan.propertyValue.trim() ? parseFloat(formData.loan.propertyValue) : null,
-          monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
-          maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
+          property_value: ClientService.asNumber(formData.loan.propertyValue),
+          monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
+          maturity_years: ClientService.asInt(formData.loan.maturityYears),
         }
         const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
         if (loanError) {
@@ -465,14 +486,14 @@ export class ClientService {
           advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
             ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
             : null),
-          loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
+          loan_amount: ClientService.asNumber(formData.loan.loanAmount),
           loan_amount_words: formData.loan.loanAmountWords || null,
-          fixation_years: formData.loan.fixationYears && formData.loan.fixationYears.trim() ? parseInt(formData.loan.fixationYears) : null,
-          interest_rate: formData.loan.interestRate && formData.loan.interestRate.trim() ? parseFloat(formData.loan.interestRate) : null,
+          fixation_years: ClientService.asInt(formData.loan.fixationYears),
+          interest_rate: ClientService.asNumber(formData.loan.interestRate),
           insurance: formData.loan.insurance || null,
-          property_value: formData.loan.propertyValue && formData.loan.propertyValue.trim() ? parseFloat(formData.loan.propertyValue) : null,
-          monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
-          maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
+          property_value: ClientService.asNumber(formData.loan.propertyValue),
+          monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
+          maturity_years: ClientService.asInt(formData.loan.maturityYears),
         }
         const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
         if (loanError) {
