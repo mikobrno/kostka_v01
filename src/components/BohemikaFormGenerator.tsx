@@ -86,29 +86,59 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
   // Předvyplnění dat při výběru klienta
   useEffect(() => {
-    if (selectedClientId) {
-      const foundClient = clients.find(c => c.id === selectedClientId);
-      if (foundClient) {
-        setSelectedClient(foundClient);
-        setClient(foundClient);
-      }
+    if (selectedClientId && clients.length > 0) {
+      handleClientSelect(selectedClientId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClientId, clients]);
 
-  const handleClientSelect = (clientId: string) => {
+  const handleClientSelect = async (clientId: string) => {
     const foundClient = clients.find(c => c.id === clientId);
     if (foundClient) {
       setSelectedClient(foundClient);
-      setClient({
-        applicant_first_name: foundClient.applicant_first_name,
-        applicant_last_name: foundClient.applicant_last_name,
-        applicant_birth_number: foundClient.applicant_birth_number,
-        applicant_permanent_address: foundClient.applicant_permanent_address,
-        applicant_phone: foundClient.applicant_phone,
-        applicant_email: foundClient.applicant_email,
-        id: foundClient.id
-      });
-      toast?.success(`Načteny údaje klienta: ${foundClient.applicant_first_name} ${foundClient.applicant_last_name}`);
+      
+      // Načtení detailních dat klienta včetně úvěru
+      try {
+        const { data: detailClient, error } = await ClientService.getClient(clientId);
+        if (error) {
+          toast?.error('Chyba při načítání detailů klienta: ' + error.message);
+          return;
+        }
+        
+        if (detailClient) {
+          // Vyplnění klientských dat
+          setClient({
+            applicant_first_name: detailClient.applicant_first_name,
+            applicant_last_name: detailClient.applicant_last_name,
+            applicant_birth_number: detailClient.applicant_birth_number,
+            applicant_permanent_address: detailClient.applicant_permanent_address,
+            applicant_phone: detailClient.applicant_phone,
+            applicant_email: detailClient.applicant_email,
+            id: detailClient.id
+          });
+          
+          // Automatické vyplnění úvěrových dat z databáze
+          if (detailClient.loan) {
+            const loanData = detailClient.loan;
+            setLoan({
+              product: loanData.bank || '',
+              amount: loanData.loan_amount || loanData.loanAmount || 0,
+              ltv: loanData.ltv ? parseFloat(loanData.ltv) : 0,
+              purpose: 'Nákup nemovitosti', // defaultní účel
+              monthly_payment: loanData.monthly_payment || loanData.monthlyPayment || 0,
+              contract_date: loanData.signature_date || loanData.signatureDate || '',
+              contract_number: loanData.contract_number || loanData.contractNumber || '',
+              advisor_name: loanData.advisor_name || loanData.advisorName || (loanData.advisor ? loanData.advisor.split(' - ')[0] : ''),
+              advisor_agency_number: loanData.advisor_agency_number || loanData.advisorAgentNumber || (loanData.advisor && loanData.advisor.includes(' - ') ? loanData.advisor.split(' - ').slice(1).join(' - ') : '')
+            });
+          }
+          
+          toast?.success(`Načteny údaje klienta: ${detailClient.applicant_first_name} ${detailClient.applicant_last_name}${detailClient.loan ? ' včetně úvěrových dat' : ''}`);
+        }
+      } catch (error) {
+        console.error('Error loading client details:', error);
+        toast?.error('Nastala chyba při načítání detailů klienta');
+      }
     }
   };
 

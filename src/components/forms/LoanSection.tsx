@@ -103,11 +103,83 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
 
   // Zjednodušená funkce pro převod čísel na slova
   const numberToWords = (num: string) => {
-    const amount = parseInt(num);
-    if (amount < 1000000) {
-      return `${(amount / 1000).toFixed(0)} tisíc korun českých`;
+    const amount = parseInt(num.replace(/\s/g, ''));
+    if (isNaN(amount) || amount <= 0) return '';
+    
+    const ones = ['', 'jeden', 'dva', 'tři', 'čtyři', 'pět', 'šest', 'sedm', 'osm', 'devět'];
+    const teens = ['deset', 'jedenáct', 'dvanáct', 'třináct', 'čtrnáct', 'patnáct', 'šestnáct', 'sedmnáct', 'osmnáct', 'devatenáct'];
+    const tens = ['', '', 'dvacet', 'třicet', 'čtyřicet', 'padesát', 'šedesát', 'sedmdesát', 'osmdesát', 'devadesát'];
+    const hundreds = ['', 'sto', 'dvě stě', 'tři sta', 'čtyři sta', 'pět set', 'šest set', 'sedm set', 'osm set', 'devět set'];
+    
+    const convertHundreds = (n: number): string => {
+      if (n === 0) return '';
+      let result = '';
+      
+      const h = Math.floor(n / 100);
+      const t = Math.floor((n % 100) / 10);
+      const o = n % 10;
+      
+      if (h > 0) result += hundreds[h];
+      
+      if (t === 1) {
+        if (result) result += ' ';
+        result += teens[o];
+      } else {
+        if (t > 0) {
+          if (result) result += ' ';
+          result += tens[t];
+        }
+        if (o > 0) {
+          if (result) result += ' ';
+          result += ones[o];
+        }
+      }
+      
+      return result;
+    };
+    
+    if (amount < 1000) {
+      return convertHundreds(amount) + ' korun českých';
+    } else if (amount < 1000000) {
+      const thousands = Math.floor(amount / 1000);
+      const remainder = amount % 1000;
+      let result = convertHundreds(thousands);
+      
+      if (thousands === 1) result += ' tisíc';
+      else if (thousands < 5) result += ' tisíce';
+      else result += ' tisíc';
+      
+      if (remainder > 0) {
+        result += ' ' + convertHundreds(remainder);
+      }
+      
+      return result + ' korun českých';
     } else {
-      return `${(amount / 1000000).toFixed(1)} milionu korun českých`;
+      const millions = Math.floor(amount / 1000000);
+      const remainder = amount % 1000000;
+      let result = convertHundreds(millions);
+      
+      if (millions === 1) result += ' milion';
+      else if (millions < 5) result += ' miliony';
+      else result += ' milionů';
+      
+      if (remainder >= 1000) {
+        const thousands = Math.floor(remainder / 1000);
+        const lastRemainder = remainder % 1000;
+        
+        result += ' ' + convertHundreds(thousands);
+        if (thousands === 1) result += ' tisíc';
+        else if (thousands < 5) result += ' tisíce';
+        else result += ' tisíc';
+        
+        if (lastRemainder > 0) {
+          result += ' ' + convertHundreds(lastRemainder);
+        }
+      } else if (remainder > 0) {
+        result += ' ' + convertHundreds(remainder);
+      }
+      
+      return result + ' korun českých';
     }
   };
 
