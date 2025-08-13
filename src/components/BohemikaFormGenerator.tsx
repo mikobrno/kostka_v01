@@ -19,6 +19,7 @@ interface LoanData {
   purpose?: string;
   monthly_payment?: number;
   contract_date?: string;
+  contract_number?: string;
 }
 
 interface BohemikaFormGeneratorProps {
@@ -52,7 +53,8 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
     ltv: 0,
     purpose: '',
     monthly_payment: 0,
-    contract_date: ''
+  contract_date: '',
+  contract_number: ''
   });
 
   // Načtení seznamu klientů
@@ -123,6 +125,14 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
       // Použijeme Simple Bohemika service pro generování a stažení
       await SimpleBohemikaService.downloadBohemikaForm(client, loan);
+      // Po úspěšném generování uložíme číslo smlouvy (a datum) ke klientovi
+      if (client.id && (loan.contract_number || loan.contract_date)) {
+        try {
+          await ClientService.upsertLoanContractInfo(client.id, loan.contract_number || undefined, loan.contract_date || undefined);
+        } catch (e) {
+          console.warn('Uložení čísla smlouvy selhalo (nebude to bránit stažení PDF):', e);
+        }
+      }
       
       toast?.success('PDF úspěšně vygenerováno a staženo!');
     } catch (error) {
@@ -338,6 +348,19 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
               onChange={(e) => handleLoanChange('contract_date', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               title="Vyberte datum podpisu úvěru"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Číslo smlouvy
+            </label>
+            <input
+              type="text"
+              value={loan.contract_number || ''}
+              onChange={(e) => handleLoanChange('contract_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="např. ABC123456"
             />
           </div>
         </div>

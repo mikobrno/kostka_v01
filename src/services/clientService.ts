@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase'
-import type { Client, Employer, Property, Child, Liability } from '../lib/supabase'
+import type { Client } from '../lib/supabase'
 
 export interface ClientFormData {
   applicant: any
@@ -10,20 +11,70 @@ export interface ClientFormData {
   }
   property: any
   liabilities: any[]
+  loan?: any
 }
 
 export class ClientService {
+  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', clientId)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  static async upsertLoanContractInfo(
+    clientId: string,
+    contractNumber?: string,
+    contractDate?: string
+  ): Promise<{ error: any }> {
+    try {
+      // Zjistíme, zda už loan existuje
+      const { data: existing, error: selectError } = await supabase
+        .from('loans')
+        .select('id')
+        .eq('client_id', clientId)
+        .limit(1)
+        .maybeSingle();
+
+      if (selectError) return { error: selectError };
+
+      const payload: Record<string, unknown> = { client_id: clientId };
+      if (contractNumber !== undefined) payload.contract_number = contractNumber || null;
+      if (contractDate !== undefined) payload.signature_date = contractDate || null;
+
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('loans')
+          .update(payload)
+          .eq('id', existing.id);
+        return { error };
+      }
+
+      const { error } = await supabase.from('loans').insert(payload);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  }
   static async createClient(formData: ClientFormData): Promise<{ data: Client | null; error: any }> {
     try {
       // Získání aktuálního uživatele
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
+  const { data: { user: _user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !_user) {
         return { data: null, error: 'Uživatel není přihlášen' }
       }
 
       // Vytvoření klienta
       const clientData = {
-        user_id: user.id,
+  user_id: _user.id,
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,
@@ -125,6 +176,26 @@ export class ClientService {
         }
 
         await supabase.from('properties').insert(propertyData)
+      }
+
+      // Vytvoření záznamu o úvěru
+      if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const loanData = {
+          client_id: client.id,
+          bank: formData.loan.bank || null,
+          contract_number: formData.loan.contractNumber || null,
+          signature_date: formData.loan.signatureDate || null,
+          advisor: formData.loan.advisor || null,
+          loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
+          loan_amount_words: formData.loan.loanAmountWords || null,
+          fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
+          interest_rate: formData.loan.interestRate ? parseFloat(formData.loan.interestRate) : null,
+          insurance: formData.loan.insurance || null,
+          property_value: formData.loan.propertyValue ? parseFloat(formData.loan.propertyValue) : null,
+          monthly_payment: formData.loan.monthlyPayment ? parseFloat(formData.loan.monthlyPayment) : null,
+          maturity_years: formData.loan.maturityYears ? parseInt(formData.loan.maturityYears) : null,
+        }
+        await supabase.from('loans').insert(loanData)
       }
 
       // Vytvoření dětí
@@ -291,7 +362,8 @@ export class ClientService {
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
       await supabase.from('documents').delete().eq('client_id', clientId)
-      await supabase.from('liabilities').delete().eq('client_id', clientId)
+  await supabase.from('liabilities').delete().eq('client_id', clientId)
+  await supabase.from('loans').delete().eq('client_id', clientId)
 
       // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
@@ -337,6 +409,26 @@ export class ClientService {
           price: formData.property.price ? parseFloat(formData.property.price) : null,
         }
         await supabase.from('properties').insert(propertyData)
+      }
+
+      // Znovu vytvoření úvěru
+      if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const loanData = {
+          client_id: clientId,
+          bank: formData.loan.bank || null,
+          contract_number: formData.loan.contractNumber || null,
+          signature_date: formData.loan.signatureDate || null,
+          advisor: formData.loan.advisor || null,
+          loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
+          loan_amount_words: formData.loan.loanAmountWords || null,
+          fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
+          interest_rate: formData.loan.interestRate ? parseFloat(formData.loan.interestRate) : null,
+          insurance: formData.loan.insurance || null,
+          property_value: formData.loan.propertyValue ? parseFloat(formData.loan.propertyValue) : null,
+          monthly_payment: formData.loan.monthlyPayment ? parseFloat(formData.loan.monthlyPayment) : null,
+          maturity_years: formData.loan.maturityYears ? parseInt(formData.loan.maturityYears) : null,
+        }
+        await supabase.from('loans').insert(loanData)
       }
 
       const allChildren = [
@@ -434,8 +526,8 @@ export class ClientService {
   static async getClients(): Promise<{ data: any[] | null; error: any }> {
     try {
       // Kontrola připojení k Supabase
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError) {
+  const { error: userError } = await supabase.auth.getUser()
+  if (userError) {
         console.error('User auth error:', userError);
         return { data: null, error: userError }
       }
@@ -449,7 +541,8 @@ export class ClientService {
           children (*),
           businesses (*),
           documents (*),
-          liabilities (*)
+          liabilities (*),
+          loans (*)
         `)
         .order('created_at', { ascending: false })
 
@@ -461,6 +554,7 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = data?.map((client: any) => ({
         ...client,
+        loan: (client.loans && client.loans[0]) ? client.loans[0] : null,
         // Transformace dětí
         children: client.children?.map((child: any) => ({
           ...child,
@@ -507,7 +601,8 @@ export class ClientService {
           children (*),
           businesses (*),
           documents (*),
-          liabilities (*)
+          liabilities (*),
+          loans (*)
         `)
         .eq('id', id)
         .single()
@@ -519,6 +614,7 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = {
         ...data,
+        loan: (data.loans && data.loans[0]) ? data.loans[0] : null,
         // Transformace údajů žadatele
         applicant: {
           title: data.applicant_title,

@@ -10,22 +10,17 @@ import { ClientForm } from './components/ClientForm';
 import { ClientList } from './components/ClientList';
 import { MortgageCalculator } from './components/MortgageCalculator';
 import { AdminPanel } from './components/AdminPanel';
-import { NotesApp } from './components/NotesApp';
-import { FloatingSearch } from './components/FloatingSearch';
-import { SearchToggleButton } from './components/SearchToggleButton';
-import { PDFTestButton } from './components/PDFTestButton';
 import BohemikaFormGenerator from './components/BohemikaFormGenerator';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
   const { user, loading, signOut } = useAuth();
   const toast = useToast();
-  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('clientList');
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
-  const [loadingClientFromUrl, setLoadingClientFromUrl] = useState(false);
+  // bez pomocného loaderu
 
   // URL handling pro přímé odkazy na klienty
   const loadClientFromUrl = React.useCallback(async () => {
@@ -33,7 +28,7 @@ function App() {
     const clientId = urlParams.get('client');
     
     if (clientId) {
-      setLoadingClientFromUrl(true);
+  // načítání klienta z URL
       try {
         const { data, error } = await ClientService.getClient(clientId);
         if (error) {
@@ -53,7 +48,7 @@ function App() {
         console.error('Chyba při načítání klienta:', error);
         toast.showError('Chyba', 'Nepodařilo se načíst klienta');
       } finally {
-        setLoadingClientFromUrl(false);
+        // done
       }
     }
   }, [toast]);
@@ -108,12 +103,13 @@ function App() {
     return <AuthForm />;
   }
 
+  // Pořadí a viditelnost záložek dle požadavku:
+  // 1) Seznam klientů, 2) Kalkulačka, 3) Bohemika formulář, 4) Nový klient, (Poznámky skryté), 5) Administrace
   const tabs = [
-    { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'clientList', label: 'Seznam klientů', icon: Users },
     { id: 'calculator', label: 'Hypoteční kalkulačka', icon: Calculator },
     { id: 'bohemika', label: 'Bohemika formulář', icon: FileText },
-    { id: 'notes', label: 'Poznámky', icon: FileText },
+    { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
 
@@ -177,7 +173,6 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <PDFTestButton />
               <ThemeToggle />
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 Přihlášen: {user.email}
@@ -261,7 +256,6 @@ function App() {
                 selectedClientId={selectedClient ? (selectedClient as any).id : undefined}
               />
             )}
-            {activeTab === 'notes' && !showClientForm && <NotesApp />}
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
           </>
         )}

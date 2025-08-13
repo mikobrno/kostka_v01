@@ -106,7 +106,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               <select
                 value={data.bank || ''}
                 onChange={(e) => updateField('bank', e.target.value)}
-                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="flex-1 w-full rounded-l-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               >
                 <option value="">Vyberte banku</option>
               {adminLists.banks.map(bank => (
@@ -121,12 +121,12 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Číslo smlouvy
           </label>
-          <div className="flex">
+      <div className="flex">
             <input
               type="text"
               value={data.contractNumber || ''}
               onChange={(e) => updateField('contractNumber', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="Číslo úvěrové smlouvy"
             />
             <CopyButton text={data.contractNumber || ''} />
@@ -138,12 +138,15 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Datum podpisu
           </label>
           <div className="flex">
-            <input
-              type="date"
-              value={data.signatureDate || ''}
-              onChange={(e) => updateField('signatureDate', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-            />
+            <div className="relative flex-1">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={data.signatureDate || ''}
+                onChange={(e) => updateField('signatureDate', e.target.value)}
+                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              />
+            </div>
             <CopyButton text={data.signatureDate || ''} />
           </div>
         </div>
@@ -152,11 +155,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Doporučitel
           </label>
-          <div className="flex">
+      <div className="flex">
             <select
               value={data.advisor || ''}
               onChange={(e) => updateField('advisor', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
             >
               <option value="">Vyberte doporučitele</option>
               {adminLists.advisors.map(advisor => (
@@ -173,11 +176,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Výše úvěru (Kč)
           </label>
-          <div className="flex">
+      <div className="flex">
             <FormattedNumberInput
               value={data.loanAmount || ''}
               onChange={(value) => updateField('loanAmount', value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="1 500 000"
             />
             <CopyButton text={data.loanAmount ? formatNumber(data.loanAmount) : ''} />
@@ -199,12 +202,12 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Fixace (roky)
           </label>
-          <div className="flex">
+      <div className="flex">
             <input
               type="number"
               value={data.fixationYears || ''}
               onChange={(e) => updateField('fixationYears', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="5"
               min="1"
               max="30"
@@ -218,14 +221,14 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Úrok úvěru (%)
           </label>
           <div className="flex">
-            <div className="flex-1 relative">
-              <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative flex-1">
+              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="number"
                 step="0.01"
                 value={data.interestRate || ''}
                 onChange={(e) => updateField('interestRate', e.target.value)}
-                className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                 placeholder="4.5"
                 min="0"
                 max="20"
@@ -239,11 +242,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Pojištění
           </label>
-          <div className="flex">
+      <div className="flex">
             <select
               value={data.insurance || ''}
               onChange={(e) => updateField('insurance', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
             >
               <option value="">Vyberte možnost</option>
               <option value="ano">Ano</option>
@@ -257,11 +260,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Hodnota nemovitosti - ocenění (Kč)
           </label>
-          <div className="flex">
+      <div className="flex">
             <FormattedNumberInput
               value={data.propertyValue || propertyPrice || ''}
               onChange={(value) => updateField('propertyValue', value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="2 000 000"
             />
             <CopyButton text={data.propertyValue ? formatNumber(data.propertyValue) : (propertyPrice ? formatNumber(propertyPrice.toString()) : '')} />
@@ -273,13 +276,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             Doba splatnosti (roky)
           </label>
           <div className="flex">
-            <div className="flex-1 relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative flex-1">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="number"
                 value={data.maturityYears || ''}
                 onChange={(e) => updateField('maturityYears', e.target.value)}
-                className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                 placeholder="30"
                 min="1"
                 max="50"
@@ -293,11 +296,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Měsíční splátka (Kč)
           </label>
-          <div className="flex">
+      <div className="flex">
             <FormattedNumberInput
               value={data.monthlyPayment || ''}
               onChange={(value) => updateField('monthlyPayment', value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="8 500"
             />
             <CopyButton text={data.monthlyPayment ? formatNumber(data.monthlyPayment) : ''} />

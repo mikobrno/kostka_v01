@@ -21,6 +21,7 @@ interface LoanData {
   purpose?: string;
   monthly_payment?: number;
   contract_date?: string;
+  contract_number?: string;
 }
 
 export class SimpleBohemikaService {
@@ -193,6 +194,24 @@ export class SimpleBohemikaService {
       'V': 'Brno',
       'dne': loan.contract_date || new Date().toLocaleDateString('cs-CZ')
     };
+
+    // Pokud je k dispozici číslo smlouvy, pokusíme se vyplnit pole dle šablony
+    // Zde použijeme pole s názvem 'Číslo smlouvy' nebo fallback na vlastní identifikátor
+    const contractNumber = sanitize(loan.contract_number);
+    if (contractNumber) {
+      const possibleFields = ['Číslo smlouvy', 'Cislo smlouvy', 'cislo_smlouvy', 'cisloSmlouvy', 'ContractNumber'];
+      for (const fname of possibleFields) {
+        try {
+          const fld = form.getFieldMaybe?.(fname) ?? form.getField(fname);
+          if (fld) {
+            this.trySetFieldValue(fld, contractNumber, !forceSanitize);
+            break;
+          }
+        } catch {
+          // pole s tímto názvem v šabloně není – zkusíme další
+        }
+      }
+    }
 
     // Pokud máme vlastní font, nastavíme jej hned, aby setText používal správnou sadu znaků
     if (customFont) {

@@ -2,18 +2,17 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Nastavení fontů pro pdfMake - používáme pouze vestavěné fonty
-(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
+// Nastavení fontů pro pdfMake - robustní při různých bundlerech
+// pdfFonts může exponovat vfs přes pdfFonts.pdfMake.vfs nebo přímo pdfFonts.vfs
+const detectedVfs = (pdfFonts as any)?.pdfMake?.vfs || (pdfFonts as any)?.vfs;
+if (detectedVfs) {
+  (pdfMake as any).vfs = detectedVfs;
+} else {
+  console.warn('PDFMake vfs nebylo detekováno – export PDF může selhat.');
+}
 
 // Použijeme pouze dostupné fonty z pdfMake
 (pdfMake as any).fonts = {
-  Roboto: {
-    normal: 'Roboto-Regular.ttf',
-    bold: 'Roboto-Medium.ttf',
-    italics: 'Roboto-Italic.ttf',
-    bolditalics: 'Roboto-MediumItalic.ttf'
-  },
-  // Fallback na Helvetica pokud Roboto nefunguje
   Helvetica: {
     normal: 'Helvetica',
     bold: 'Helvetica-Bold',
@@ -334,7 +333,7 @@ export class PDFMakeService {
       defaultStyle: {
         fontSize: 10,
         lineHeight: 1.4,
-        font: 'Helvetica'  // Použijeme spolehlivý font
+        font: 'Helvetica'
       },
       pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
