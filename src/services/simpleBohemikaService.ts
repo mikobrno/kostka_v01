@@ -3,6 +3,15 @@ import fontkit from '@pdf-lib/fontkit';
 // Vite: import URL fontu jako asset (zajistí správné servírování v dev i build)
 // Pozn.: soubor je v public/fonts/NotoSans-Regular.ttf
 import notoSansUrl from '/fonts/NotoSans-Regular.ttf?url';
+// Volitelný Arial-like font (Arimo). Pokud je soubor přítomen v public/fonts, bude použit.
+// Pokud není, zůstane výchozí NotoSans -> Helvetica fallback.
+let arimoUrl: string | null = null;
+try {
+  // Vite při buildu nahradí import, v dev může házet; proto try/catch a optional fallback
+  arimoUrl = (await import('/fonts/Arimo-Regular.ttf?url')).default as string;
+} catch {
+  // asset neexistuje – použijeme NotoSans/Helvetica
+}
 
 interface ClientData {
   applicant_first_name?: string;
@@ -22,6 +31,8 @@ interface LoanData {
   monthly_payment?: number;
   contract_date?: string;
   contract_number?: string;
+  advisor_name?: string;
+  advisor_agency_number?: string;
 }
 
 export class SimpleBohemikaService {
@@ -100,7 +111,8 @@ export class SimpleBohemikaService {
   // Načte vlastní TTF font s plnou podporou diakritiky
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
     try {
-      const fontUrl = notoSansUrl || '/fonts/NotoSans-Regular.ttf';
+      // Preferuj Arimo, pokud je k dispozici (Arial-like), jinak NotoSans
+      const fontUrl = arimoUrl || notoSansUrl || '/fonts/NotoSans-Regular.ttf';
   const res = await fetch(fontUrl, { cache: 'no-store' });
       if (!res.ok) {
         throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
@@ -209,6 +221,46 @@ export class SimpleBohemikaService {
           }
         } catch {
           // pole s tímto názvem v šabloně není – zkusíme další
+        }
+      }
+    }
+
+    // TIPAŘ: Jméno a příjmení + Agenturní číslo (název polí v šabloně může být různý)
+    const tiparName = sanitize(loan.advisor_name);
+    const tiparNo = sanitize(loan.advisor_agency_number);
+    // Helper to try get optional field by different candidates without any
+    const getFieldIfExists = (name: string) => {
+      try {
+        // Some builds expose getFieldMaybe; otherwise use getField in try/catch
+        const maybeGetter = (form as unknown as { getFieldMaybe?: (n: string) => unknown }).getFieldMaybe;
+        if (typeof maybeGetter === 'function') {
+          return maybeGetter(name);
+        }
+        return form.getField(name);
+      } catch {
+        return undefined;
+      }
+    };
+
+    if (tiparName) {
+      const possibleTiparName = ['TIPAR_Jmeno', 'TiparJmeno', 'Tipar_Jmeno', 'TIPAR', 'Jméno a příjmení TIPAŘe', 'JmenoTipar'];
+      for (const fname of possibleTiparName) {
+        try {
+          const fld = getFieldIfExists(fname);
+          if (fld) { this.trySetFieldValue(fld, tiparName, !forceSanitize); break; }
+  } catch {
+          // ignore missing field
+        }
+      }
+    }
+    if (tiparNo) {
+      const possibleTiparNo = ['TIPAR_AgenturniCislo', 'TiparCislo', 'Agenturni_cislo', 'Agenturni cislo', 'AgenturniCislo'];
+      for (const fname of possibleTiparNo) {
+        try {
+          const fld = getFieldIfExists(fname);
+          if (fld) { this.trySetFieldValue(fld, tiparNo, !forceSanitize); break; }
+  } catch {
+          // ignore missing field
         }
       }
     }

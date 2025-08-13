@@ -5,17 +5,43 @@ import { FormattedNumberInput } from '../FormattedNumberInput';
 import { formatNumber } from '../../utils/formatHelpers';
 import { Calculator, CreditCard, Percent, Calendar } from 'lucide-react';
 
+type LoanData = {
+  bank?: string;
+  contractNumber?: string;
+  signatureDate?: string;
+  advisor?: string; // legacy combined "Name - Number"
+  advisorName?: string;
+  advisorAgentNumber?: string;
+  loanAmount?: string;
+  loanAmountWords?: string;
+  fixationYears?: string;
+  interestRate?: string;
+  insurance?: string;
+  propertyValue?: string;
+  maturityYears?: string;
+  monthlyPayment?: string;
+  ltv?: string;
+};
+
 interface LoanSectionProps {
-  data: any;
-  onChange: (data: any) => void;
+  data: LoanData;
+  onChange: (data: LoanData) => void;
   propertyPrice?: number;
 }
 
 export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, propertyPrice }) => {
-  const [adminLists, setAdminLists] = React.useState({
+  const [adminLists, setAdminLists] = React.useState<{ banks: string[]; advisors: string[] }>({
     banks: [],
     advisors: []
   });
+
+  // Pokud máme kupní cenu z Nemovitosti a loan.propertyValue chybí, předvyplň ji
+  React.useEffect(() => {
+    if (typeof propertyPrice === 'number' && propertyPrice > 0 && (!data.propertyValue || data.propertyValue === '')) {
+      onChange({ ...data, propertyValue: String(propertyPrice) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyPrice]);
 
   // Načtení admin seznamů ze Supabase
   React.useEffect(() => {
@@ -28,22 +54,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         }
 
         if (adminData) {
-          const lists = {
-            banks: [],
-            advisors: []
-          };
-
-          adminData.forEach(item => {
-            switch (item.list_type) {
-              case 'banks':
-                lists.banks = item.items;
-                break;
-              case 'advisors':
-                lists.advisors = item.items;
-                break;
-            }
-          });
-
+          type AdminListItem = { list_type: string; items: string[] };
+          const items = adminData as unknown as AdminListItem[];
+          const lists: { banks: string[]; advisors: string[] } = { banks: [], advisors: [] };
+          for (const item of items) {
+            if (item.list_type === 'banks') lists.banks = item.items;
+            if (item.list_type === 'advisors') lists.advisors = item.items;
+          }
           setAdminLists(lists);
         }
       } catch (error) {
@@ -54,7 +71,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
     loadAdminLists();
   }, []);
 
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: keyof LoanData, value: string) => {
     const updated = { ...data, [field]: value };
     
     // Automatický výpočet LTV
@@ -66,6 +83,19 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
     // Převod číslice na slova (zjednodušená verze)
     if (field === 'loanAmount' && value) {
       updated.loanAmountWords = numberToWords(value);
+    }
+
+    // Umožni zadání úroku s desetinnou čárkou
+    if (field === 'interestRate' && typeof value === 'string') {
+      updated.interestRate = value.replace(',', '.');
+    }
+
+    // Udržuj zpětnou kompatibilitu: slož "advisor" z name/agentNumber
+    if (field === 'advisorName' || field === 'advisorAgentNumber') {
+      const name = field === 'advisorName' ? value : (updated.advisorName || '');
+      const num = field === 'advisorAgentNumber' ? value : (updated.advisorAgentNumber || '');
+      const combined = [name?.trim(), num?.trim()].filter(Boolean).join(' - ');
+      updated.advisor = combined || '';
     }
     
     onChange(updated);
@@ -82,9 +112,9 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
   };
 
   const calculateLTV = () => {
-    if (data.loanAmount && (data.propertyValue || propertyPrice)) {
-      const price = data.propertyValue || propertyPrice;
-      return ((parseFloat(data.loanAmount) / parseFloat(price)) * 100).toFixed(2);
+    if (data.loanAmount && (data.propertyValue || typeof propertyPrice === 'number')) {
+      const priceNum = data.propertyValue ? parseFloat(data.propertyValue) : (propertyPrice as number);
+      return ((parseFloat(data.loanAmount) / priceNum) * 100).toFixed(2);
     }
     return '0';
   };
@@ -99,11 +129,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="bank" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Banka
             </label>
             <div className="flex">
               <select
+                id="bank"
+                aria-label="Banka"
                 value={data.bank || ''}
                 onChange={(e) => updateField('bank', e.target.value)}
                 className="flex-1 w-full rounded-l-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
@@ -118,11 +150,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="contractNumber" className="block text-sm font-medium text-gray-700 mb-1">
             Číslo smlouvy
           </label>
-      <div className="flex">
+          <div className="flex">
             <input
+              id="contractNumber"
+              aria-label="Číslo smlouvy"
               type="text"
               value={data.contractNumber || ''}
               onChange={(e) => updateField('contractNumber', e.target.value)}
@@ -134,39 +168,86 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="signatureDate" className="block text-sm font-medium text-gray-700 mb-1">
             Datum podpisu
           </label>
-          <div className="flex">
-            <div className="relative flex-1">
+          <div className="flex w-full">
+            <div className="relative flex-1 min-w-0">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
+                id="signatureDate"
+                aria-label="Datum podpisu"
                 type="date"
                 value={data.signatureDate || ''}
                 onChange={(e) => updateField('signatureDate', e.target.value)}
-                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="flex-1 w-full min-w-0 pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               />
             </div>
             <CopyButton text={data.signatureDate || ''} />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Doporučitel
-          </label>
-      <div className="flex">
-            <select
-              value={data.advisor || ''}
-              onChange={(e) => updateField('advisor', e.target.value)}
-        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-            >
-              <option value="">Vyberte doporučitele</option>
-              {adminLists.advisors.map(advisor => (
-                <option key={advisor} value={advisor}>{advisor}</option>
-              ))}
-            </select>
-            <CopyButton text={data.advisor || ''} />
+        {/* Doporučitel (TIPAŘ) rozdělen na Jméno a Agenturní číslo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="advisorName" className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Jméno a příjmení
+            </label>
+            <div className="flex w-full">
+              <div className="relative flex-1 min-w-0">
+                <input
+                  list="advisorsList"
+                  id="advisorName"
+                  aria-label="Doporučitel – Jméno a příjmení"
+                  type="text"
+                  value={data.advisorName || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Pokud uživatel vybere/napíše ve formátu "Jméno - Číslo", rozsekneme
+                    const parts = val.split(' - ');
+                    if (parts.length >= 2) {
+                      onChange({
+                        ...data,
+                        advisorName: parts[0],
+                        advisorAgentNumber: parts.slice(1).join(' - '),
+                        advisor: val
+                      });
+                    } else {
+                      updateField('advisorName', val);
+                    }
+                  }}
+                  className="flex-1 w-full min-w-0 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                  placeholder="Např. Jan Novák"
+                />
+                {/* Datalist pro rychlý výběr z Admin seznamu (formát: "Jméno - Číslo") */}
+                <datalist id="advisorsList">
+                  {adminLists.advisors.map((a) => (
+                    <option key={a} value={a} />
+                  ))}
+                </datalist>
+              </div>
+              <CopyButton text={data.advisorName || ''} />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="advisorAgentNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Agenturní číslo
+            </label>
+            <div className="flex w-full">
+              <div className="relative flex-1 min-w-0">
+                <input
+                  id="advisorAgentNumber"
+                  aria-label="Doporučitel – Agenturní číslo"
+                  type="text"
+                  value={data.advisorAgentNumber || ''}
+                  onChange={(e) => updateField('advisorAgentNumber', e.target.value)}
+                  className="flex-1 w-full min-w-0 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                  placeholder="např. 12345"
+                />
+              </div>
+              <CopyButton text={data.advisorAgentNumber || ''} />
+            </div>
           </div>
         </div>
       </div>
@@ -217,18 +298,20 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
             Úrok úvěru (%)
           </label>
-          <div className="flex">
-            <div className="relative flex-1">
+          <div className="flex w-full">
+            <div className="relative flex-1 min-w-0">
               <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
+                id="interestRate"
+                aria-label="Úrok úvěru (%)"
                 type="number"
                 step="0.01"
                 value={data.interestRate || ''}
                 onChange={(e) => updateField('interestRate', e.target.value)}
-                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="flex-1 w-full min-w-0 pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                 placeholder="4.5"
                 min="0"
                 max="20"
@@ -239,11 +322,13 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="insurance" className="block text-sm font-medium text-gray-700 mb-1">
             Pojištění
           </label>
-      <div className="flex">
+          <div className="flex">
             <select
+              id="insurance"
+              aria-label="Pojištění"
               value={data.insurance || ''}
               onChange={(e) => updateField('insurance', e.target.value)}
         className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
@@ -260,7 +345,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Hodnota nemovitosti - ocenění (Kč)
           </label>
-      <div className="flex">
+          <div className="flex">
             <FormattedNumberInput
               value={data.propertyValue || propertyPrice || ''}
               onChange={(value) => updateField('propertyValue', value)}
@@ -272,17 +357,19 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="maturityYears" className="block text-sm font-medium text-gray-700 mb-1">
             Doba splatnosti (roky)
           </label>
-          <div className="flex">
-            <div className="relative flex-1">
+          <div className="flex w-full">
+            <div className="relative flex-1 min-w-0">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
+                id="maturityYears"
+                aria-label="Doba splatnosti (roky)"
                 type="number"
                 value={data.maturityYears || ''}
                 onChange={(e) => updateField('maturityYears', e.target.value)}
-                className="w-full pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                className="flex-1 w-full min-w-0 pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                 placeholder="30"
                 min="1"
                 max="50"
@@ -318,11 +405,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-green-700">Výše úvěru:</span>
-              <div className="font-medium">{parseInt(data.loanAmount).toLocaleString('cs-CZ')} Kč</div>
+              <div className="font-medium">{parseInt(data.loanAmount || '0').toLocaleString('cs-CZ')} Kč</div>
             </div>
             <div>
               <span className="text-green-700">Hodnota nemovitosti:</span>
-              <div className="font-medium">{parseInt(data.propertyValue || propertyPrice).toLocaleString('cs-CZ')} Kč</div>
+              <div className="font-medium">{(data.propertyValue ? parseInt(data.propertyValue) : (propertyPrice ?? 0)).toLocaleString('cs-CZ')} Kč</div>
             </div>
             <div>
               <span className="text-green-700 dark:text-green-400">LTV poměr:</span>

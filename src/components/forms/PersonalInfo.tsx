@@ -605,8 +605,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Platnost do
         </label>
-        <div className="flex">
-          <div className="flex-1 relative">
+        <div className="flex w-full">
+          <div className="flex-1 min-w-0 relative">
             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"

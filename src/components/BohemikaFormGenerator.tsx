@@ -20,6 +20,8 @@ interface LoanData {
   monthly_payment?: number;
   contract_date?: string;
   contract_number?: string;
+  advisor_name?: string;
+  advisor_agency_number?: string;
 }
 
 interface BohemikaFormGeneratorProps {
@@ -54,7 +56,9 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
     purpose: '',
     monthly_payment: 0,
   contract_date: '',
-  contract_number: ''
+  contract_number: '',
+  advisor_name: '',
+  advisor_agency_number: ''
   });
 
   // Načtení seznamu klientů
@@ -271,7 +275,7 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
       {/* Úvěr sekce */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-700">Údaje o úvěru</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Produkt
@@ -361,6 +365,32 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
               onChange={(e) => handleLoanChange('contract_number', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="např. ABC123456"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Jméno a příjmení
+            </label>
+            <input
+              type="text"
+              value={loan.advisor_name || ''}
+              onChange={(e) => handleLoanChange('advisor_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Např. Jan Novák"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Agenturní číslo
+            </label>
+            <input
+              type="text"
+              value={loan.advisor_agency_number || ''}
+              onChange={(e) => handleLoanChange('advisor_agency_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="např. 12345"
             />
           </div>
         </div>

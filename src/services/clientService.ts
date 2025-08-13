@@ -186,6 +186,10 @@ export class ClientService {
           contract_number: formData.loan.contractNumber || null,
           signature_date: formData.loan.signatureDate || null,
           advisor: formData.loan.advisor || null,
+          advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
+          advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
+            ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
+            : null),
           loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
           loan_amount_words: formData.loan.loanAmountWords || null,
           fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
@@ -419,6 +423,10 @@ export class ClientService {
           contract_number: formData.loan.contractNumber || null,
           signature_date: formData.loan.signatureDate || null,
           advisor: formData.loan.advisor || null,
+          advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
+          advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
+            ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
+            : null),
           loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
           loan_amount_words: formData.loan.loanAmountWords || null,
           fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
