@@ -186,7 +186,14 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
   const calculateLTV = () => {
     if (data.loanAmount && (data.propertyValue || typeof propertyPrice === 'number')) {
       const priceNum = data.propertyValue ? parseFloat(data.propertyValue) : (propertyPrice as number);
-      return ((parseFloat(data.loanAmount) / priceNum) * 100).toFixed(2);
+      const ltvValue = ((parseFloat(data.loanAmount) / priceNum) * 100).toFixed(2);
+      
+      // Automaticky aktualizuj LTV v data objektu
+      if (data.ltv !== ltvValue) {
+        onChange({ ...data, ltv: ltvValue });
+      }
+      
+      return ltvValue;
     }
     return '0';
   };

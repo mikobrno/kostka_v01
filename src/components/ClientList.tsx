@@ -606,7 +606,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             <button
                               onClick={() => onSelectClient?.(client)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                              className="text-blue-600 dark:text-white hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded text-base font-semibold"
                               title={`Zobrazit detail klienta - URL: ${generateClientUrl(client.id)}`}
                               aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                             >

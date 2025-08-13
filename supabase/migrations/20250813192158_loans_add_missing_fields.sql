@@ -6,4 +6,5 @@ alter table public.loans
   add column if not exists maturity_years integer,
   add column if not exists monthly_payment numeric,
   add column if not exists property_value numeric,
-  add column if not exists interest_rate numeric;
+  add column if not exists interest_rate numeric,
+  add column if not exists ltv numeric;

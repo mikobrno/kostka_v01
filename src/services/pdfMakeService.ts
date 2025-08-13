@@ -2,24 +2,8 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Nastavení fontů pro pdfMake - robustní při různých bundlerech
-// pdfFonts může exponovat vfs přes pdfFonts.pdfMake.vfs nebo přímo pdfFonts.vfs
-const detectedVfs = (pdfFonts as any)?.pdfMake?.vfs || (pdfFonts as any)?.vfs;
-if (detectedVfs) {
-  (pdfMake as any).vfs = detectedVfs;
-} else {
-  console.warn('PDFMake vfs nebylo detekováno – export PDF může selhat.');
-}
-
-// Použijeme pouze dostupné fonty z pdfMake
-(pdfMake as any).fonts = {
-  Helvetica: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique'
-  }
-};
+// Základní nastavení pdfMake
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 interface ClientData {
   applicant_title?: string;
@@ -333,14 +317,55 @@ export class PDFMakeService {
       defaultStyle: {
         fontSize: 10,
         lineHeight: 1.4,
-        font: 'Helvetica'
+        font: 'Roboto'
       },
       pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
 
     // Vygenerování a stažení PDF
     const fileName = `klient_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    pdfMake.createPdf(docDefinition).download(fileName);
+    
+    try {
+      console.log('Generuji PDF dokument...');
+      const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+      
+      // Alternativní metoda stahování pomocí blob
+      pdfDocGenerator.getBlob((blob: Blob) => {
+        console.log('PDF blob vygenerován, velikost:', blob.size, 'bytes');
+        
+        // Vytvoření URL pro blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Vytvoření odkazu pro stažení
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        downloadLink.style.display = 'none';
+        
+        // Přidání do DOM, kliknutí a odstranění
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // Vyčištění blob URL
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        
+        console.log('PDF stažení iniciováno pomocí blob metody:', fileName);
+      });
+      
+    } catch (error) {
+      console.error('Chyba při generování PDF:', error);
+      // Fallback - zkusíme otevřít PDF v novém okně
+      try {
+        console.log('Pokouším se o fallback - otevření v novém okně...');
+        const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+        pdfDocGenerator.open();
+        console.log('PDF otevřeno v novém okně jako fallback');
+      } catch (fallbackError) {
+        console.error('Fallback také selhal:', fallbackError);
+        throw new Error('Nelze vygenerovat PDF - zkontrolujte konzoli pro detaily');
+      }
+    }
   }
 
   static async generateLiabilitiesPDF(liabilities: LiabilityData[]): Promise<void> {

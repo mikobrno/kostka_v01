@@ -219,6 +219,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   const handleExportPDF = async () => {
     try {
+      console.log('Začínám export PDF...');
+      
       // Lazy load PDFMakeService – používá vestavěný Roboto font (diakritika)
       const { PDFMakeService } = await import('../services/pdfMakeService');
       
@@ -227,6 +229,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         toast?.showError('Chyba', 'Nejsou dostupná data klienta pro export');
         return;
       }
+
+      console.log('Klient nalezen:', client.applicant_first_name, client.applicant_last_name);
 
       // Připravení dat pro PDF
       const clientData = {
@@ -289,11 +293,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         price: formData.applicantProperty?.price || formData.coApplicantProperty?.price
       };
 
-  await PDFMakeService.generateClientPDF(clientData, employers, liabilities, property);
+      console.log('Data připravena, volám PDFMakeService...');
+      await PDFMakeService.generateClientPDF(clientData, employers, liabilities, property);
+      
       toast?.showSuccess('PDF vytvořeno', 'Klientský profil byl úspěšně exportován do PDF');
     } catch (error) {
       console.error('Chyba při exportu PDF:', error);
-      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+      const err = error as any;
+      toast?.showError('Chyba při vytváření PDF', err?.message || 'Neznámá chyba - zkontrolujte konzoli');
     }
   };
 
@@ -618,7 +625,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <div className="flex-1">
           {(() => {
             const a = (formData as any).applicant || {};
@@ -634,14 +641,16 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               </>
             );
           })()}
-          
+        </div>
+        
+        <div className="flex items-start space-x-4">
           {/* Globální vyhledávání */}
           {(selectedClient || currentClient) && (
-            <div className="mt-4 max-w-md">
+            <div className="flex flex-col">
               <SimpleSearch 
                 onSearchChange={setGlobalSearchTerm}
                 placeholder="Hledat v profilu klienta..."
-                className="w-full"
+                className="w-80"
               />
               {globalSearchTerm && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
@@ -650,68 +659,69 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               )}
             </div>
           )}
-        </div>
-        <div className="flex items-center space-x-3">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Zavřít
-            </button>
-          )}
           
-          {(selectedClient || currentClient) && (
-            <button
-              onClick={() => setShowPreview(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Náhled
-            </button>
-          )}
-          
-          {(selectedClient || currentClient) && (
-            <button
-              onClick={handleNewClient}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nový klient
-            </button>
-          )}
-          
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? (
-              <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
+          <div className="flex items-center space-x-3">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Zavřít
+              </button>
             )}
-            {saving ? 'Ukládám...' : (selectedClient || currentClient ? 'Aktualizovat' : 'Uložit')}
-          </button>
-          
-          <button
-            onClick={handleExportPDF}
-            disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </button>
-          
-          <button
-            onClick={downloadClientHtmlFile}
-            disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Stáhnout odkaz
-          </button>
+            
+            {(selectedClient || currentClient) && (
+              <button
+                onClick={() => setShowPreview(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Náhled
+              </button>
+            )}
+            
+            {(selectedClient || currentClient) && (
+              <button
+                onClick={handleNewClient}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nový klient
+              </button>
+            )}
+            
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? (
+                <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {saving ? 'Ukládám...' : (selectedClient || currentClient ? 'Aktualizovat' : 'Uložit')}
+            </button>
+            
+            <button
+              onClick={handleExportPDF}
+              disabled={!selectedClient && !currentClient}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Export PDF
+            </button>
+            
+            <button
+              onClick={downloadClientHtmlFile}
+              disabled={!selectedClient && !currentClient}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Stáhnout odkaz
+            </button>
+          </div>
         </div>
       </div>
 
