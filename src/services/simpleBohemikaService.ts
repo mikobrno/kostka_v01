@@ -1,4 +1,8 @@
 import { PDFDocument, PDFFont, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+// Vite: import URL fontu jako asset (funguje v dev i po buildu)
+// Soubor je v public/fonts/NotoSans-Regular.ttf
+import notoSansUrl from '/fonts/NotoSans-Regular.ttf?url';
 
 interface ClientData {
   applicant_first_name?: string;
@@ -17,15 +21,16 @@ interface LoanData {
   purpose?: string;
   monthly_payment?: number;
   contract_date?: string;
+  // Rozšíření v této větvi – ponecháme kvůli kompatibilitě komponenty
   contract_number?: string;
   advisor_name?: string;
   advisor_agency_number?: string;
 }
 
 export class SimpleBohemikaService {
-  // Funkce pro odstranění diakritiky
+  // Odstranění diakritiky pro fallback (drženo z produkce)
   private static removeDiacritics(text: string): string {
-    const diacriticMap: { [key: string]: string } = {
+    const map: Record<string, string> = {
       'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ā': 'a', 'ă': 'a', 'ą': 'a',
       'č': 'c', 'ć': 'c', 'ĉ': 'c', 'ċ': 'c', 'ç': 'c',
       'ď': 'd', 'đ': 'd',
@@ -55,78 +60,159 @@ export class SimpleBohemikaService {
       'Ý': 'Y', 'Ỳ': 'Y', 'Ÿ': 'Y', 'Ŷ': 'Y',
       'Ž': 'Z', 'Ź': 'Z', 'Ż': 'Z'
     };
-
-    return text.replace(/[^\x20-\x7F]/g, (char) => {
-      return diacriticMap[char] || char;
-    });
+    // ponecháme pouze tisknutelné ASCII znaky; ostatní zkusíme mapovat
+    return text.replace(/[^\x20-\x7E]/g, (ch) => map[ch] || ch);
   }
 
-  // Bezpečná metoda pro vyplnění pole
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static safeSetText(form: any, fieldName: string, value: string | undefined | null, font?: PDFFont): void {
+  // Bezpečné nastavení hodnoty do pole (TextField nebo výběr)
+  private static trySetFieldValue(field: unknown, value: string, allowDiacritics: boolean) {
     if (!value) return;
-    
-    try {
-      const field = form.getTextField(fieldName);
-      if (field) {
-        // Odstranění diakritiky pro lepší kompatibilitu
-        const cleanValue = this.removeDiacritics(value.toString());
-        
-        if (font) {
-          field.setFontAndSize(font, 10);
-        }
-        field.setText(cleanValue);
-        field.enableReadOnly();
+    const hasSetText = (obj: unknown): obj is { setText: (v: string) => void } => {
+      return !!obj && typeof obj === 'object' && 'setText' in (obj as Record<string, unknown>);
+    };
+    const hasSelect = (obj: unknown): obj is { select: (v: string) => void } => {
+      return !!obj && typeof obj === 'object' && 'select' in (obj as Record<string, unknown>);
+    };
+
+    const prepared = allowDiacritics ? value : this.removeDiacritics(value);
+    if (hasSetText(field)) {
+      try {
+        field.setText(prepared);
+      } catch {
+        const safe = this.removeDiacritics(prepared);
+        field.setText(safe);
+        console.warn('PDF: fallback bez diakritiky v textovém poli');
       }
-    } catch (error) {
-      console.warn(`Chyba při vyplňování pole ${fieldName}:`, error);
+      return;
+    }
+    if (hasSelect(field)) {
+      try {
+        field.select(prepared);
+      } catch {
+        const safe = this.removeDiacritics(prepared);
+        field.select(safe);
+        console.warn('PDF: fallback bez diakritiky ve výběrovém poli');
+      }
     }
   }
 
-  public static async generatePDF(clientData: ClientData, loanData: LoanData): Promise<Uint8Array> {
+  // Načte vlastní font s podporou diakritiky; fallback na Helvetica
+  private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
     try {
-      // Načtení PDF šablony
-      const templateResponse = await fetch('/bohemika_template.pdf');
-      if (!templateResponse.ok) {
-        throw new Error(`Nepodařilo se načíst šablonu: ${templateResponse.status}`);
+      const fontUrl = notoSansUrl || '/fonts/NotoSans-Regular.ttf';
+      const res = await fetch(fontUrl, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('text/html')) throw new Error(`Font URL returned HTML (content-type: ${ct})`);
+      const ab = await res.arrayBuffer();
+      const fontBytes = new Uint8Array(ab);
+      // Rychlá kontrola signatury (TTF/OTF)
+      const s0 = fontBytes[0], s1 = fontBytes[1], s2 = fontBytes[2], s3 = fontBytes[3];
+      const sigStr = String.fromCharCode(s0, s1, s2, s3);
+      const isTTF = s0 === 0x00 && s1 === 0x01 && s2 === 0x00 && s3 === 0x00;
+      const isOTF = sigStr === 'OTTO';
+      if (!isTTF && !isOTF) throw new Error('Invalid font binary signature');
+
+      pdfDoc.registerFontkit(fontkit);
+      const custom = await pdfDoc.embedFont(fontBytes, { subset: true });
+      return custom;
+    } catch (e) {
+      console.error('PDF: Chyba při načtení vlastního fontu, fallback na Helvetica:', e);
+      try {
+        return await pdfDoc.embedFont(StandardFonts.Helvetica);
+      } catch (he) {
+        console.error('PDF: Selhal i fallback Helvetica:', he);
+        return null;
       }
-      
-      const templateBytes = await templateResponse.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(templateBytes);
-      
-      // Použití standardního fontu Helvetica
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      const form = pdfDoc.getForm();
-      
-      // Vyplnění základních údajů o klientovi
-      this.safeSetText(form, 'applicant_first_name', clientData.applicant_first_name, font);
-      this.safeSetText(form, 'applicant_last_name', clientData.applicant_last_name, font);
-      this.safeSetText(form, 'applicant_birth_number', clientData.applicant_birth_number, font);
-      this.safeSetText(form, 'applicant_permanent_address', clientData.applicant_permanent_address, font);
-      this.safeSetText(form, 'applicant_phone', clientData.applicant_phone, font);
-      this.safeSetText(form, 'applicant_email', clientData.applicant_email, font);
-      
-      // Vyplnění údajů o úvěru
-      this.safeSetText(form, 'product', loanData.product, font);
-      this.safeSetText(form, 'amount', loanData.amount?.toString(), font);
-      this.safeSetText(form, 'ltv', loanData.ltv?.toString(), font);
-      this.safeSetText(form, 'purpose', loanData.purpose, font);
-      this.safeSetText(form, 'monthly_payment', loanData.monthly_payment?.toString(), font);
-      this.safeSetText(form, 'contract_date', loanData.contract_date, font);
-      this.safeSetText(form, 'contract_number', loanData.contract_number, font);
-      this.safeSetText(form, 'advisor_name', loanData.advisor_name, font);
-      this.safeSetText(form, 'advisor_agency_number', loanData.advisor_agency_number, font);
-      
-      // Uložení PDF
-      const pdfBytes = await pdfDoc.save();
-      console.log('PDF úspěšně vygenerováno');
-      
-      return pdfBytes;
-      
-    } catch (error) {
-      console.error('Chyba při generování PDF:', error);
-      throw new Error(`Nepodařilo se vygenerovat PDF: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     }
+  }
+
+  // Interní generátor s volitelnou sanitizací diakritiky
+  private static async generateBohemikaFormInternal(
+    client: ClientData,
+    loan: LoanData = {},
+    forceSanitize = false
+  ): Promise<Uint8Array> {
+    const templatePath = '/bohemika_template.pdf';
+    const response = await fetch(templatePath);
+    if (!response.ok) throw new Error(`Failed to load template: ${response.statusText}`);
+    const existingPdfBytes = await response.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+    const customFont = await this.loadCustomFont(pdfDoc);
+    const form = pdfDoc.getForm();
+    const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
+
+    const sanitize = (t?: string) => (t ? (forceSanitize ? this.removeDiacritics(t) : t) : '');
+    const currency = (n?: number) => (n ? `${n} Kč` : '');
+    const defaultProduct = 'Např. Hypoteční úvěr';
+
+    const formData: Record<string, string> = {
+      fill_11: sanitize(clientName),
+      fill_12: sanitize(client.applicant_birth_number),
+      Adresa: sanitize(client.applicant_permanent_address),
+      Telefon: sanitize(client.applicant_phone),
+      email: sanitize(client.applicant_email),
+      fill_16: 'Ing. Milan Kost', // Zpracovatel
+      fill_17: '8680020061', // IČO zpracovatele
+      Produkt: sanitize(loan.product || defaultProduct),
+      fill_21: currency(loan.amount),
+      fill_22: currency(loan.amount),
+      LTV: loan.ltv ? `${loan.ltv}%` : '',
+      fill_24: sanitize(loan.purpose || 'Nákup nemovitosti'),
+      fill_25: currency(loan.monthly_payment),
+      V: 'Brno',
+      dne: loan.contract_date || new Date().toLocaleDateString('cs-CZ'),
+    };
+
+    if (customFont) {
+      try { form.updateFieldAppearances(customFont); } catch { /* ignore appearance init */ }
+    }
+
+    for (const [fieldName, value] of Object.entries(formData)) {
+      if (!value) continue;
+      try {
+        const field = form.getField(fieldName);
+        if (field) this.trySetFieldValue(field, value, !forceSanitize);
+      } catch (err) {
+        console.warn(`Could not fill field '${fieldName}':`, err);
+      }
+    }
+
+    if (customFont) {
+      try {
+        form.updateFieldAppearances(customFont);
+        form.flatten();
+      } catch { /* ignore flatten issues */ }
+    }
+
+    return await pdfDoc.save();
+  }
+
+  static async generateBohemikaForm(client: ClientData, loan: LoanData = {}): Promise<Uint8Array> {
+    try {
+      return await this.generateBohemikaFormInternal(client, loan, false);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('WinAnsi') || msg.includes('cannot encode')) {
+        console.warn('PDF: fallback – generuji bez diakritiky...', error);
+        return await this.generateBohemikaFormInternal(client, loan, true);
+      }
+      throw error;
+    }
+  }
+
+  static async downloadBohemikaForm(client: ClientData, loan: LoanData = {}): Promise<void> {
+    const pdfBytes = await this.generateBohemikaForm(client, loan);
+    const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    // Název souboru ponecháme jednoduchý jako v produkci
+    link.download = 'bohemika_pruvodny_list.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }
