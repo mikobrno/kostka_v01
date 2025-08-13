@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
+import { ClientService } from './services/clientService';
 import ToastContainer from './components/ToastContainer';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AuthForm } from './components/AuthForm';
@@ -24,20 +25,76 @@ function App() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
-  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [loadingClientFromUrl, setLoadingClientFromUrl] = useState(false);
 
-  // Keyboard shortcut pro otevření search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'f') {
-        e.preventDefault();
-        setIsSearchVisible(prev => !prev);
+  // URL handling pro přímé odkazy na klienty
+  const loadClientFromUrl = React.useCallback(async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client');
+    
+    if (clientId) {
+      setLoadingClientFromUrl(true);
+      try {
+        const { data, error } = await ClientService.getClient(clientId);
+        if (error) {
+          console.error('Chyba při načítání klienta z URL:', error);
+          toast.showError('Chyba', 'Klient nebyl nalezen');
+          // Odebrat neplatný parametr z URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('client');
+          window.history.replaceState({}, '', newUrl.toString());
+        } else if (data) {
+          setSelectedClient(data);
+          setShowClientForm(true);
+          setActiveTab('newClient');
+          toast.showSuccess('Klient načten', `Zobrazuji profil: ${data.applicant_first_name} ${data.applicant_last_name}`);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání klienta:', error);
+        toast.showError('Chyba', 'Nepodařilo se načíst klienta');
+      } finally {
+        setLoadingClientFromUrl(false);
       }
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      loadClientFromUrl();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    // Načtení klienta při prvním načtení stránky
+    loadClientFromUrl();
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [loadClientFromUrl]);
+
+  const updateUrlForClient = (client: any) => {
+    if (client && client.id) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('client', client.id);
+      window.history.pushState({}, '', newUrl.toString());
+    } else {
+      // Odstranění parametru client z URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('client');
+      window.history.pushState({}, '', newUrl.toString());
+    }
+  };
+
+  // Keyboard shortcut pro otevření search - zatím vypnuto
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if (e.ctrlKey && e.key === 'f') {
+  //       e.preventDefault();
+  //       setIsSearchVisible(prev => !prev);
+  //     }
+  //   };
+
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   if (loading) {
     return (
@@ -64,6 +121,7 @@ function App() {
     setSelectedClient(client);
     setActiveTab('newClient');
     setShowClientForm(true);
+    updateUrlForClient(client);
   };
 
   const handleTabChange = (tabId: string) => {
@@ -80,12 +138,14 @@ function App() {
     setSelectedClient(null);
     setShowClientForm(true);
     setActiveTab('newClient');
+    updateUrlForClient(null);
   };
 
   const handleCloseClientForm = () => {
     setShowClientForm(false);
     setSelectedClient(null);
     setActiveTab('clientList');
+    updateUrlForClient(null);
   };
 
   const handleClientSaved = (updatedClient: any) => {

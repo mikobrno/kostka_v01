@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientService } from '../services/clientService';
-import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown } from 'lucide-react';
+import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown, Link, Copy } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientListProps {
@@ -110,8 +110,21 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
     setShowDeleteConfirm(null);
   };
 
-  const handleClientNameClick = (client: any) => {
-    setShowClientPreview(client);
+  const generateClientUrl = (clientId: string) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?client=${clientId}`;
+  };
+
+  const copyClientUrl = async (clientId: string, clientName: string) => {
+    const url = generateClientUrl(clientId);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast?.showSuccess('Odkaz zkopírován', `Odkaz na klienta ${clientName} byl zkopírován do schránky`);
+    } catch (error) {
+      console.error('Chyba při kopírování do schránky:', error);
+      // Fallback - zobrazit URL v alert
+      prompt('Zkopírujte tento odkaz:', url);
+    }
   };
 
   const handleExportPDF = async (client: any) => {
@@ -351,7 +364,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                             <button
                               onClick={() => onSelectClient?.(client)}
                               className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-                              title="Zobrazit detail klienta"
+                              title={`Zobrazit detail klienta - URL: ${generateClientUrl(client.id)}`}
                               aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                             >
                               {client.applicant_first_name} {client.applicant_last_name}
@@ -391,6 +404,14 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => copyClientUrl(client.id, `${client.applicant_first_name} ${client.applicant_last_name}`)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-2 rounded p-1"
+                          title="Zkopírovat odkaz na klienta"
+                          aria-label={`Zkopírovat odkaz na klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => onSelectClient?.(client)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 rounded p-1"
