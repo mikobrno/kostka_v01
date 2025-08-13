@@ -13,6 +13,25 @@ type UIClient = Client & {
   liabilities?: Liability[];
   applicant_birth_date?: string;
   co_applicant_birth_date?: string;
+  loan?: {
+    bank?: string;
+    contract_number?: string;
+    signature_date?: string;
+    advisor?: string;
+    advisor_name?: string;
+    advisor_agency_number?: string;
+    loan_amount?: number;
+    loan_amount_words?: string;
+    ltv?: number;
+    fixation_years?: number;
+    interest_rate?: number;
+    insurance?: string;
+    property_value?: number;
+    monthly_payment?: number;
+    maturity_years?: number;
+    loanAmount?: number; // camelCase alias pro loan_amount
+    interestRate?: number; // camelCase alias pro interest_rate
+  };
   [key: string]: unknown;
 };
 
@@ -543,22 +562,46 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               </p>
             </div>
           ) : (
-            <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+            <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Klient
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-2" />
+                      Klient
+                    </div>
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Kontakt
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Kontakt
+                    </div>
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Nemovitost
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Adresa
+                    </div>
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Datum zadání
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Building className="w-4 h-4 mr-2" />
+                      Nemovitost
+                    </div>
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Úvěr
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Datum
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Akce
                   </th>
                 </tr>
@@ -566,9 +609,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredClients.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-            <div className="flex-shrink-0 h-10 w-10 relative">
+                        <div className="flex-shrink-0 h-10 w-10 relative">
                           {client.avatar_url ? (
                             <img
                               src={client.avatar_url}
@@ -591,8 +634,8 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                             type="file"
                             accept="image/*"
                             className="hidden"
-              aria-label="Nahrát fotografii klienta"
-              title="Nahrát fotografii klienta"
+                            aria-label="Nahrát fotografii klienta"
+                            title="Nahrát fotografii klienta"
                             ref={(el) => { fileInputsRef.current[client.id] = el; }}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -613,40 +656,81 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                               {client.applicant_first_name} {client.applicant_last_name}
                             </button>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-300">
-                            RČ: {client.applicant_birth_number}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                            <span className="font-mono">RČ: {client.applicant_birth_number}</span>
+                            {client.applicant_age && (
+                              <span className="ml-2 text-gray-400">• {client.applicant_age} let</span>
+                            )}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center mb-1">
-                          <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
-                          {client.applicant_phone}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white space-y-1">
+                        <div className="flex items-center">
+                          <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                          <span className="font-mono">{client.applicant_phone || 'Neuvedeno'}</span>
                         </div>
                         <div className="flex items-center">
-                          <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
-                          {client.applicant_email}
+                          <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                          <span className="truncate max-w-32">{client.applicant_email || 'Neuvedeno'}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                        {client.properties?.[0]?.address || 'Neuvedeno'}
-                      </div>
-                      <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                        {client.properties?.[0]?.price ? formatPrice(client.properties[0].price.toString()) : 'Neuvedeno'}
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        <div className="flex items-start">
+                          <MapPin className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="max-w-48 truncate">{client.applicant_permanent_address || 'Neuvedeno'}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        <div className="flex items-start mb-1">
+                          <Building className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="max-w-40 truncate">{client.properties?.[0]?.address || 'Neuvedeno'}</span>
+                        </div>
+                        <div className="text-sm font-medium text-green-600 dark:text-green-400 ml-5">
+                          {client.properties?.[0]?.price ? formatPrice(client.properties[0].price.toString()) : 'Cena neuvedena'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {client.loan ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center">
+                              <CreditCard className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                              <span className="font-medium text-blue-600 dark:text-blue-400">
+                                {client.loan.loan_amount ? formatPrice(client.loan.loan_amount.toString()) : 'Neuvedeno'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
+                              {client.loan.bank || 'Banka neuvedena'}
+                            </div>
+                            {client.loan.interest_rate && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
+                                Úrok: {client.loan.interest_rate}%
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-gray-400 dark:text-gray-500">
+                            <CreditCard className="w-3 h-3 mr-2" />
+                            <span className="text-xs">Úvěr nezadán</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-300">
-                        <Calendar className="w-3 h-3 mr-1 dark:text-gray-400" />
-                        {formatDate(client.created_at)}
+                        <Calendar className="w-3 h-3 mr-2 dark:text-gray-400 flex-shrink-0" />
+                        <span className="text-xs">{formatDate(client.created_at)}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-1">
                         <button
                           onClick={() => copyClientUrl(client.id, `${client.applicant_first_name} ${client.applicant_last_name}`)}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-2 rounded p-1"

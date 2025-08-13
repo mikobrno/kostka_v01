@@ -2,7 +2,7 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Základní nastavení pdfMake - původní funkční konfigurace
+// Nastavení pdfMake s Roboto fontem (obsahuje českou diakritiku)
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 interface ClientData {
@@ -317,7 +317,7 @@ export class PDFMakeService {
       defaultStyle: {
         fontSize: 10,
         lineHeight: 1.4,
-        font: 'Helvetica'
+        font: 'Roboto'
       },
       pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
