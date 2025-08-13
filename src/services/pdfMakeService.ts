@@ -2,7 +2,7 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Základní nastavení pdfMake
+// Základní nastavení pdfMake - původní funkční konfigurace
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 interface ClientData {
@@ -317,54 +317,25 @@ export class PDFMakeService {
       defaultStyle: {
         fontSize: 10,
         lineHeight: 1.4,
-        font: 'Roboto'
+        font: 'Helvetica'
       },
       pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
 
-    // Vygenerování a stažení PDF
+    // Vygenerování a stažení PDF - původní metoda
     const fileName = `klient_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     
     try {
-      console.log('Generuji PDF dokument...');
+      console.log('Generuji PDF dokument s Helvetica fontem...');
       const pdfDocGenerator = pdfMake.createPdf(docDefinition);
       
-      // Alternativní metoda stahování pomocí blob
-      pdfDocGenerator.getBlob((blob: Blob) => {
-        console.log('PDF blob vygenerován, velikost:', blob.size, 'bytes');
-        
-        // Vytvoření URL pro blob
-        const url = window.URL.createObjectURL(blob);
-        
-        // Vytvoření odkazu pro stažení
-        const downloadLink = document.createElement('a');
-        downloadLink.href = url;
-        downloadLink.download = fileName;
-        downloadLink.style.display = 'none';
-        
-        // Přidání do DOM, kliknutí a odstranění
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        // Vyčištění blob URL
-        setTimeout(() => window.URL.revokeObjectURL(url), 100);
-        
-        console.log('PDF stažení iniciováno pomocí blob metody:', fileName);
-      });
+      // Vrátím zpět na původní download metodu
+      pdfDocGenerator.download(fileName);
+      console.log('PDF stažení iniciováno:', fileName);
       
     } catch (error) {
       console.error('Chyba při generování PDF:', error);
-      // Fallback - zkusíme otevřít PDF v novém okně
-      try {
-        console.log('Pokouším se o fallback - otevření v novém okně...');
-        const pdfDocGenerator = pdfMake.createPdf(docDefinition);
-        pdfDocGenerator.open();
-        console.log('PDF otevřeno v novém okně jako fallback');
-      } catch (fallbackError) {
-        console.error('Fallback také selhal:', fallbackError);
-        throw new Error('Nelze vygenerovat PDF - zkontrolujte konzoli pro detaily');
-      }
+      throw new Error('Nelze vygenerovat PDF - zkontrolujte konzoli pro detaily');
     }
   }
 

@@ -625,42 +625,44 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          {(() => {
-            const a = (formData as any).applicant || {};
-            const fullName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
-            return (
-              <>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {fullName || (selectedClient || currentClient ? 'Klient' : 'Nový klient')}
-                </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-1">
-                  {selectedClient || currentClient ? 'Úprava klienta' : (fullName ? 'Nový klient' : '')}
-                </p>
-              </>
-            );
-          })()}
-        </div>
+      {/* Hlavička s názvem klienta */}
+      <div>
+        {(() => {
+          const a = (formData as any).applicant || {};
+          const fullName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+          return (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {fullName || (selectedClient || currentClient ? 'Klient' : 'Nový klient')}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                {selectedClient || currentClient ? 'Úprava klienta' : (fullName ? 'Nový klient' : '')}
+              </p>
+            </>
+          );
+        })()}
+      </div>
+
+      {/* Vyhledávání a tlačítka */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+        {/* Globální vyhledávání */}
+        {(selectedClient || currentClient) && (
+          <div className="flex flex-col flex-1 max-w-md">
+            <SimpleSearch 
+              onSearchChange={setGlobalSearchTerm}
+              placeholder="Hledat v profilu klienta..."
+              className="w-full"
+            />
+            {globalSearchTerm && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
+              </p>
+            )}
+          </div>
+        )}
         
-        <div className="flex items-start space-x-4">
-          {/* Globální vyhledávání */}
-          {(selectedClient || currentClient) && (
-            <div className="flex flex-col">
-              <SimpleSearch 
-                onSearchChange={setGlobalSearchTerm}
-                placeholder="Hledat v profilu klienta..."
-                className="w-80"
-              />
-              {globalSearchTerm && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
-                </p>
-              )}
-            </div>
-          )}
-          
-          <div className="flex items-center space-x-3">
+        {/* Tlačítka */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
             {onClose && (
               <button
                 onClick={onClose}
@@ -721,7 +723,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               <Download className="w-4 h-4 mr-2" />
               Stáhnout odkaz
             </button>
-          </div>
         </div>
       </div>
 
