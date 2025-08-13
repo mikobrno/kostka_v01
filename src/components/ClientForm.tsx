@@ -785,9 +785,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                     Žadatel
                   </h2>
-                  {/* Kotvy pro Doklady a Podnikání uvnitř osobních údajů žadatele */}
-                  <span id="doklady" className="block -mt-20 pt-20" />
-                  <span id="podnikani" className="block -mt-20 pt-20" />
                   <PersonalInfo 
                     data={formData.applicant}
                     onChange={(data) => setFormData((prev: any) => ({ ...prev, applicant: data }))}
@@ -1486,9 +1483,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
         </div>
       )}
 
-      {/* Děti */}
-      {/* Kotva pro sekci Děti vždy dostupná (kvůli scrollu), obsah podmíněně */}
-      <span id="deti" className="block -mt-20 pt-20" />
+  {/* Děti */}
       {((formData.applicant.children && formData.applicant.children.length > 0) || 
         (formData.coApplicant.children && formData.coApplicant.children.length > 0)) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

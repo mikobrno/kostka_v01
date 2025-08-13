@@ -192,12 +192,12 @@ export class ClientService {
             : null),
           loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
           loan_amount_words: formData.loan.loanAmountWords || null,
-          fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
-          interest_rate: formData.loan.interestRate ? parseFloat(formData.loan.interestRate) : null,
+          fixation_years: formData.loan.fixationYears && formData.loan.fixationYears.trim() ? parseInt(formData.loan.fixationYears) : null,
+          interest_rate: formData.loan.interestRate && formData.loan.interestRate.trim() ? parseFloat(formData.loan.interestRate) : null,
           insurance: formData.loan.insurance || null,
-          property_value: formData.loan.propertyValue ? parseFloat(formData.loan.propertyValue) : null,
-          monthly_payment: formData.loan.monthlyPayment ? parseFloat(formData.loan.monthlyPayment) : null,
-          maturity_years: formData.loan.maturityYears ? parseInt(formData.loan.maturityYears) : null,
+          property_value: formData.loan.propertyValue && formData.loan.propertyValue.trim() ? parseFloat(formData.loan.propertyValue) : null,
+          monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
+          maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
         }
         await supabase.from('loans').insert(loanData)
       }
@@ -429,12 +429,12 @@ export class ClientService {
             : null),
           loan_amount: formData.loan.loanAmount ? parseFloat(formData.loan.loanAmount) : null,
           loan_amount_words: formData.loan.loanAmountWords || null,
-          fixation_years: formData.loan.fixationYears ? parseInt(formData.loan.fixationYears) : null,
-          interest_rate: formData.loan.interestRate ? parseFloat(formData.loan.interestRate) : null,
+          fixation_years: formData.loan.fixationYears && formData.loan.fixationYears.trim() ? parseInt(formData.loan.fixationYears) : null,
+          interest_rate: formData.loan.interestRate && formData.loan.interestRate.trim() ? parseFloat(formData.loan.interestRate) : null,
           insurance: formData.loan.insurance || null,
-          property_value: formData.loan.propertyValue ? parseFloat(formData.loan.propertyValue) : null,
-          monthly_payment: formData.loan.monthlyPayment ? parseFloat(formData.loan.monthlyPayment) : null,
-          maturity_years: formData.loan.maturityYears ? parseInt(formData.loan.maturityYears) : null,
+          property_value: formData.loan.propertyValue && formData.loan.propertyValue.trim() ? parseFloat(formData.loan.propertyValue) : null,
+          monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
+          maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
         }
         await supabase.from('loans').insert(loanData)
       }
@@ -562,7 +562,21 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = data?.map((client: any) => ({
         ...client,
-        loan: (client.loans && client.loans[0]) ? client.loans[0] : null,
+        loan: (client.loans && client.loans[0]) ? {
+          ...client.loans[0],
+          // Transformace loan polí z snake_case na camelCase
+          contractNumber: client.loans[0].contract_number,
+          signatureDate: client.loans[0].signature_date,
+          advisorName: client.loans[0].advisor_name,
+          advisorAgentNumber: client.loans[0].advisor_agency_number,
+          loanAmount: client.loans[0].loan_amount,
+          loanAmountWords: client.loans[0].loan_amount_words,
+          fixationYears: client.loans[0].fixation_years,
+          interestRate: client.loans[0].interest_rate,
+          propertyValue: client.loans[0].property_value,
+          monthlyPayment: client.loans[0].monthly_payment,
+          maturityYears: client.loans[0].maturity_years
+        } : null,
         // Transformace dětí
         children: client.children?.map((child: any) => ({
           ...child,
@@ -622,7 +636,21 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = {
         ...data,
-        loan: (data.loans && data.loans[0]) ? data.loans[0] : null,
+        loan: (data.loans && data.loans[0]) ? {
+          ...data.loans[0],
+          // Transformace loan polí z snake_case na camelCase
+          contractNumber: data.loans[0].contract_number,
+          signatureDate: data.loans[0].signature_date,
+          advisorName: data.loans[0].advisor_name,
+          advisorAgentNumber: data.loans[0].advisor_agency_number,
+          loanAmount: data.loans[0].loan_amount,
+          loanAmountWords: data.loans[0].loan_amount_words,
+          fixationYears: data.loans[0].fixation_years,
+          interestRate: data.loans[0].interest_rate,
+          propertyValue: data.loans[0].property_value,
+          monthlyPayment: data.loans[0].monthly_payment,
+          maturityYears: data.loans[0].maturity_years
+        } : null,
         // Transformace údajů žadatele
         applicant: {
           title: data.applicant_title,
