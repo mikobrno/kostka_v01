@@ -605,8 +605,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Platnost do
         </label>
-        <div className="flex">
-          <div className="flex-1 relative">
+        <div className="flex w-full">
+          <div className="flex-1 min-w-0 relative">
             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -621,6 +621,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       </div>
 
       {/* Doklady totožnosti sekce */}
+      {prefix === 'applicant' && (
+        <span id="doklady" className="block -mt-20 pt-20" />
+      )}
       <div>
         <div className="flex items-center space-x-3 mb-4">
           <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
@@ -851,6 +854,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       </div>
 
       {/* Podnikání sekce */}
+      {prefix === 'applicant' && (
+        <span id="podnikani" className="block -mt-20 pt-20" />
+      )}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
@@ -929,6 +935,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       </div>
 
       {/* Sekce Děti */}
+      {prefix === 'applicant' && (
+        <span id="deti" className="block -mt-20 pt-20" />
+      )}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">

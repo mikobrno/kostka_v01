@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
-import { useTheme } from './hooks/useTheme';
+import { ClientService } from './services/clientService';
 import ToastContainer from './components/ToastContainer';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AuthForm } from './components/AuthForm';
@@ -9,35 +9,98 @@ import { ClientForm } from './components/ClientForm';
 import { ClientList } from './components/ClientList';
 import { MortgageCalculator } from './components/MortgageCalculator';
 import { AdminPanel } from './components/AdminPanel';
-import { NotesApp } from './components/NotesApp';
-import { FloatingSearch } from './components/FloatingSearch';
-import { SearchToggleButton } from './components/SearchToggleButton';
-import { PDFTestButton } from './components/PDFTestButton';
 import BohemikaFormGenerator from './components/BohemikaFormGenerator';
 import { FileText, Calculator, Settings, Users, LogOut, Plus } from 'lucide-react';
 
 function App() {
   const { user, loading, signOut } = useAuth();
   const toast = useToast();
-  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('clientList');
-  const [selectedClient, setSelectedClient] = useState(null);
+  type MinimalClient = { id: string } & Record<string, unknown>;
+  const [selectedClient, setSelectedClient] = useState<MinimalClient | null>(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
-  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  // bez pomocného loaderu
 
-  // Keyboard shortcut pro otevření search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'f') {
-        e.preventDefault();
-        setIsSearchVisible(prev => !prev);
+  // Stabilní reference na toast, aby callback neměnil identitu
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
+
+  // URL handling pro přímé odkazy na klienty (stabilní callback bez závislostí)
+  const processedClientFromUrlRef = useRef(false);
+  const loadClientFromUrl = React.useCallback(async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client');
+    
+    if (clientId) {
+      // Zabráníme duplicitám (StrictMode double-effect apod.)
+      if (processedClientFromUrlRef.current) return;
+      processedClientFromUrlRef.current = true;
+  // načítání klienta z URL
+      try {
+        const { data, error } = await ClientService.getClient(clientId);
+        if (error) {
+          console.error('Chyba při načítání klienta z URL:', error);
+          toastRef.current?.showError('Chyba', 'Klient nebyl nalezen');
+          // Odebrat neplatný parametr z URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('client');
+          window.history.replaceState({}, '', newUrl.toString());
+        } else if (data) {
+          setSelectedClient(data);
+          setShowClientForm(true);
+          setActiveTab('newClient');
+          const displayName = [data.applicant_first_name, data.applicant_last_name].filter(Boolean).join(' ') || 'klient';
+          toastRef.current?.showSuccess('Klient načten', `Zobrazuji profil: ${displayName}`);
+        }
+      } catch (error) {
+        console.error('Chyba při načítání klienta:', error);
+        toastRef.current?.showError('Chyba', 'Nepodařilo se načíst klienta');
+      } finally {
+        // done
       }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // Povolit znovunačtení při změně historie
+      processedClientFromUrlRef.current = false;
+      loadClientFromUrl();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    // Načtení klienta při prvním načtení stránky
+    loadClientFromUrl();
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [loadClientFromUrl]);
+
+  const updateUrlForClient = (client: MinimalClient | null) => {
+    if (client && client.id) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('client', client.id);
+      window.history.pushState({}, '', newUrl.toString());
+    } else {
+      // Odstranění parametru client z URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('client');
+      window.history.pushState({}, '', newUrl.toString());
+    }
+  };
+
+  // Keyboard shortcut pro otevření search - zatím vypnuto
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if (e.ctrlKey && e.key === 'f') {
+  //       e.preventDefault();
+  //       setIsSearchVisible(prev => !prev);
+  //     }
+  //   };
+
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   if (loading) {
     return (
@@ -51,19 +114,21 @@ function App() {
     return <AuthForm />;
   }
 
+  // Pořadí a viditelnost záložek dle požadavku:
+  // 1) Seznam klientů, 2) Kalkulačka, 3) Bohemika formulář, 4) Nový klient, (Poznámky skryté), 5) Administrace
   const tabs = [
-    { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'clientList', label: 'Seznam klientů', icon: Users },
     { id: 'calculator', label: 'Hypoteční kalkulačka', icon: Calculator },
     { id: 'bohemika', label: 'Bohemika formulář', icon: FileText },
-    { id: 'notes', label: 'Poznámky', icon: FileText },
+    { id: 'newClient', label: 'Nový klient', icon: FileText },
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
 
-  const handleSelectClient = (client: any) => {
+  const handleSelectClient = (client: MinimalClient) => {
     setSelectedClient(client);
     setActiveTab('newClient');
     setShowClientForm(true);
+    updateUrlForClient(client);
   };
 
   const handleTabChange = (tabId: string) => {
@@ -80,15 +145,17 @@ function App() {
     setSelectedClient(null);
     setShowClientForm(true);
     setActiveTab('newClient');
+    updateUrlForClient(null);
   };
 
   const handleCloseClientForm = () => {
     setShowClientForm(false);
     setSelectedClient(null);
     setActiveTab('clientList');
+    updateUrlForClient(null);
   };
 
-  const handleClientSaved = (updatedClient: any) => {
+  const handleClientSaved = (updatedClient: MinimalClient) => {
     setSelectedClient(updatedClient);
     handleClientListRefresh();
   };
@@ -117,7 +184,6 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <PDFTestButton />
               <ThemeToggle />
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 Přihlášen: {user.email}
@@ -198,10 +264,9 @@ function App() {
                   success: (message: string) => toast.showSuccess('Úspěch', message),
                   error: (message: string) => toast.showError('Chyba', message)
                 }}
-                selectedClientId={selectedClient ? (selectedClient as any).id : undefined}
+                selectedClientId={selectedClient ? selectedClient.id : undefined}
               />
             )}
-            {activeTab === 'notes' && !showClientForm && <NotesApp />}
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
           </>
         )}

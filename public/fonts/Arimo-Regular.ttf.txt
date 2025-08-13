@@ -1,0 +1,10 @@
+Stáhněte si Arimo (moderní náhrada za Arial, bez licenčních omezení) odsud:
+https://fonts.google.com/specimen/Arimo
+
+Postup:
+1) Stáhnout Family a rozbalit .zip
+2) Vložte soubor Arimo-Regular.ttf do složky public/fonts/
+3) Volitelné: přidejte i Arimo-Bold.ttf
+4) Aplikace bude mít font dostupný na /fonts/Arimo-Regular.ttf
+
+Poznámka: Arial nelze legálně redistribuovat. Arimo je metricky kompatibilní alternativa.

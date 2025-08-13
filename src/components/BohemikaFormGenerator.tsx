@@ -19,6 +19,9 @@ interface LoanData {
   purpose?: string;
   monthly_payment?: number;
   contract_date?: string;
+  contract_number?: string;
+  advisor_name?: string;
+  advisor_agency_number?: string;
 }
 
 interface BohemikaFormGeneratorProps {
@@ -52,7 +55,10 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
     ltv: 0,
     purpose: '',
     monthly_payment: 0,
-    contract_date: ''
+  contract_date: '',
+  contract_number: '',
+  advisor_name: '',
+  advisor_agency_number: ''
   });
 
   // Načtení seznamu klientů
@@ -80,29 +86,59 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
   // Předvyplnění dat při výběru klienta
   useEffect(() => {
-    if (selectedClientId) {
-      const foundClient = clients.find(c => c.id === selectedClientId);
-      if (foundClient) {
-        setSelectedClient(foundClient);
-        setClient(foundClient);
-      }
+    if (selectedClientId && clients.length > 0) {
+      handleClientSelect(selectedClientId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClientId, clients]);
 
-  const handleClientSelect = (clientId: string) => {
+  const handleClientSelect = async (clientId: string) => {
     const foundClient = clients.find(c => c.id === clientId);
     if (foundClient) {
       setSelectedClient(foundClient);
-      setClient({
-        applicant_first_name: foundClient.applicant_first_name,
-        applicant_last_name: foundClient.applicant_last_name,
-        applicant_birth_number: foundClient.applicant_birth_number,
-        applicant_permanent_address: foundClient.applicant_permanent_address,
-        applicant_phone: foundClient.applicant_phone,
-        applicant_email: foundClient.applicant_email,
-        id: foundClient.id
-      });
-      toast?.success(`Načteny údaje klienta: ${foundClient.applicant_first_name} ${foundClient.applicant_last_name}`);
+      
+      // Načtení detailních dat klienta včetně úvěru
+      try {
+        const { data: detailClient, error } = await ClientService.getClient(clientId);
+        if (error) {
+          toast?.error('Chyba při načítání detailů klienta: ' + error.message);
+          return;
+        }
+        
+        if (detailClient) {
+          // Vyplnění klientských dat
+          setClient({
+            applicant_first_name: detailClient.applicant_first_name,
+            applicant_last_name: detailClient.applicant_last_name,
+            applicant_birth_number: detailClient.applicant_birth_number,
+            applicant_permanent_address: detailClient.applicant_permanent_address,
+            applicant_phone: detailClient.applicant_phone,
+            applicant_email: detailClient.applicant_email,
+            id: detailClient.id
+          });
+          
+          // Automatické vyplnění úvěrových dat z databáze
+          if (detailClient.loan) {
+            const loanData = detailClient.loan;
+            setLoan({
+              product: loanData.bank || '',
+              amount: loanData.loan_amount || loanData.loanAmount || 0,
+              ltv: loanData.ltv ? parseFloat(loanData.ltv) : 0,
+              purpose: 'Nákup nemovitosti', // defaultní účel
+              monthly_payment: loanData.monthly_payment || loanData.monthlyPayment || 0,
+              contract_date: loanData.signature_date || loanData.signatureDate || '',
+              contract_number: loanData.contract_number || loanData.contractNumber || '',
+              advisor_name: loanData.advisor_name || loanData.advisorName || (loanData.advisor ? loanData.advisor.split(' - ')[0] : ''),
+              advisor_agency_number: loanData.advisor_agency_number || loanData.advisorAgentNumber || (loanData.advisor && loanData.advisor.includes(' - ') ? loanData.advisor.split(' - ').slice(1).join(' - ') : '')
+            });
+          }
+          
+          toast?.success(`Načteny údaje klienta: ${detailClient.applicant_first_name} ${detailClient.applicant_last_name}${detailClient.loan ? ' včetně úvěrových dat' : ''}`);
+        }
+      } catch (error) {
+        console.error('Error loading client details:', error);
+        toast?.error('Nastala chyba při načítání detailů klienta');
+      }
     }
   };
 
@@ -123,6 +159,14 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
 
       // Použijeme Simple Bohemika service pro generování a stažení
       await SimpleBohemikaService.downloadBohemikaForm(client, loan);
+      // Po úspěšném generování uložíme číslo smlouvy (a datum) ke klientovi
+      if (client.id && (loan.contract_number || loan.contract_date)) {
+        try {
+          await ClientService.upsertLoanContractInfo(client.id, loan.contract_number || undefined, loan.contract_date || undefined);
+        } catch (e) {
+          console.warn('Uložení čísla smlouvy selhalo (nebude to bránit stažení PDF):', e);
+        }
+      }
       
       toast?.success('PDF úspěšně vygenerováno a staženo!');
     } catch (error) {
@@ -261,7 +305,7 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
       {/* Úvěr sekce */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-700">Údaje o úvěru</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Produkt
@@ -338,6 +382,45 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
               onChange={(e) => handleLoanChange('contract_date', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               title="Vyberte datum podpisu úvěru"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Číslo smlouvy
+            </label>
+            <input
+              type="text"
+              value={loan.contract_number || ''}
+              onChange={(e) => handleLoanChange('contract_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="např. ABC123456"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Jméno a příjmení
+            </label>
+            <input
+              type="text"
+              value={loan.advisor_name || ''}
+              onChange={(e) => handleLoanChange('advisor_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Např. Jan Novák"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Doporučitel – Agenturní číslo
+            </label>
+            <input
+              type="text"
+              value={loan.advisor_agency_number || ''}
+              onChange={(e) => handleLoanChange('advisor_agency_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="např. 12345"
             />
           </div>
         </div>

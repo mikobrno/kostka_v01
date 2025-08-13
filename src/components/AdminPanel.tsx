@@ -46,7 +46,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
     },
     advisors: {
       name: 'Doporučitelé',
-      items: ['Jan Novák - 12345', 'Marie Svobodová - 67890', 'Petr Dvořák - 54321']
+      items: [],
+      isAdvanced: true // Flag pro speciální handling
     },
     housingTypes: {
       name: 'Druhy bydlení',
@@ -190,103 +191,121 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
             </div>
 
             <div className="space-y-3">
-              {managedLists[activeList].items.map((item, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  {editingItem === `${activeList}-${index}` ? (
+              {activeList === 'advisors' ? (
+                <AdvisorManager
+                  advisors={managedLists[activeList].items}
+                  onUpdate={(newAdvisors) => {
+                    setManagedLists(prev => ({
+                      ...prev,
+                      [activeList]: {
+                        ...prev[activeList],
+                        items: newAdvisors
+                      }
+                    }));
+                  }}
+                  toast={toast}
+                />
+              ) : (
+                <>
+                  {managedLists[activeList].items.map((item, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      {editingItem === `${activeList}-${index}` ? (
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => updateItem(activeList, index, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setEditingItem(null);
+                              e.preventDefault();
+                            } else if (e.key === 'Escape') {
+                              setEditingItem(null);
+                              e.preventDefault();
+                            }
+                          }}
+                          className="flex-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          autoFocus
+                          onBlur={(e) => {
+                            // Only close editing if clicking outside the input area
+                            setTimeout(() => {
+                              if (!e.target.contains(document.activeElement)) {
+                                setEditingItem(null);
+                              }
+                            }, 100);
+                          }}
+                        />
+                      ) : (
+                        <span className="flex-1 text-gray-900">{item}</span>
+                      )}
+                      
+                      <div className="flex space-x-2">
+                        {editingItem === `${activeList}-${index}` ? (
+                          <>
+                            <button
+                              onClick={() => setEditingItem(null)}
+                              className="text-green-600 hover:text-green-800 transition-colors"
+                              title="Uložit změny"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                // Reset to original value and close editing
+                                setManagedLists(prev => ({
+                                  ...prev,
+                                  [activeList]: {
+                                    ...prev[activeList],
+                                    items: prev[activeList].items
+                                  }
+                                }));
+                                setEditingItem(null);
+                              }}
+                              className="text-gray-600 hover:text-gray-800 transition-colors"
+                              title="Zrušit úpravy"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setEditingItem(`${activeList}-${index}`)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            title="Upravit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeItem(activeList, index)}
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                          title="Smazat"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex space-x-3 pt-4 border-t">
                     <input
                       type="text"
-                      value={item}
-                      onChange={(e) => updateItem(activeList, index, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setEditingItem(null);
-                          e.preventDefault();
-                        } else if (e.key === 'Escape') {
-                          setEditingItem(null);
-                          e.preventDefault();
-                        }
-                      }}
+                      value={newItem}
+                      onChange={(e) => setNewItem(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addItem(activeList)}
                       className="flex-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      autoFocus
-                      onBlur={(e) => {
-                        // Only close editing if clicking outside the input area
-                        setTimeout(() => {
-                          if (!e.target.contains(document.activeElement)) {
-                            setEditingItem(null);
-                          }
-                        }, 100);
-                      }}
+                      placeholder={`Přidat novou položku do ${managedLists[activeList].name.toLowerCase()}`}
                     />
-                  ) : (
-                    <span className="flex-1 text-gray-900">{item}</span>
-                  )}
-                  
-                  <div className="flex space-x-2">
-                    {editingItem === `${activeList}-${index}` ? (
-                      <>
-                        <button
-                          onClick={() => setEditingItem(null)}
-                          className="text-green-600 hover:text-green-800 transition-colors"
-                          title="Uložit změny"
-                        >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Reset to original value and close editing
-                            setManagedLists(prev => ({
-                              ...prev,
-                              [activeList]: {
-                                ...prev[activeList],
-                                items: prev[activeList].items
-                              }
-                            }));
-                            setEditingItem(null);
-                          }}
-                          className="text-gray-600 hover:text-gray-800 transition-colors"
-                          title="Zrušit úpravy"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setEditingItem(`${activeList}-${index}`)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                        title="Upravit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    )}
                     <button
-                      onClick={() => removeItem(activeList, index)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                      title="Smazat"
+                      onClick={() => addItem(activeList)}
+                      disabled={!newItem.trim()}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Plus className="w-4 h-4 mr-2" />
+                      Přidat
                     </button>
                   </div>
-                </div>
-              ))}
-
-              <div className="flex space-x-3 pt-4 border-t">
-                <input
-                  type="text"
-                  value={newItem}
-                  onChange={(e) => setNewItem(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addItem(activeList)}
-                  className="flex-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder={`Přidat novou položku do ${managedLists[activeList].name.toLowerCase()}`}
-                />
-                <button
-                  onClick={() => addItem(activeList)}
-                  disabled={!newItem.trim()}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Přidat
-                </button>
-              </div>
+                </>
+              )}
             </div>
           </div>
           )}
@@ -352,6 +371,180 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
               <li>API rate limiting</li>
             </ul>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Speciální komponenta pro správu doporučitelů se dvěma poli
+interface AdvisorManagerProps {
+  advisors: string[];
+  onUpdate: (advisors: string[]) => void;
+  toast?: ReturnType<typeof useToast>;
+}
+
+const AdvisorManager: React.FC<AdvisorManagerProps> = ({ advisors, onUpdate, toast }) => {
+  const [newAdvisorName, setNewAdvisorName] = useState('');
+  const [newAdvisorNumber, setNewAdvisorNumber] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editNumber, setEditNumber] = useState('');
+
+  const parseAdvisor = (advisor: string) => {
+    const parts = advisor.split(' - ');
+    return {
+      name: parts[0] || '',
+      number: parts.slice(1).join(' - ') || ''
+    };
+  };
+
+  const addAdvisor = () => {
+    if (!newAdvisorName.trim() || !newAdvisorNumber.trim()) {
+      toast?.showError('Chyba', 'Vyplňte jméno i agenturní číslo');
+      return;
+    }
+
+    const newAdvisor = `${newAdvisorName.trim()} - ${newAdvisorNumber.trim()}`;
+    onUpdate([...advisors, newAdvisor]);
+    setNewAdvisorName('');
+    setNewAdvisorNumber('');
+    toast?.showSuccess('Přidáno', 'Doporučitel byl úspěšně přidán');
+  };
+
+  const removeAdvisor = (index: number) => {
+    const updated = advisors.filter((_, i) => i !== index);
+    onUpdate(updated);
+    toast?.showSuccess('Smazáno', 'Doporučitel byl odebrán');
+  };
+
+  const startEdit = (index: number) => {
+    const advisor = parseAdvisor(advisors[index]);
+    setEditingIndex(index);
+    setEditName(advisor.name);
+    setEditNumber(advisor.number);
+  };
+
+  const saveEdit = () => {
+    if (!editName.trim() || !editNumber.trim()) {
+      toast?.showError('Chyba', 'Vyplňte jméno i agenturní číslo');
+      return;
+    }
+
+    const updatedAdvisor = `${editName.trim()} - ${editNumber.trim()}`;
+    const updated = advisors.map((advisor, i) => 
+      i === editingIndex ? updatedAdvisor : advisor
+    );
+    onUpdate(updated);
+    setEditingIndex(null);
+    setEditName('');
+    setEditNumber('');
+    toast?.showSuccess('Uloženo', 'Doporučitel byl úspěšně upraven');
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setEditName('');
+    setEditNumber('');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Seznam existujících doporučitelů */}
+      <div className="space-y-3">
+        {advisors.map((advisor, index) => {
+          const parsed = parseAdvisor(advisor);
+          return (
+            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {editingIndex === index ? (
+                <div className="flex space-x-3 flex-1">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="flex-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="Jméno a příjmení"
+                  />
+                  <input
+                    type="text"
+                    value={editNumber}
+                    onChange={(e) => setEditNumber(e.target.value)}
+                    className="w-32 block border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="Číslo"
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={saveEdit}
+                      className="text-green-600 hover:text-green-800 transition-colors"
+                      title="Uložit"
+                    >
+                      <Save className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="text-gray-600 hover:text-gray-800 transition-colors"
+                      title="Zrušit"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{parsed.name}</div>
+                    <div className="text-sm text-gray-500">Agenturní číslo: {parsed.number}</div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => startEdit(index)}
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      title="Upravit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => removeAdvisor(index)}
+                      className="text-red-600 hover:text-red-800 transition-colors"
+                      title="Smazat"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Formulář pro přidání nového doporučitele */}
+      <div className="border-t pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input
+            type="text"
+            value={newAdvisorName}
+            onChange={(e) => setNewAdvisorName(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addAdvisor()}
+            className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="Jméno a příjmení"
+          />
+          <input
+            type="text"
+            value={newAdvisorNumber}
+            onChange={(e) => setNewAdvisorNumber(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addAdvisor()}
+            className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="Agenturní číslo"
+          />
+          <button
+            onClick={addAdvisor}
+            disabled={!newAdvisorName.trim() || !newAdvisorNumber.trim()}
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Přidat doporučitele
+          </button>
         </div>
       </div>
     </div>

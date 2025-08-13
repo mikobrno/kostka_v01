@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
 import { DynamicSectionManager } from './forms/DynamicSectionManager';
@@ -6,25 +7,25 @@ import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
-import { AutoResizeTextarea } from './AutoResizeTextarea';
 import { SimpleSearch } from './SimpleSearch';
-import { Save, Plus, Eye, X, FileText, User, Layers, FileDown } from 'lucide-react';
+import { Save, Plus, Eye, X, FileText, User, Layers, FileDown, Download } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
   selectedClient?: any;
-  onClientSaved?: (updatedClient: any) => void;
+  onClientSaved?: (updatedClient?: any) => void;
   onClose?: () => void;
   toast?: ReturnType<typeof useToast>;
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClientSaved, onClose, toast }) => {
-  const [formData, setFormData] = useState({
+  // Volnější typování formuláře – zabrání chybám s never[] a {} při postupném vyplňování
+  const [formData, setFormData] = useState<any>({
     applicant: {},
     coApplicant: {},
     applicantEmployer: {},
     coApplicantEmployer: {},
-    liabilities: [],
+    liabilities: [] as any[],
     applicantProperty: {},
     coApplicantProperty: {},
     loan: {}
@@ -62,9 +63,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           housingType: client.applicant_housing_type || '',
           education: client.applicant_education || '',
           citizenship: client.applicant_citizenship || '',
-          children: client.children?.filter(c => c.parent_type === 'applicant') || [],
-          businesses: client.businesses?.filter(b => b.parent_type === 'applicant') || [],
-          documents: client.documents?.filter(d => d.parent_type === 'applicant') || []
+          children: client.children?.filter((c: any) => c.parent_type === 'applicant') || [],
+          businesses: client.businesses?.filter((b: any) => b.parent_type === 'applicant') || [],
+          documents: client.documents?.filter((d: any) => d.parent_type === 'applicant') || []
         },
         coApplicant: {
           title: client.co_applicant_title || '',
@@ -87,33 +88,33 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           bank: client.co_applicant_bank || '',
           education: client.co_applicant_education || '',
           citizenship: client.co_applicant_citizenship || '',
-          children: client.children?.filter(c => c.parent_type === 'co_applicant') || [],
-          businesses: client.businesses?.filter(b => b.parent_type === 'co_applicant') || [],
-          documents: client.documents?.filter(d => d.parent_type === 'co_applicant') || []
+          children: client.children?.filter((c: any) => c.parent_type === 'co_applicant') || [],
+          businesses: client.businesses?.filter((b: any) => b.parent_type === 'co_applicant') || [],
+          documents: client.documents?.filter((d: any) => d.parent_type === 'co_applicant') || []
         },
         applicantEmployer: {
-          ico: client.employers?.find(e => e.employer_type === 'applicant')?.ico || '',
-          companyName: client.employers?.find(e => e.employer_type === 'applicant')?.company_name || '',
-          companyAddress: client.employers?.find(e => e.employer_type === 'applicant')?.company_address || '',
-          netIncome: client.employers?.find(e => e.employer_type === 'applicant')?.net_income || '',
-          jobPosition: client.employers?.find(e => e.employer_type === 'applicant')?.job_position || '',
-          employedSince: client.employers?.find(e => e.employer_type === 'applicant')?.employed_since || '',
-          contractType: client.employers?.find(e => e.employer_type === 'applicant')?.contract_type || '',
-          contractFromDate: client.employers?.find(e => e.employer_type === 'applicant')?.contract_from_date || '',
-          contractToDate: client.employers?.find(e => e.employer_type === 'applicant')?.contract_to_date || '',
-          contractExtended: client.employers?.find(e => e.employer_type === 'applicant')?.contract_extended || false
+          ico: client.employers?.find((e: any) => e.employer_type === 'applicant')?.ico || '',
+          companyName: client.employers?.find((e: any) => e.employer_type === 'applicant')?.company_name || '',
+          companyAddress: client.employers?.find((e: any) => e.employer_type === 'applicant')?.company_address || '',
+          netIncome: client.employers?.find((e: any) => e.employer_type === 'applicant')?.net_income || '',
+          jobPosition: client.employers?.find((e: any) => e.employer_type === 'applicant')?.job_position || '',
+          employedSince: client.employers?.find((e: any) => e.employer_type === 'applicant')?.employed_since || '',
+          contractType: client.employers?.find((e: any) => e.employer_type === 'applicant')?.contract_type || '',
+          contractFromDate: client.employers?.find((e: any) => e.employer_type === 'applicant')?.contract_from_date || '',
+          contractToDate: client.employers?.find((e: any) => e.employer_type === 'applicant')?.contract_to_date || '',
+          contractExtended: client.employers?.find((e: any) => e.employer_type === 'applicant')?.contract_extended || false
         },
         coApplicantEmployer: {
-          ico: client.employers?.find(e => e.employer_type === 'co_applicant')?.ico || '',
-          companyName: client.employers?.find(e => e.employer_type === 'co_applicant')?.company_name || '',
-          companyAddress: client.employers?.find(e => e.employer_type === 'co_applicant')?.company_address || '',
-          netIncome: client.employers?.find(e => e.employer_type === 'co_applicant')?.net_income || '',
-          jobPosition: client.employers?.find(e => e.employer_type === 'co_applicant')?.job_position || '',
-          employedSince: client.employers?.find(e => e.employer_type === 'co_applicant')?.employed_since || '',
-          contractType: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_type || '',
-          contractFromDate: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_from_date || '',
-          contractToDate: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_to_date || '',
-          contractExtended: client.employers?.find(e => e.employer_type === 'co_applicant')?.contract_extended || false
+          ico: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.ico || '',
+          companyName: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.company_name || '',
+          companyAddress: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.company_address || '',
+          netIncome: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.net_income || '',
+          jobPosition: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.job_position || '',
+          employedSince: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.employed_since || '',
+          contractType: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.contract_type || '',
+          contractFromDate: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.contract_from_date || '',
+          contractToDate: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.contract_to_date || '',
+          contractExtended: client.employers?.find((e: any) => e.employer_type === 'co_applicant')?.contract_extended || false
         },
         liabilities: client.liabilities || [],
         applicantProperty: {
@@ -129,13 +130,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           contractNumber: client.loan?.contract_number || '',
           signatureDate: client.loan?.signature_date || '',
           advisor: client.loan?.advisor || '',
+          // nové rozdělení doporučitele
+          advisorName: (client.loan?.advisor_name) || (client.loan?.advisor?.includes(' - ') ? client.loan?.advisor?.split(' - ')[0] : client.loan?.advisor || ''),
+          advisorAgentNumber: (client.loan?.advisor_agency_number) || (client.loan?.advisor?.includes(' - ') ? client.loan?.advisor?.split(' - ').slice(1).join(' - ') : ''),
           loanAmount: client.loan?.loan_amount || '',
           loanAmountWords: client.loan?.loan_amount_words || '',
           fixationYears: client.loan?.fixation_years || '',
           interestRate: client.loan?.interest_rate || '',
           insurance: client.loan?.insurance || '',
           propertyValue: client.loan?.property_value || '',
-          monthlyPayment: client.loan?.monthly_payment || ''
+          monthlyPayment: client.loan?.monthly_payment || '',
+          maturityYears: client.loan?.maturity_years || ''
         }
       });
     }
@@ -205,7 +210,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       }
     } catch (error) {
       console.error('Chyba při ukládání:', error);
-      toast?.showError('Chyba při ukládání', error.message);
+      const err = error as any;
+      toast?.showError('Chyba při ukládání', err?.message || 'Neznámá chyba');
     } finally {
       setSaving(false);
     }
@@ -213,6 +219,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
   const handleExportPDF = async () => {
     try {
+      console.log('Začínám export PDF...');
+      
       // Lazy load PDFMakeService – používá vestavěný Roboto font (diakritika)
       const { PDFMakeService } = await import('../services/pdfMakeService');
       
@@ -221,6 +229,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         toast?.showError('Chyba', 'Nejsou dostupná data klienta pro export');
         return;
       }
+
+      console.log('Klient nalezen:', client.applicant_first_name, client.applicant_last_name);
 
       // Připravení dat pro PDF
       const clientData = {
@@ -254,7 +264,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       };
 
       // Zaměstnavatelé
-      const employers = (client.employers || []).map((emp: any) => ({
+  const employers = (client.employers || []).map((emp: any) => ({
         id: emp.id,
         ico: emp.ico,
         company_name: emp.company_name,
@@ -267,7 +277,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       }));
 
       // Závazky z formData
-      const liabilities = formData.liabilities.map((liability: any) => ({
+  const liabilities = formData.liabilities.map((liability: any) => ({
         id: liability.id?.toString() || '',
         institution: liability.institution,
         type: liability.type,
@@ -283,36 +293,241 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         price: formData.applicantProperty?.price || formData.coApplicantProperty?.price
       };
 
-  await PDFMakeService.generateClientPDF(clientData, employers, liabilities, property);
+      console.log('Data připravena, volám PDFMakeService...');
+      await PDFMakeService.generateClientPDF(clientData, employers, liabilities, property);
+      
       toast?.showSuccess('PDF vytvořeno', 'Klientský profil byl úspěšně exportován do PDF');
     } catch (error) {
       console.error('Chyba při exportu PDF:', error);
-      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+      const err = error as any;
+      toast?.showError('Chyba při vytváření PDF', err?.message || 'Neznámá chyba - zkontrolujte konzoli');
     }
   };
 
-  // Funkce pro kontrolu, zda sekce obsahuje hledaný text
-  const sectionMatchesSearch = (sectionData: any, searchTerm: string): boolean => {
-    if (!searchTerm.trim()) return true;
+  const generateClientUrl = (clientId: string) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?client=${clientId}`;
+  };
+
+  const downloadClientHtmlFile = () => {
+    const client = selectedClient || currentClient;
+    if (!client) {
+      toast?.showError('Chyba', 'Nejsou dostupná data klienta');
+      return;
+    }
+
+    const clientUrl = generateClientUrl(client.id);
+    const clientName = `${client.applicant_first_name} ${client.applicant_last_name}`;
+    const lastName = client.applicant_last_name || 'neznamy';
     
-    const searchLower = searchTerm.toLowerCase();
+    // Vytvoření HTML obsahu s přesměrováním
+    const htmlContent = `<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KostKa Úvěry - ${clientName}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #3B82F6;
+            border-radius: 12px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #1F2937;
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #6B7280;
+            margin: 0 0 32px;
+            font-size: 16px;
+        }
+        .client-info {
+            background: #F3F4F6;
+            border-radius: 8px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .client-name {
+            color: #1F2937;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+        .client-details {
+            color: #6B7280;
+            font-size: 14px;
+        }
+        .redirect-btn {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 16px 0;
+        }
+        .redirect-btn:hover {
+            background: #2563EB;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        .countdown {
+            color: #6B7280;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E7EB;
+            color: #9CA3AF;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">K</div>
+        <h1>KostKa Úvěry</h1>
+        <p class="subtitle">Systém pro evidenci klientů</p>
+        
+        <div class="client-info">
+            <div class="client-name">${clientName}</div>
+            <div class="client-details">
+                ${client.applicant_birth_number ? `RČ: ${client.applicant_birth_number}` : ''}
+                ${client.applicant_phone ? ` • Tel: ${client.applicant_phone}` : ''}
+            </div>
+        </div>
+        
+        <a href="${clientUrl}" class="redirect-btn" id="redirectBtn">
+            Zobrazit profil klienta
+        </a>
+        
+        <div class="countdown">
+            Automatické přesměrování za <span id="timer">5</span> sekund...
+        </div>
+        
+        <div class="footer">
+            Vygenerováno ${new Date().toLocaleDateString('cs-CZ')} v ${new Date().toLocaleTimeString('cs-CZ')}
+        </div>
+    </div>
+
+    <script>
+        // Automatické přesměrování po 5 sekundách
+        let countdown = 5;
+        const timerElement = document.getElementById('timer');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            timerElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = '${clientUrl}';
+            }
+        }, 1000);
+        
+        // Okamžité přesměrování při kliknutí na tlačítko
+        document.getElementById('redirectBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            clearInterval(timer);
+            window.location.href = '${clientUrl}';
+        });
+    </script>
+</body>
+</html>`;
+
+    // Vytvoření a stažení souboru
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kostka_${lastName.toLowerCase().replace(/[^a-z0-9]/gi, '_')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast?.showSuccess('Soubor stažen', `HTML soubor pro klienta ${clientName} byl stažen`);
+  };
+
+  // Normalizace textu (bez diakritiky, malá písmena) pro robustní vyhledávání
+  const normalize = (v: string) =>
+    v
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+
+  // Funkce pro kontrolu, zda sekce obsahuje hledaný text – hledá v hodnotách i v poskytnutých popiscích
+  const sectionMatchesSearch = (
+    sectionData: any,
+    searchTerm: string,
+    labels: string[] = []
+  ): boolean => {
+    const term = searchTerm?.trim();
+    if (!term) return true;
+
+    const nTerm = normalize(term);
+
     const searchInObject = (obj: any): boolean => {
+      if (obj == null) return false;
       if (typeof obj === 'string') {
-        return obj.toLowerCase().includes(searchLower);
+        return normalize(obj).includes(nTerm);
       }
       if (typeof obj === 'number') {
-        return obj.toString().includes(searchTerm);
+        return obj.toString().includes(term);
+      }
+      if (typeof obj === 'boolean') {
+        return false;
       }
       if (Array.isArray(obj)) {
-        return obj.some(item => searchInObject(item));
+        return obj.some((item) => searchInObject(item));
       }
-      if (obj && typeof obj === 'object') {
-        return Object.values(obj).some(value => searchInObject(value));
+      if (typeof obj === 'object') {
+        return Object.values(obj).some((value) => searchInObject(value));
       }
       return false;
     };
-    
-    return searchInObject(sectionData);
+
+    // shoda v datech nebo v doplňkových labelech/názvech tlačítek
+    const matchInData = searchInObject(sectionData);
+    const matchInLabels = labels.some((l) => normalize(l).includes(nTerm));
+    return matchInData || matchInLabels;
   };
 
   const handleNewClient = () => {
@@ -363,92 +578,180 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         onEdit={() => setShowPreview(false)}
         onClose={onClose}
         onExportPDF={handleExportPDF}
+        generateClientUrl={generateClientUrl}
       />
     );
   }
 
+  // Předvýpočet shody pro sekce – zahrnuje také popisky polí a názvy tlačítek
+  const matchesApplicant = sectionMatchesSearch(formData.applicant, globalSearchTerm, [
+    'Žadatel', 'Osobní údaje žadatele', 'Jméno', 'Příjmení', 'Rodné číslo', 'Datum narození', 'Věk',
+    'Rodinný stav', 'Trvalé bydliště', 'Kontaktní adresa', 'Doklad totožnosti', 'Typ dokladu',
+    'Číslo dokladu', 'Datum vydání', 'Platnost do', 'Telefon', 'Email', 'Banka', 'Druh bydlení',
+    'Vzdělání', 'Občanství', 'Děti', 'Podnikání', 'Dokumenty', 'datum'
+  ]);
+
+  const matchesCoApplicant = sectionMatchesSearch(formData.coApplicant, globalSearchTerm, [
+    'Spolužadatel', 'Osobní údaje spolužadatele', 'Jméno', 'Příjmení', 'Rodné číslo', 'Datum narození',
+    'Telefon', 'Email', 'Trvalé bydliště', 'Rodinný stav', 'Doklad totožnosti', 'datum'
+  ]);
+
+  const matchesApplicantEmployer = sectionMatchesSearch(formData.applicantEmployer, globalSearchTerm, [
+    'Zaměstnavatel žadatele', 'IČO', 'Název firmy', 'Adresa', 'Čistý příjem', 'Pracovní pozice',
+    'Zaměstnán od', 'Typ smlouvy', 'Smlouva od', 'Smlouva do', 'Smlouva prodloužena', 'datum'
+  ]);
+
+  const matchesCoApplicantEmployer = sectionMatchesSearch(formData.coApplicantEmployer, globalSearchTerm, [
+    'Zaměstnavatel spolužadatele', 'IČO', 'Název firmy', 'Adresa', 'Čistý příjem', 'Pracovní pozice',
+    'Zaměstnán od', 'Typ smlouvy', 'Smlouva od', 'Smlouva do', 'Smlouva prodloužena', 'datum'
+  ]);
+
+  const matchesApplicantProperty = sectionMatchesSearch(formData.applicantProperty, globalSearchTerm, [
+    'Nemovitost žadatele', 'Nemovitosti', 'Adresa', 'Kupní cena', 'Cena'
+  ]);
+
+  const matchesCoApplicantProperty = sectionMatchesSearch(formData.coApplicantProperty, globalSearchTerm, [
+    'Nemovitost spolužadatele', 'Nemovitosti', 'Adresa', 'Kupní cena', 'Cena'
+  ]);
+
+  const matchesLoan = sectionMatchesSearch(formData.loan, globalSearchTerm, [
+    'Úvěr', 'Půjčka', 'Banka', 'Číslo smlouvy', 'Podpis smlouvy', 'Poradce', 'Výše úvěru', 'Fixace',
+    'Úroková sazba', 'Pojištění', 'Hodnota nemovitosti', 'Měsíční splátka', 'datum'
+  ]);
+
+  const matchesLiabilities = sectionMatchesSearch(formData.liabilities, globalSearchTerm, [
+    'Závazky', 'Přidat závazek', 'Instituce', 'Typ', 'Výše úvěru', 'Splátka', 'Zůstatek', 'Poznámka'
+  ]);
+
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {selectedClient || currentClient ? 'Úprava klienta' : 'Nový klient'}
-          </h1>
-          {(selectedClient || currentClient) && (
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
-              {formData.applicant.firstName} {formData.applicant.lastName}
-            </p>
-          )}
-          
-          {/* Globální vyhledávání */}
-          {(selectedClient || currentClient) && (
-            <div className="mt-4 max-w-md">
-              <SimpleSearch 
-                onSearchChange={setGlobalSearchTerm}
-                placeholder="Hledat v profilu klienta..."
-                className="w-full"
-              />
-              {globalSearchTerm && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center space-x-3">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Zavřít
-            </button>
-          )}
-          
-          {(selectedClient || currentClient) && (
-            <button
-              onClick={() => setShowPreview(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Náhled
-            </button>
-          )}
-          
-          {(selectedClient || currentClient) && (
-            <button
-              onClick={handleNewClient}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nový klient
-            </button>
-          )}
-          
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? (
-              <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
+      {/* Hlavička s názvem klienta */}
+      <div>
+        {(() => {
+          const a = (formData as any).applicant || {};
+          const fullName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+          return (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {fullName || (selectedClient || currentClient ? 'Klient' : 'Nový klient')}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                {selectedClient || currentClient ? 'Úprava klienta' : (fullName ? 'Nový klient' : '')}
+              </p>
+            </>
+          );
+        })()}
+      </div>
+
+      {/* Vyhledávání a tlačítka */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+        {/* Globální vyhledávání */}
+        {(selectedClient || currentClient) && (
+          <div className="flex flex-col flex-1 max-w-md">
+            <SimpleSearch 
+              onSearchChange={setGlobalSearchTerm}
+              placeholder="Hledat v profilu klienta..."
+              className="w-full"
+            />
+            {globalSearchTerm && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
+              </p>
             )}
-            {saving ? 'Ukládám...' : (selectedClient || currentClient ? 'Aktualizovat' : 'Uložit')}
-          </button>
-          
-          <button
-            onClick={handleExportPDF}
-            disabled={!selectedClient && !currentClient}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </button>
+          </div>
+        )}
+        
+        {/* Tlačítka */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Zavřít
+              </button>
+            )}
+            
+            {(selectedClient || currentClient) && (
+              <button
+                onClick={() => setShowPreview(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Náhled
+              </button>
+            )}
+            
+            {(selectedClient || currentClient) && (
+              <button
+                onClick={handleNewClient}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nový klient
+              </button>
+            )}
+            
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? (
+                <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {saving ? 'Ukládám...' : (selectedClient || currentClient ? 'Aktualizovat' : 'Uložit')}
+            </button>
+            
+            <button
+              onClick={handleExportPDF}
+              disabled={!selectedClient && !currentClient}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Export PDF
+            </button>
+            
+            <button
+              onClick={downloadClientHtmlFile}
+              disabled={!selectedClient && !currentClient}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Stáhnout odkaz
+            </button>
         </div>
+      </div>
+
+      {/* Rychlé odkazy na sekce */}
+      <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-3 sticky top-0 z-10">
+        <nav className="flex flex-wrap gap-3 text-sm">
+          {[
+            { id: 'doklady', label: 'Doklady' },
+            { id: 'podnikani', label: 'Podnikání' },
+            { id: 'deti', label: 'Děti' },
+            { id: 'zamestnavatel', label: 'Zaměstnavatel' },
+            { id: 'nemovitost', label: 'Nemovitost' },
+            { id: 'uver', label: 'Úvěr' },
+            { id: 'zavazky', label: 'Závazky' }
+          ].map((link) => (
+            <a
+              key={link.id}
+              href={`#${link.id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById(link.id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
       </div>
 
       {/* Tab Navigation */}
@@ -487,7 +790,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Žadatel */}
-            {sectionMatchesSearch(formData.applicant, globalSearchTerm) && (
+            {matchesApplicant && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
@@ -495,7 +798,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                   </h2>
                   <PersonalInfo 
                     data={formData.applicant}
-                    onChange={(data) => setFormData(prev => ({ ...prev, applicant: data }))}
+                    onChange={(data) => setFormData((prev: any) => ({ ...prev, applicant: data }))}
                     prefix="applicant"
                     clientId={selectedClient?.id || currentClient?.id}
                     toast={toast}
@@ -505,7 +808,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
             )}
 
             {/* Spolužadatel */}
-            {sectionMatchesSearch(formData.coApplicant, globalSearchTerm) && (
+            {matchesCoApplicant && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
@@ -513,7 +816,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                   </h2>
                   <PersonalInfo 
                     data={formData.coApplicant}
-                    onChange={(data) => setFormData(prev => ({ ...prev, coApplicant: data }))}
+                    onChange={(data) => setFormData((prev: any) => ({ ...prev, coApplicant: data }))}
                     prefix="co_applicant"
                     clientId={selectedClient?.id || currentClient?.id}
                     toast={toast}
@@ -525,27 +828,27 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Zaměstnavatel žadatele */}
-            {sectionMatchesSearch(formData.applicantEmployer, globalSearchTerm) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+            {matchesApplicantEmployer && (
+              <div id="zamestnavatel" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                   Zaměstnavatel žadatele
                 </h2>
                 <EmployerInfo 
                   data={formData.applicantEmployer}
-                  onChange={(data) => setFormData(prev => ({ ...prev, applicantEmployer: data }))}
+                  onChange={(data) => setFormData((prev: any) => ({ ...prev, applicantEmployer: data }))}
                 />
               </div>
             )}
 
             {/* Zaměstnavatel spolužadatele */}
-            {sectionMatchesSearch(formData.coApplicantEmployer, globalSearchTerm) && (
+            {matchesCoApplicantEmployer && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-600 pb-3">
                   Zaměstnavatel spolužadatele
                 </h2>
                 <EmployerInfo 
                   data={formData.coApplicantEmployer}
-                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicantEmployer: data }))}
+                  onChange={(data) => setFormData((prev: any) => ({ ...prev, coApplicantEmployer: data }))}
                 />
               </div>
             )}
@@ -553,22 +856,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Nemovitost žadatele */}
-            {sectionMatchesSearch(formData.applicantProperty, globalSearchTerm) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+            {matchesApplicantProperty && (
+              <div id="nemovitost" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                 <PropertyInfo 
                   data={formData.applicantProperty}
-                  onChange={(data) => setFormData(prev => ({ ...prev, applicantProperty: data }))}
+                  onChange={(data) => setFormData((prev: any) => ({ ...prev, applicantProperty: data }))}
                   title="Nemovitost žadatele"
                 />
               </div>
             )}
 
             {/* Nemovitost spolužadatele */}
-            {sectionMatchesSearch(formData.coApplicantProperty, globalSearchTerm) && (
+            {matchesCoApplicantProperty && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
                 <PropertyInfo 
                   data={formData.coApplicantProperty}
-                  onChange={(data) => setFormData(prev => ({ ...prev, coApplicantProperty: data }))}
+                  onChange={(data) => setFormData((prev: any) => ({ ...prev, coApplicantProperty: data }))}
                   title="Nemovitost spolužadatele"
                 />
               </div>
@@ -576,19 +879,19 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           </div>
 
           {/* Úvěr/Půjčka */}
-          {sectionMatchesSearch(formData.loan, globalSearchTerm) && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+          {matchesLoan && (
+            <div id="uver" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <LoanSection 
                 data={formData.loan}
-                onChange={(data) => setFormData(prev => ({ ...prev, loan: data }))}
-                propertyPrice={formData.applicantProperty.price || formData.coApplicantProperty.price}
+                onChange={(data) => setFormData((prev: any) => ({ ...prev, loan: data }))}
+                propertyPrice={(formData as any).applicantProperty?.price || (formData as any).coApplicantProperty?.price}
               />
             </div>
           )}
 
           {/* Závazky */}
-          {sectionMatchesSearch(formData.liabilities, globalSearchTerm) && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+          {matchesLiabilities && (
+            <div id="zavazky" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center mb-6 border-b pb-3">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Závazky</h2>
                 <button className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
@@ -598,7 +901,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               </div>
               <LiabilitiesInfo 
                 data={formData.liabilities}
-                onChange={(data) => setFormData(prev => ({ ...prev, liabilities: data }))}
+                onChange={(data) => setFormData((prev: any) => ({ ...prev, liabilities: data }))}
                 clientId={selectedClient?.id || currentClient?.id}
                 toast={toast}
               />
@@ -606,15 +909,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           )}
           
           {/* Zpráva, když žádná sekce neodpovídá vyhledávání */}
-          {globalSearchTerm && 
-            !sectionMatchesSearch(formData.applicant, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.coApplicant, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.applicantEmployer, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.coApplicantEmployer, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.applicantProperty, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.coApplicantProperty, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.loan, globalSearchTerm) &&
-            !sectionMatchesSearch(formData.liabilities, globalSearchTerm) && (
+          {globalSearchTerm &&
+            !matchesApplicant &&
+            !matchesCoApplicant &&
+            !matchesApplicantEmployer &&
+            !matchesCoApplicantEmployer &&
+            !matchesApplicantProperty &&
+            !matchesCoApplicantProperty &&
+            !matchesLoan &&
+            !matchesLiabilities && (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-gray-400 dark:text-gray-500 mb-4">
                 <Eye className="w-12 h-12 mx-auto" />
@@ -667,6 +970,7 @@ interface ClientPreviewProps {
   onEdit: () => void;
   onClose?: () => void;
   onExportPDF: () => void;
+  generateClientUrl: (clientId: string) => string;
 }
 
 const ClientPreview: React.FC<ClientPreviewProps> = ({ 
@@ -674,7 +978,8 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
   formData, 
   onEdit, 
   onClose, 
-  onExportPDF 
+  onExportPDF,
+  generateClientUrl
 }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Neuvedeno';
@@ -724,6 +1029,182 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
           >
             <FileDown className="w-4 h-4 mr-2" />
             Export PDF
+          </button>
+          
+          <button
+            onClick={() => {
+              if (client) {
+                const clientUrl = generateClientUrl(client.id);
+                const clientName = `${client.applicant_first_name} ${client.applicant_last_name}`;
+                const lastName = client.applicant_last_name || 'neznamy';
+                
+                // Stejná logika jako v downloadClientHtmlFile
+                const htmlContent = `<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KostKa Úvěry - ${clientName}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #3B82F6;
+            border-radius: 12px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #1F2937;
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #6B7280;
+            margin: 0 0 32px;
+            font-size: 16px;
+        }
+        .client-info {
+            background: #F3F4F6;
+            border-radius: 8px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .client-name {
+            color: #1F2937;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+        .client-details {
+            color: #6B7280;
+            font-size: 14px;
+        }
+        .redirect-btn {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 16px 0;
+        }
+        .redirect-btn:hover {
+            background: #2563EB;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        .countdown {
+            color: #6B7280;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E7EB;
+            color: #9CA3AF;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">K</div>
+        <h1>KostKa Úvěry</h1>
+        <p class="subtitle">Systém pro evidenci klientů</p>
+        
+        <div class="client-info">
+            <div class="client-name">${clientName}</div>
+            <div class="client-details">
+                ${client.applicant_birth_number ? `RČ: ${client.applicant_birth_number}` : ''}
+                ${client.applicant_phone ? ` • Tel: ${client.applicant_phone}` : ''}
+            </div>
+        </div>
+        
+        <a href="${clientUrl}" class="redirect-btn" id="redirectBtn">
+            Zobrazit profil klienta
+        </a>
+        
+        <div class="countdown">
+            Automatické přesměrování za <span id="timer">5</span> sekund...
+        </div>
+        
+        <div class="footer">
+            Vygenerováno ${new Date().toLocaleDateString('cs-CZ')} v ${new Date().toLocaleTimeString('cs-CZ')}
+        </div>
+    </div>
+
+    <script>
+        // Automatické přesměrování po 5 sekundách
+        let countdown = 5;
+        const timerElement = document.getElementById('timer');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            timerElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = '${clientUrl}';
+            }
+        }, 1000);
+        
+        // Okamžité přesměrování při kliknutí na tlačítko
+        document.getElementById('redirectBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            clearInterval(timer);
+            window.location.href = '${clientUrl}';
+        });
+    </script>
+</body>
+</html>`;
+
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `kostka_${lastName.toLowerCase().replace(/[^a-z0-9]/gi, '_')}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 transition-colors"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Stáhnout odkaz
           </button>
         </div>
       </div>
@@ -985,7 +1466,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {formData.liabilities.map((liability, index) => (
+                {formData.liabilities.map((liability: any, index: number) => (
                   <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {liability.institution || 'Neuvedeno'}
@@ -1013,7 +1494,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
         </div>
       )}
 
-      {/* Děti */}
+  {/* Děti */}
       {((formData.applicant.children && formData.applicant.children.length > 0) || 
         (formData.coApplicant.children && formData.coApplicant.children.length > 0)) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -1025,7 +1506,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
               <div>
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">Děti žadatele</h3>
                 <div className="space-y-2">
-                  {formData.applicant.children.map((child, index) => (
+                  {formData.applicant.children.map((child: any, index: number) => (
                     <div key={index} className="bg-blue-50 rounded-lg p-3">
                       <p className="font-medium text-blue-900 dark:text-blue-400">{child.name}</p>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -1042,7 +1523,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
               <div>
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">Děti spolužadatele</h3>
                 <div className="space-y-2">
-                  {formData.coApplicant.children.map((child, index) => (
+                  {formData.coApplicant.children.map((child: any, index: number) => (
                     <div key={index} className="bg-green-50 rounded-lg p-3">
                       <p className="font-medium text-green-900 dark:text-green-400">{child.name}</p>
                       <p className="text-sm text-green-700 dark:text-green-300">

@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase'
-import type { Client, Employer, Property, Child, Liability } from '../lib/supabase'
+import type { Client } from '../lib/supabase'
 
 export interface ClientFormData {
   applicant: any
@@ -10,20 +11,138 @@ export interface ClientFormData {
   }
   property: any
   liabilities: any[]
+  loan?: any
 }
 
 export class ClientService {
+  // Safe parsers for numeric inputs that may come as string or number
+  private static asNumber(value: any): number | null {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null
+    }
+    const raw = String(value)
+    // remove spaces and percent signs, normalize comma to dot
+    const cleaned = raw.replace(/[\s%]/g, '').replace(',', '.')
+    if (cleaned === '') return null
+    const n = parseFloat(cleaned)
+    return Number.isFinite(n) ? n : null
+  }
+
+  private static asInt(value: any): number | null {
+    const n = ClientService.asNumber(value)
+    if (n === null) return null
+    const i = Math.trunc(n)
+    return Number.isFinite(i) ? i : null
+  }
+
+  // Helper: attempts to upsert into 'loans' and if Postgres returns
+  // "column ... does not exist", it removes that key from payload and retries.
+  private static async upsertLoanWithColumnFallback(clientId: string, initialPayload: Record<string, unknown>) {
+    const basePayload = { ...initialPayload }
+    let removedKeys: string[] = []
+    
+    // Try a few times in case multiple columns are missing
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const payload = Object.fromEntries(
+        Object.entries(basePayload).filter(([k]) => !removedKeys.includes(k))
+      )
+      
+      // First try to update existing loan
+      const { data: existingLoan } = await supabase
+        .from('loans')
+        .select('id')
+        .eq('client_id', clientId)
+        .single()
+      
+      let error
+      if (existingLoan) {
+        // Update existing loan
+        const updateResult = await supabase
+          .from('loans')
+          .update(payload)
+          .eq('client_id', clientId)
+        error = updateResult.error
+      } else {
+        // Insert new loan
+        const insertResult = await supabase.from('loans').insert(payload)
+        error = insertResult.error
+      }
+      
+      if (!error) return { error: null }
+
+      const message = (error as any)?.message || (error as any)?.toString?.() || ''
+      // Postgres typically reports: column "foo" of relation "loans" does not exist
+      const m = message.match(/column\s+"([^"]+)"\s+of\s+relation\s+"loans"\s+does\s+not\s+exist/i)
+      if (m && m[1] && Object.prototype.hasOwnProperty.call(basePayload, m[1])) {
+        // Drop the missing column and retry
+        removedKeys = [...removedKeys, m[1]]
+        continue
+      }
+      // Unknown error type -> stop and return
+      return { error }
+    }
+    return { error: new Error('Failed to upsert loan after multiple attempts') }
+  }  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', clientId)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  static async upsertLoanContractInfo(
+    clientId: string,
+    contractNumber?: string,
+    contractDate?: string
+  ): Promise<{ error: any }> {
+    try {
+      // Zjistíme, zda už loan existuje
+      const { data: existing, error: selectError } = await supabase
+        .from('loans')
+        .select('id')
+        .eq('client_id', clientId)
+        .limit(1)
+        .maybeSingle();
+
+      if (selectError) return { error: selectError };
+
+      const payload: Record<string, unknown> = { client_id: clientId };
+      if (contractNumber !== undefined) payload.contract_number = contractNumber || null;
+      if (contractDate !== undefined) payload.signature_date = contractDate || null;
+
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('loans')
+          .update(payload)
+          .eq('id', existing.id);
+        return { error };
+      }
+
+      const { error } = await supabase.from('loans').insert(payload);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  }
   static async createClient(formData: ClientFormData): Promise<{ data: Client | null; error: any }> {
     try {
       // Získání aktuálního uživatele
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
+  const { data: { user: _user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !_user) {
         return { data: null, error: 'Uživatel není přihlášen' }
       }
 
       // Vytvoření klienta
       const clientData = {
-        user_id: user.id,
+  user_id: _user.id,
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,
@@ -125,6 +244,38 @@ export class ClientService {
         }
 
         await supabase.from('properties').insert(propertyData)
+      }
+
+      // Vytvoření záznamu o úvěru
+      if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const combinedAdvisor = (formData.loan.advisorName || formData.loan.advisorAgentNumber)
+          ? `${formData.loan.advisorName || ''}${formData.loan.advisorAgentNumber ? ' - ' + formData.loan.advisorAgentNumber : ''}`
+          : (formData.loan.advisor || null)
+
+        const loanData = {
+          client_id: client.id,
+          bank: formData.loan.bank || null,
+          contract_number: formData.loan.contractNumber || null,
+          signature_date: formData.loan.signatureDate || null,
+          advisor: combinedAdvisor || null,
+          advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
+          advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
+            ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
+            : null),
+          loan_amount: ClientService.asNumber(formData.loan.loanAmount),
+          loan_amount_words: formData.loan.loanAmountWords || null,
+          ltv: ClientService.asNumber(formData.loan.ltv),
+          fixation_years: ClientService.asInt(formData.loan.fixationYears),
+          interest_rate: ClientService.asNumber(formData.loan.interestRate),
+          insurance: formData.loan.insurance || null,
+          property_value: ClientService.asNumber(formData.loan.propertyValue),
+          monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
+          maturity_years: ClientService.asInt(formData.loan.maturityYears),
+        }
+        const { error: loanError } = await ClientService.upsertLoanWithColumnFallback(client.id, loanData)
+        if (loanError) {
+          return { data: client, error: loanError }
+        }
       }
 
       // Vytvoření dětí
@@ -292,8 +443,7 @@ export class ClientService {
       await supabase.from('businesses').delete().eq('client_id', clientId)
       await supabase.from('documents').delete().eq('client_id', clientId)
       await supabase.from('liabilities').delete().eq('client_id', clientId)
-
-      // Znovu vytvoření dat (stejný kód jako v createClient)
+      // Poznámka: loans se nemazou, budou se aktualizovat v upsertLoanWithColumnFallback      // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
         const employerData = {
           client_id: clientId,
@@ -337,6 +487,38 @@ export class ClientService {
           price: formData.property.price ? parseFloat(formData.property.price) : null,
         }
         await supabase.from('properties').insert(propertyData)
+      }
+
+      // Znovu vytvoření úvěru
+      if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const combinedAdvisor = (formData.loan.advisorName || formData.loan.advisorAgentNumber)
+          ? `${formData.loan.advisorName || ''}${formData.loan.advisorAgentNumber ? ' - ' + formData.loan.advisorAgentNumber : ''}`
+          : (formData.loan.advisor || null)
+
+        const loanData = {
+          client_id: clientId,
+          bank: formData.loan.bank || null,
+          contract_number: formData.loan.contractNumber || null,
+          signature_date: formData.loan.signatureDate || null,
+          advisor: combinedAdvisor || null,
+          advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
+          advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
+            ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
+            : null),
+          loan_amount: ClientService.asNumber(formData.loan.loanAmount),
+          loan_amount_words: formData.loan.loanAmountWords || null,
+          ltv: ClientService.asNumber(formData.loan.ltv),
+          fixation_years: ClientService.asInt(formData.loan.fixationYears),
+          interest_rate: ClientService.asNumber(formData.loan.interestRate),
+          insurance: formData.loan.insurance || null,
+          property_value: ClientService.asNumber(formData.loan.propertyValue),
+          monthly_payment: ClientService.asNumber(formData.loan.monthlyPayment),
+          maturity_years: ClientService.asInt(formData.loan.maturityYears),
+        }
+        const { error: loanError } = await ClientService.upsertLoanWithColumnFallback(clientId, loanData)
+        if (loanError) {
+          return { data: client, error: loanError }
+        }
       }
 
       const allChildren = [
@@ -434,8 +616,8 @@ export class ClientService {
   static async getClients(): Promise<{ data: any[] | null; error: any }> {
     try {
       // Kontrola připojení k Supabase
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError) {
+  const { error: userError } = await supabase.auth.getUser()
+  if (userError) {
         console.error('User auth error:', userError);
         return { data: null, error: userError }
       }
@@ -449,7 +631,8 @@ export class ClientService {
           children (*),
           businesses (*),
           documents (*),
-          liabilities (*)
+          liabilities (*),
+          loans (*)
         `)
         .order('created_at', { ascending: false })
 
@@ -461,6 +644,22 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = data?.map((client: any) => ({
         ...client,
+        loan: (client.loans && client.loans[0]) ? {
+          ...client.loans[0],
+          // Transformace loan polí z snake_case na camelCase
+          contractNumber: client.loans[0].contract_number,
+          signatureDate: client.loans[0].signature_date,
+          advisorName: client.loans[0].advisor_name,
+          advisorAgentNumber: client.loans[0].advisor_agency_number,
+          loanAmount: client.loans[0].loan_amount,
+          loanAmountWords: client.loans[0].loan_amount_words,
+          ltv: client.loans[0].ltv,
+          fixationYears: client.loans[0].fixation_years,
+          interestRate: client.loans[0].interest_rate,
+          propertyValue: client.loans[0].property_value,
+          monthlyPayment: client.loans[0].monthly_payment,
+          maturityYears: client.loans[0].maturity_years
+        } : null,
         // Transformace dětí
         children: client.children?.map((child: any) => ({
           ...child,
@@ -507,7 +706,8 @@ export class ClientService {
           children (*),
           businesses (*),
           documents (*),
-          liabilities (*)
+          liabilities (*),
+          loans (*)
         `)
         .eq('id', id)
         .single()
@@ -519,6 +719,22 @@ export class ClientService {
       // Transformace dat pro frontend (převod snake_case na camelCase)
       const transformedData = {
         ...data,
+        loan: (data.loans && data.loans[0]) ? {
+          ...data.loans[0],
+          // Transformace loan polí z snake_case na camelCase
+          contractNumber: data.loans[0].contract_number,
+          signatureDate: data.loans[0].signature_date,
+          advisorName: data.loans[0].advisor_name,
+          advisorAgentNumber: data.loans[0].advisor_agency_number,
+          loanAmount: data.loans[0].loan_amount,
+          loanAmountWords: data.loans[0].loan_amount_words,
+          ltv: data.loans[0].ltv,
+          fixationYears: data.loans[0].fixation_years,
+          interestRate: data.loans[0].interest_rate,
+          propertyValue: data.loans[0].property_value,
+          monthlyPayment: data.loans[0].monthly_payment,
+          maturityYears: data.loans[0].maturity_years
+        } : null,
         // Transformace údajů žadatele
         applicant: {
           title: data.applicant_title,

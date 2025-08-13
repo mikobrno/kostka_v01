@@ -1,21 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ClientService } from '../services/clientService';
-import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown } from 'lucide-react';
+import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown, Copy, Download } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { FileStorageService } from '../services/fileStorageService';
+import type { Client, Employer, Property, Liability } from '../lib/supabase';
+
+// Minimální typ klienta používaný v tomto seznamu (včetně vztahů)
+type UIClient = Client & {
+  avatar_url?: string;
+  employers?: Employer[];
+  properties?: Property[];
+  liabilities?: Liability[];
+  applicant_birth_date?: string;
+  co_applicant_birth_date?: string;
+  loan?: {
+    bank?: string;
+    contract_number?: string;
+    signature_date?: string;
+    advisor?: string;
+    advisor_name?: string;
+    advisor_agency_number?: string;
+    loan_amount?: number;
+    loan_amount_words?: string;
+    ltv?: number;
+    fixation_years?: number;
+    interest_rate?: number;
+    insurance?: string;
+    property_value?: number;
+    monthly_payment?: number;
+    maturity_years?: number;
+    loanAmount?: number; // camelCase alias pro loan_amount
+    interestRate?: number; // camelCase alias pro interest_rate
+  };
+  [key: string]: unknown;
+};
 
 interface ClientListProps {
-  onSelectClient?: (client: any) => void;
+  onSelectClient?: (client: UIClient) => void;
   toast?: ReturnType<typeof useToast>;
   refreshKey?: number;
 }
 
 export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, refreshKey }) => {
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<UIClient[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [showClientPreview, setShowClientPreview] = useState<any | null>(null);
+  const [showClientPreview, setShowClientPreview] = useState<UIClient | null>(null);
+  const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const loadClients = async () => {
     setLoading(true);
@@ -35,10 +68,11 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
       
       console.log('📥 Přijatá data ze Supabase:', data);
       
-      setClients(data || []);
-    } catch (error) {
-      console.error('Chyba při načítání klientů:', error);
-      setError(`Chyba při načítání klientů: ${error?.message || 'Neočekávaná chyba'}`);
+      setClients((data as UIClient[]) || []);
+    } catch (err: unknown) {
+      console.error('Chyba při načítání klientů:', err);
+      const message = err instanceof Error ? err.message : 'Neočekávaná chyba';
+      setError(`Chyba při načítání klientů: ${message}`);
       setClients([]);
     } finally {
       console.log('✅ Načítání dokončeno');
@@ -100,9 +134,35 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
       
       toast?.showSuccess('Klient smazán', 'Klient byl úspěšně odstraněn ze systému');
       loadClients(); // Obnovit seznam
-    } catch (error) {
-      console.error('Chyba při mazání klienta:', error);
-      toast?.showError('Chyba při mazání', error.message);
+    } catch (err: unknown) {
+      console.error('Chyba při mazání klienta:', err);
+      const message = err instanceof Error ? err.message : 'Neočekávaná chyba při mazání';
+      toast?.showError('Chyba při mazání', message);
+    }
+  };
+
+  const handleAvatarClick = (clientId: string) => {
+    if (!fileInputsRef.current[clientId]) return;
+    fileInputsRef.current[clientId]?.click();
+  };
+
+  const handleAvatarSelected = async (client: UIClient, file: File) => {
+    try {
+      // Omez typy na obrázky
+      if (!file.type.startsWith('image/')) {
+        toast?.showError('Chybný soubor', 'Vyberte prosím obrázek (JPEG/PNG/WebP)');
+        return;
+      }
+      const uploaded = await FileStorageService.uploadFile(file, client.id, 'avatar');
+      // Ulož URL do klienta na specializované metodě
+      const { error } = await ClientService.updateClientAvatar(client.id, uploaded.url);
+      if (error) throw new Error(error.message);
+      toast?.showSuccess('Avatar uložen', 'Fotografie klienta byla uložena');
+      loadClients();
+    } catch (err: unknown) {
+      console.error('Avatar upload error:', err);
+      const message = err instanceof Error ? err.message : 'Nepodařilo se uložit fotografii';
+      toast?.showError('Chyba', message);
     }
   };
 
@@ -110,11 +170,195 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
     setShowDeleteConfirm(null);
   };
 
-  const handleClientNameClick = (client: any) => {
-    setShowClientPreview(client);
+  const generateClientUrl = (clientId: string) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?client=${clientId}`;
   };
 
-  const handleExportPDF = async (client: any) => {
+  const copyClientUrl = async (clientId: string, clientName: string) => {
+    const url = generateClientUrl(clientId);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast?.showSuccess('Odkaz zkopírován', `Odkaz na klienta ${clientName} byl zkopírován do schránky`);
+    } catch (error) {
+      console.error('Chyba při kopírování do schránky:', error);
+      // Fallback - zobrazit URL v alert
+      prompt('Zkopírujte tento odkaz:', url);
+    }
+  };
+
+  const downloadClientHtmlFile = (client: UIClient) => {
+    const clientUrl = generateClientUrl(client.id);
+    const clientName = `${client.applicant_first_name} ${client.applicant_last_name}`;
+    const lastName = client.applicant_last_name || 'neznamy';
+    
+    // Vytvoření HTML obsahu s přesměrováním
+    const htmlContent = `<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KostKa Úvěry - ${clientName}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #3B82F6;
+            border-radius: 12px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #1F2937;
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #6B7280;
+            margin: 0 0 32px;
+            font-size: 16px;
+        }
+        .client-info {
+            background: #F3F4F6;
+            border-radius: 8px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .client-name {
+            color: #1F2937;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+        .client-details {
+            color: #6B7280;
+            font-size: 14px;
+        }
+        .redirect-btn {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 16px 0;
+        }
+        .redirect-btn:hover {
+            background: #2563EB;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        .countdown {
+            color: #6B7280;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E7EB;
+            color: #9CA3AF;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">K</div>
+        <h1>KostKa Úvěry</h1>
+        <p class="subtitle">Systém pro evidenci klientů</p>
+        
+        <div class="client-info">
+            <div class="client-name">${clientName}</div>
+            <div class="client-details">
+                ${client.applicant_birth_number ? `RČ: ${client.applicant_birth_number}` : ''}
+                ${client.applicant_phone ? ` • Tel: ${client.applicant_phone}` : ''}
+            </div>
+        </div>
+        
+        <a href="${clientUrl}" class="redirect-btn" id="redirectBtn">
+            Zobrazit profil klienta
+        </a>
+        
+        <div class="countdown">
+            Automatické přesměrování za <span id="timer">5</span> sekund...
+        </div>
+        
+        <div class="footer">
+            Vygenerováno ${new Date().toLocaleDateString('cs-CZ')} v ${new Date().toLocaleTimeString('cs-CZ')}
+        </div>
+    </div>
+
+    <script>
+        // Automatické přesměrování po 5 sekundách
+        let countdown = 5;
+        const timerElement = document.getElementById('timer');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            timerElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = '${clientUrl}';
+            }
+        }, 1000);
+        
+        // Okamžité přesměrování při kliknutí na tlačítko
+        document.getElementById('redirectBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            clearInterval(timer);
+            window.location.href = '${clientUrl}';
+        });
+    </script>
+</body>
+</html>`;
+
+    // Vytvoření a stažení souboru
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kostka_${lastName.toLowerCase().replace(/[^a-z0-9]/gi, '_')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast?.showSuccess('Soubor stažen', `HTML soubor pro klienta ${clientName} byl stažen`);
+  };
+
+  const handleExportPDF = async (client: UIClient) => {
     try {
       // Lazy loading PDFService
       const { PDFService } = await import('../services/pdfService');
@@ -133,7 +377,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         applicant_contact_address: client.applicant_contact_address,
         applicant_phone: client.applicant_phone,
         applicant_email: client.applicant_email,
-        applicant_housing_type: client.applicant_housing_type,
+        applicant_housing_type: typeof (client as Record<string, unknown>).applicant_housing_type === 'string'
+          ? (client as Record<string, string>).applicant_housing_type
+          : undefined,
         co_applicant_title: client.co_applicant_title,
         co_applicant_first_name: client.co_applicant_first_name,
         co_applicant_last_name: client.co_applicant_last_name,
@@ -151,8 +397,8 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
       };
 
       // Zaměstnavatelé
-      const employers = (client.employers || []).map((emp: any) => ({
-        id: emp.id,
+      const employers = (client.employers || []).map((emp: Partial<Employer>) => ({
+        id: emp.id || '',
         ico: emp.ico,
         company_name: emp.company_name,
         company_address: emp.company_address,
@@ -160,18 +406,20 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         job_position: emp.job_position,
         employed_since: emp.employed_since,
         contract_type: emp.contract_type,
-        employer_type: emp.employer_type
+        employer_type: (emp.employer_type as 'applicant' | 'co_applicant') || 'applicant'
       }));
 
       // Závazky
-      const liabilities = (client.liabilities || []).map((liability: any) => ({
+      const liabilities = (client.liabilities || []).map((liability: Partial<Liability>) => ({
         id: liability.id?.toString() || '',
         institution: liability.institution,
         type: liability.type,
         amount: liability.amount,
         payment: liability.payment,
         balance: liability.balance,
-        notes: liability.notes
+        notes: (typeof (liability as Record<string, unknown>)["notes"] === 'string'
+          ? (liability as Record<string, unknown>)["notes"] as string
+          : liability.poznamky)
       }));
 
       // Nemovitost
@@ -182,8 +430,8 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
 
       await PDFService.generateClientPDF(clientData, employers, liabilities, property);
       toast?.showSuccess('PDF vytvořeno', `Klientský profil pro ${client.applicant_first_name} ${client.applicant_last_name} byl úspěšně exportován`);
-    } catch (error) {
-      console.error('Chyba při exportu PDF:', error);
+    } catch (err: unknown) {
+      console.error('Chyba při exportu PDF:', err);
       toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
     }
   };
@@ -314,22 +562,46 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               </p>
             </div>
           ) : (
-            <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+            <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Klient
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-2" />
+                      Klient
+                    </div>
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Kontakt
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Kontakt
+                    </div>
                   </th>
-                  <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Nemovitost
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Adresa
+                    </div>
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Datum zadání
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Building className="w-4 h-4 mr-2" />
+                      Nemovitost
+                    </div>
                   </th>
-                  <th className="w-1/6 px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Úvěr
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Datum
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Akce
                   </th>
                 </tr>
@@ -337,60 +609,144 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredClients.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600 dark:text-blue-300">
-                              {client.applicant_firstName?.[0]}{client.applicant_lastName?.[0]}
-                            </span>
-                          </div>
+                        <div className="flex-shrink-0 h-10 w-10 relative">
+                          {client.avatar_url ? (
+                            <img
+                              src={client.avatar_url}
+                              alt={`${client.applicant_first_name} ${client.applicant_last_name}`}
+                              className="h-10 w-10 rounded-full object-cover cursor-pointer"
+                              onClick={() => handleAvatarClick(client.id)}
+                            />
+                          ) : (
+                            <button
+                              onClick={() => handleAvatarClick(client.id)}
+                              className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center hover:opacity-80"
+                              title="Přidat fotografii"
+                            >
+                              <span className="text-sm font-medium text-blue-600 dark:text-blue-300">
+                                {client.applicant_first_name?.[0] || ''}{client.applicant_last_name?.[0] || ''}
+                              </span>
+                            </button>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            aria-label="Nahrát fotografii klienta"
+                            title="Nahrát fotografii klienta"
+                            ref={(el) => { fileInputsRef.current[client.id] = el; }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAvatarSelected(client, file);
+                              // reset input to allow reselect same file
+                              e.currentTarget.value = '';
+                            }}
+                          />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             <button
                               onClick={() => onSelectClient?.(client)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-                              title="Zobrazit detail klienta"
+                              className="text-blue-600 dark:text-white hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded text-base font-semibold"
+                              title={`Zobrazit detail klienta - URL: ${generateClientUrl(client.id)}`}
                               aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                             >
                               {client.applicant_first_name} {client.applicant_last_name}
                             </button>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-300">
-                            RČ: {client.applicant_birth_number}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                            <span className="font-mono">RČ: {client.applicant_birth_number}</span>
+                            {client.applicant_age && (
+                              <span className="ml-2 text-gray-400">• {client.applicant_age} let</span>
+                            )}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center mb-1">
-                          <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
-                          {client.applicant_phone}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white space-y-1">
+                        <div className="flex items-center">
+                          <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                          <span className="font-mono">{client.applicant_phone || 'Neuvedeno'}</span>
                         </div>
                         <div className="flex items-center">
-                          <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1" />
-                          {client.applicant_email}
+                          <Mail className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                          <span className="truncate max-w-32">{client.applicant_email || 'Neuvedeno'}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                        {client.properties?.[0]?.address || 'Neuvedeno'}
-                      </div>
-                      <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                        {client.properties?.[0]?.price ? formatPrice(client.properties[0].price.toString()) : 'Neuvedeno'}
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        <div className="flex items-start">
+                          <MapPin className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="max-w-48 truncate">{client.applicant_permanent_address || 'Neuvedeno'}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        <div className="flex items-start mb-1">
+                          <Building className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="max-w-40 truncate">{client.properties?.[0]?.address || 'Neuvedeno'}</span>
+                        </div>
+                        <div className="text-sm font-medium text-green-600 dark:text-green-400 ml-5">
+                          {client.properties?.[0]?.price ? formatPrice(client.properties[0].price.toString()) : 'Cena neuvedena'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {client.loan ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center">
+                              <CreditCard className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                              <span className="font-medium text-blue-600 dark:text-blue-400">
+                                {client.loan.loan_amount ? formatPrice(client.loan.loan_amount.toString()) : 'Neuvedeno'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
+                              {client.loan.bank || 'Banka neuvedena'}
+                            </div>
+                            {client.loan.interest_rate && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">
+                                Úrok: {client.loan.interest_rate}%
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-gray-400 dark:text-gray-500">
+                            <CreditCard className="w-3 h-3 mr-2" />
+                            <span className="text-xs">Úvěr nezadán</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-300">
-                        <Calendar className="w-3 h-3 mr-1 dark:text-gray-400" />
-                        {formatDate(client.created_at)}
+                        <Calendar className="w-3 h-3 mr-2 dark:text-gray-400 flex-shrink-0" />
+                        <span className="text-xs">{formatDate(client.created_at)}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-1">
+                        <button
+                          onClick={() => copyClientUrl(client.id, `${client.applicant_first_name} ${client.applicant_last_name}`)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-2 rounded p-1"
+                          title="Zkopírovat odkaz na klienta"
+                          aria-label={`Zkopírovat odkaz na klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => downloadClientHtmlFile(client)}
+                          className="text-orange-600 dark:text-orange-400 hover:text-orange-900 dark:hover:text-orange-200 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:ring-offset-2 rounded p-1"
+                          title="Stáhnout HTML odkaz na klienta"
+                          aria-label={`Stáhnout HTML odkaz na klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => onSelectClient?.(client)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 rounded p-1"
@@ -450,7 +806,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
 
 // Client Preview Modal Component
 interface ClientPreviewModalProps {
-  client: any;
+  client: UIClient;
   onClose: () => void;
   onEdit: () => void;
 }
@@ -680,7 +1036,7 @@ const ClientPreviewModal: React.FC<ClientPreviewModalProps> = ({ client, onClose
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-200">
-                    {client.liabilities.slice(0, 3).map((liability: any, index: number) => (
+                    {client.liabilities.slice(0, 3).map((liability: Partial<Liability>, index: number) => (
                       <tr key={index}>
                         <td className="px-3 py-2 text-sm text-red-900">{liability.institution || 'Neuvedeno'}</td>
                         <td className="px-3 py-2 text-sm text-red-900">{liability.type || 'Neuvedeno'}</td>

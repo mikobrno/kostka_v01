@@ -15,6 +15,7 @@ export interface Client {
   created_at: string
   updated_at: string
   user_id: string
+  avatar_url?: string
   
   // Žadatel
   applicant_title?: string
@@ -60,6 +61,10 @@ export interface Employer {
   company_name?: string
   company_address?: string
   net_income?: number
+  job_position?: string
+  employed_since?: string
+  contract_type?: string
+  employer_type?: 'applicant' | 'co_applicant'
   created_at: string
 }
 
@@ -89,6 +94,7 @@ export interface Liability {
   amount?: number
   payment?: number
   balance?: number
+  poznamky?: string
   created_at: string
 }
 
@@ -103,7 +109,7 @@ export interface AdminList {
 export interface AppSetting {
   id: string
   setting_key: string
-  setting_value: any
+  setting_value: unknown
   updated_at: string
   updated_by?: string
 }

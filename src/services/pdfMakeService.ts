@@ -2,25 +2,8 @@ import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
-// Nastavení fontů pro pdfMake - používáme pouze vestavěné fonty
-(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
-
-// Použijeme pouze dostupné fonty z pdfMake
-(pdfMake as any).fonts = {
-  Roboto: {
-    normal: 'Roboto-Regular.ttf',
-    bold: 'Roboto-Medium.ttf',
-    italics: 'Roboto-Italic.ttf',
-    bolditalics: 'Roboto-MediumItalic.ttf'
-  },
-  // Fallback na Helvetica pokud Roboto nefunguje
-  Helvetica: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique'
-  }
-};
+// Nastavení pdfMake s Roboto fontem (obsahuje českou diakritiku)
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 interface ClientData {
   applicant_title?: string;
@@ -334,14 +317,26 @@ export class PDFMakeService {
       defaultStyle: {
         fontSize: 10,
         lineHeight: 1.4,
-        font: 'Helvetica'  // Použijeme spolehlivý font
+        font: 'Roboto'
       },
       pageMargins: [40, 60, 40, 60] as [number, number, number, number]
     };
 
-    // Vygenerování a stažení PDF
+    // Vygenerování a stažení PDF - původní metoda
     const fileName = `klient_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    pdfMake.createPdf(docDefinition).download(fileName);
+    
+    try {
+      console.log('Generuji PDF dokument s Helvetica fontem...');
+      const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+      
+      // Vrátím zpět na původní download metodu
+      pdfDocGenerator.download(fileName);
+      console.log('PDF stažení iniciováno:', fileName);
+      
+    } catch (error) {
+      console.error('Chyba při generování PDF:', error);
+      throw new Error('Nelze vygenerovat PDF - zkontrolujte konzoli pro detaily');
+    }
   }
 
   static async generateLiabilitiesPDF(liabilities: LiabilityData[]): Promise<void> {
