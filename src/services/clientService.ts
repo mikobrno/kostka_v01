@@ -15,6 +15,33 @@ export interface ClientFormData {
 }
 
 export class ClientService {
+  // Helper: attempts to insert into 'loans' and if Postgres returns
+  // "column ... does not exist", it removes that key from payload and retries.
+  private static async insertLoanWithColumnFallback(initialPayload: Record<string, unknown>) {
+  const basePayload = { ...initialPayload }
+  let removedKeys: string[] = []
+    // Try a few times in case multiple columns are missing
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const payload = Object.fromEntries(
+        Object.entries(basePayload).filter(([k]) => !removedKeys.includes(k))
+      )
+      const { error } = await supabase.from('loans').insert(payload)
+      if (!error) return { error: null }
+
+      const message = (error as any)?.message || (error as any)?.toString?.() || ''
+      // Postgres typically reports: column "foo" of relation "loans" does not exist
+      const m = message.match(/column\s+"([^"]+)"\s+of\s+relation\s+"loans"\s+does\s+not\s+exist/i)
+  if (m && m[1] && Object.prototype.hasOwnProperty.call(basePayload, m[1])) {
+        // Drop the missing column and retry
+  removedKeys = [...removedKeys, m[1]]
+        continue
+      }
+      // Unknown error type -> stop and return
+      return { error }
+    }
+    return { error: new Error('Failed to insert loan after multiple attempts') }
+  }
+
   static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
     try {
       const { data, error } = await supabase
@@ -180,12 +207,16 @@ export class ClientService {
 
       // Vytvoření záznamu o úvěru
       if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const combinedAdvisor = (formData.loan.advisorName || formData.loan.advisorAgentNumber)
+          ? `${formData.loan.advisorName || ''}${formData.loan.advisorAgentNumber ? ' - ' + formData.loan.advisorAgentNumber : ''}`
+          : (formData.loan.advisor || null)
+
         const loanData = {
           client_id: client.id,
           bank: formData.loan.bank || null,
           contract_number: formData.loan.contractNumber || null,
           signature_date: formData.loan.signatureDate || null,
-          advisor: formData.loan.advisor || null,
+          advisor: combinedAdvisor || null,
           advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
           advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
             ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
@@ -199,7 +230,10 @@ export class ClientService {
           monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
           maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
         }
-        await supabase.from('loans').insert(loanData)
+        const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
+        if (loanError) {
+          return { data: client, error: loanError }
+        }
       }
 
       // Vytvoření dětí
@@ -417,12 +451,16 @@ export class ClientService {
 
       // Znovu vytvoření úvěru
       if (formData.loan && Object.keys(formData.loan).length > 0) {
+        const combinedAdvisor = (formData.loan.advisorName || formData.loan.advisorAgentNumber)
+          ? `${formData.loan.advisorName || ''}${formData.loan.advisorAgentNumber ? ' - ' + formData.loan.advisorAgentNumber : ''}`
+          : (formData.loan.advisor || null)
+
         const loanData = {
           client_id: clientId,
           bank: formData.loan.bank || null,
           contract_number: formData.loan.contractNumber || null,
           signature_date: formData.loan.signatureDate || null,
-          advisor: formData.loan.advisor || null,
+          advisor: combinedAdvisor || null,
           advisor_name: formData.loan.advisorName || (formData.loan.advisor ? String(formData.loan.advisor).split(' - ')[0] : null),
           advisor_agency_number: formData.loan.advisorAgentNumber || (formData.loan.advisor && String(formData.loan.advisor).includes(' - ')
             ? String(formData.loan.advisor).split(' - ').slice(1).join(' - ')
@@ -436,7 +474,10 @@ export class ClientService {
           monthly_payment: formData.loan.monthlyPayment && formData.loan.monthlyPayment.trim() ? parseFloat(formData.loan.monthlyPayment) : null,
           maturity_years: formData.loan.maturityYears && formData.loan.maturityYears.trim() ? parseInt(formData.loan.maturityYears) : null,
         }
-        await supabase.from('loans').insert(loanData)
+        const { error: loanError } = await ClientService.insertLoanWithColumnFallback(loanData)
+        if (loanError) {
+          return { data: client, error: loanError }
+        }
       }
 
       const allChildren = [
