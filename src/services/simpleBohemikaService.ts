@@ -28,6 +28,31 @@ interface LoanData {
 }
 
 export class SimpleBohemikaService {
+  // Přísné formátování data na dd.MM.yyyy (např. 18.08.2025)
+  private static formatDateStrict(value?: string | Date): string {
+    if (!value) return '';
+    let d: Date;
+    if (value instanceof Date) {
+      d = value;
+    } else {
+      // Pokud přijde ISO (YYYY-MM-DD) z <input type="date">, new Date to zvládne
+      // Jinak zkusíme rozpoznat běžné formáty dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy
+      const trimmed = value.trim();
+  const m = trimmed.match(/^(\d{1,2})[./-\s](\d{1,2})[./-\s](\d{4})$/);
+      if (m) {
+        const dd = m[1].padStart(2, '0');
+        const mm = m[2].padStart(2, '0');
+        const yyyy = m[3];
+        return `${dd}.${mm}.${yyyy}`;
+      }
+      d = new Date(trimmed);
+    }
+    if (isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  }
   // Odstranění diakritiky pro fallback (drženo z produkce)
   private static removeDiacritics(text: string): string {
     const map: Record<string, string> = {
@@ -158,11 +183,18 @@ export class SimpleBohemikaService {
       Produkt: sanitize(loan.product || defaultProduct),
       fill_21: currency(loan.amount),
       fill_22: currency(loan.amount),
-      LTV: loan.ltv ? `${loan.ltv}%` : '',
+  LTV: loan.ltv ? `${loan.ltv}%` : '',
+  ltv: loan.ltv ? `${loan.ltv}%` : '', // alternativní název pole (pro jinou šablonu)
       fill_24: sanitize(loan.purpose || 'Nákup nemovitosti'),
       fill_25: currency(loan.monthly_payment),
       V: 'Brno',
-      dne: loan.contract_date || new Date().toLocaleDateString('cs-CZ'),
+  // Datum podpisu dole ("dne") a datum smlouvy (fill_26) ve formátu dd.MM.yyyy
+  fill_26: this.formatDateStrict(loan.contract_date),
+  dne: this.formatDateStrict(loan.contract_date) || this.formatDateStrict(new Date()),
+  // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
+  contract_number: sanitize(loan.contract_number),
+  advisor_name: sanitize(loan.advisor_name),
+  advisor_agency_number: sanitize(loan.advisor_agency_number),
     };
 
     if (customFont) {
