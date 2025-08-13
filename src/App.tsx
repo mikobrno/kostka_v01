@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
-import { useTheme } from './hooks/useTheme';
 import { ClientService } from './services/clientService';
 import ToastContainer from './components/ToastContainer';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -17,23 +16,32 @@ function App() {
   const { user, loading, signOut } = useAuth();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('clientList');
-  const [selectedClient, setSelectedClient] = useState(null);
+  type MinimalClient = { id: string } & Record<string, unknown>;
+  const [selectedClient, setSelectedClient] = useState<MinimalClient | null>(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [clientListRefreshKey, setClientListRefreshKey] = useState(0);
   // bez pomocného loaderu
 
-  // URL handling pro přímé odkazy na klienty
+  // Stabilní reference na toast, aby callback neměnil identitu
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
+
+  // URL handling pro přímé odkazy na klienty (stabilní callback bez závislostí)
+  const processedClientFromUrlRef = useRef(false);
   const loadClientFromUrl = React.useCallback(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const clientId = urlParams.get('client');
     
     if (clientId) {
+      // Zabráníme duplicitám (StrictMode double-effect apod.)
+      if (processedClientFromUrlRef.current) return;
+      processedClientFromUrlRef.current = true;
   // načítání klienta z URL
       try {
         const { data, error } = await ClientService.getClient(clientId);
         if (error) {
           console.error('Chyba při načítání klienta z URL:', error);
-          toast.showError('Chyba', 'Klient nebyl nalezen');
+          toastRef.current?.showError('Chyba', 'Klient nebyl nalezen');
           // Odebrat neplatný parametr z URL
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('client');
@@ -42,19 +50,22 @@ function App() {
           setSelectedClient(data);
           setShowClientForm(true);
           setActiveTab('newClient');
-          toast.showSuccess('Klient načten', `Zobrazuji profil: ${data.applicant_first_name} ${data.applicant_last_name}`);
+          const displayName = [data.applicant_first_name, data.applicant_last_name].filter(Boolean).join(' ') || 'klient';
+          toastRef.current?.showSuccess('Klient načten', `Zobrazuji profil: ${displayName}`);
         }
       } catch (error) {
         console.error('Chyba při načítání klienta:', error);
-        toast.showError('Chyba', 'Nepodařilo se načíst klienta');
+        toastRef.current?.showError('Chyba', 'Nepodařilo se načíst klienta');
       } finally {
         // done
       }
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
+      // Povolit znovunačtení při změně historie
+      processedClientFromUrlRef.current = false;
       loadClientFromUrl();
     };
 
@@ -65,7 +76,7 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [loadClientFromUrl]);
 
-  const updateUrlForClient = (client: any) => {
+  const updateUrlForClient = (client: MinimalClient | null) => {
     if (client && client.id) {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('client', client.id);
@@ -113,7 +124,7 @@ function App() {
     { id: 'admin', label: 'Administrace', icon: Settings },
   ];
 
-  const handleSelectClient = (client: any) => {
+  const handleSelectClient = (client: MinimalClient) => {
     setSelectedClient(client);
     setActiveTab('newClient');
     setShowClientForm(true);
@@ -144,7 +155,7 @@ function App() {
     updateUrlForClient(null);
   };
 
-  const handleClientSaved = (updatedClient: any) => {
+  const handleClientSaved = (updatedClient: MinimalClient) => {
     setSelectedClient(updatedClient);
     handleClientListRefresh();
   };
@@ -253,7 +264,7 @@ function App() {
                   success: (message: string) => toast.showSuccess('Úspěch', message),
                   error: (message: string) => toast.showError('Chyba', message)
                 }}
-                selectedClientId={selectedClient ? (selectedClient as any).id : undefined}
+                selectedClientId={selectedClient ? selectedClient.id : undefined}
               />
             )}
             {activeTab === 'admin' && !showClientForm && <AdminPanel toast={toast} />}
