@@ -3,15 +3,7 @@ import fontkit from '@pdf-lib/fontkit';
 // Vite: import URL fontu jako asset (zajistí správné servírování v dev i build)
 // Pozn.: soubor je v public/fonts/NotoSans-Regular.ttf
 import notoSansUrl from '/fonts/NotoSans-Regular.ttf?url';
-// Volitelný Arial-like font (Arimo). Pokud je soubor přítomen v public/fonts, bude použit.
-// Pokud není, zůstane výchozí NotoSans -> Helvetica fallback.
-let arimoUrl: string | null = null;
-try {
-  // Vite při buildu nahradí import, v dev může házet; proto try/catch a optional fallback
-  arimoUrl = (await import('/fonts/Arimo-Regular.ttf?url')).default as string;
-} catch {
-  // asset neexistuje – použijeme NotoSans/Helvetica
-}
+// Volitelný Arial-like font (Arimo) se zkouší načíst dynamicky až při generování PDF
 
 interface ClientData {
   applicant_first_name?: string;
@@ -112,7 +104,14 @@ export class SimpleBohemikaService {
   private static async loadCustomFont(pdfDoc: PDFDocument): Promise<PDFFont | null> {
     try {
       // Preferuj Arimo, pokud je k dispozici (Arial-like), jinak NotoSans
-      const fontUrl = arimoUrl || notoSansUrl || '/fonts/NotoSans-Regular.ttf';
+      let fontUrl: string | null = null;
+      try {
+        const mod = await import('/fonts/Arimo-Regular.ttf?url');
+        fontUrl = (mod as { default: string }).default || null;
+      } catch {
+        // Arimo není k dispozici – pokračujeme dál
+      }
+      fontUrl = fontUrl || notoSansUrl || '/fonts/NotoSans-Regular.ttf';
   const res = await fetch(fontUrl, { cache: 'no-store' });
       if (!res.ok) {
         throw new Error(`Failed to fetch font: ${res.status} ${res.statusText}`);
