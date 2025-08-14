@@ -21,10 +21,8 @@ interface LoanData {
   purpose?: string;
   monthly_payment?: number;
   contract_date?: string;
-  // Rozšíření v této větvi – ponecháme kvůli kompatibilitě komponenty
   contract_number?: string;
-  advisor_name?: string;
-  advisor_agency_number?: string;
+  advisor?: string;
 }
 
 export class SimpleBohemikaService {
@@ -38,7 +36,7 @@ export class SimpleBohemikaService {
       // Pokud přijde ISO (YYYY-MM-DD) z <input type="date">, new Date to zvládne
       // Jinak zkusíme rozpoznat běžné formáty dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy
       const trimmed = value.trim();
-  const m = trimmed.match(/^(\d{1,2})[./-\s](\d{1,2})[./-\s](\d{4})$/);
+      const m = trimmed.match(/^(\d{1,2})[./-\s](\d{1,2})[./-\s](\d{4})$/);
       if (m) {
         const dd = m[1].padStart(2, '0');
         const mm = m[2].padStart(2, '0');
@@ -173,28 +171,32 @@ export class SimpleBohemikaService {
     const defaultProduct = 'Např. Hypoteční úvěr';
 
     const formData: Record<string, string> = {
-      fill_11: sanitize(clientName),
-      fill_12: sanitize(client.applicant_birth_number),
-      Adresa: sanitize(client.applicant_permanent_address),
-      Telefon: sanitize(client.applicant_phone),
-      email: sanitize(client.applicant_email),
-      fill_16: 'Ing. Milan Kost', // Zpracovatel
-      fill_17: '8680020061', // IČO zpracovatele
-      Produkt: sanitize(loan.product || defaultProduct),
-      fill_21: currency(loan.amount),
-      fill_22: currency(loan.amount),
-  LTV: loan.ltv ? `${loan.ltv}%` : '',
-  ltv: loan.ltv ? `${loan.ltv}%` : '', // alternativní název pole (pro jinou šablonu)
-      fill_24: sanitize(loan.purpose || 'Nákup nemovitosti'),
-      fill_25: currency(loan.monthly_payment),
-      V: 'Brno',
-  // Datum podpisu dole ("dne") a datum smlouvy (fill_26) ve formátu dd.MM.yyyy
-  fill_26: this.formatDateStrict(loan.contract_date),
-  dne: this.formatDateStrict(loan.contract_date) || this.formatDateStrict(new Date()),
-  // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
-  contract_number: sanitize(loan.contract_number),
-  advisor_name: sanitize(loan.advisor_name),
-  advisor_agency_number: sanitize(loan.advisor_agency_number),
+      'fill_11': sanitize(clientName),
+      'fill_12': sanitize(client.applicant_birth_number),
+      'Adresa': sanitize(client.applicant_permanent_address),
+      'Telefon': sanitize(client.applicant_phone),
+      'email': sanitize(client.applicant_email),
+      'fill_16': 'Ing. Milan Kost', // Zpracovatel
+      'fill_17': '8680020061', // IČO zpracovatele
+      'Produkt': sanitize(loan.product || defaultProduct),
+      'fill_21': currency(loan.amount),
+      'fill_22': currency(loan.amount),
+      'LTV': loan.ltv ? `${loan.ltv}%` : '',
+      'ltv': loan.ltv ? `${loan.ltv}%` : '', // alternativní název pole (pro jinou šablonu)
+      'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
+      'fill_25': currency(loan.monthly_payment),
+      // Datum podpisu dole ("dne") a datum smlouvy (fill_26) ve formátu dd.MM.yyyy
+      'fill_26': this.formatDateStrict(loan.contract_date),
+      'dne': this.formatDateStrict(loan.contract_date) || this.formatDateStrict(new Date()),
+      'V': 'Brno',
+      // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
+      'contract_number': sanitize(loan.contract_number),
+      'advisor_name': sanitize(loan.advisor),
+      'advisor_agency_number': '', // Není v systému
+      // Nová pole podle PDF šablony
+      'fill_10': sanitize(loan.contract_number), // Číslo smlouvy nahoře
+      'fill_18': sanitize(loan.advisor), // Jméno TIPAŘe
+      'fill_19': '', // Agenturní číslo TIPAŘe - není v systému
     };
 
     if (customFont) {
