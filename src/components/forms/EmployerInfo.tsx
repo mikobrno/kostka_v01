@@ -1,20 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CopyButton } from '../CopyButton';
 import { AddressInput } from '../AddressInput';
 import { Search, Building, MapPin } from 'lucide-react';
 // Importujte AresService a AresCompanyData
 import { AresService, AresCompanyData } from '../../services/aresService'; // Zkontrolujte, zda je cesta správná
 
+type EmployerData = {
+  ico?: string;
+  companyName?: string;
+  companyAddress?: string;
+  netIncome?: string;
+  jobPosition?: string;
+  contractType?: string;
+  contractFromDate?: string;
+  contractToDate?: string;
+  contractExtended?: string;
+  employedSince?: string;
+};
+
 interface EmployerInfoProps {
-  data: any;
-  onChange: (data: any) => void;
+  data: EmployerData;
+  onChange: (data: EmployerData) => void;
 }
 
 export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) => {
   const [isLoadingAres, setIsLoadingAres] = useState(false);
   const [aresError, setAresError] = useState<string | null>(null); // Nový stav pro chyby z ARES
+  const [nameQuery, setNameQuery] = useState('');
+  const [nameResults, setNameResults] = useState<AresCompanyData[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: keyof EmployerData, value: string) => {
     onChange({ ...data, [field]: value });
   };
 
@@ -66,13 +83,42 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
         // pokud ARES service správně zpracovává "firma nenalezena" jako chybu)
         setAresError('Firma s tímto IČO nebyla nalezena.');
       }
-    } catch (unexpectedError: any) {
+    } catch (unexpectedError) {
       console.error('Neočekávaná chyba při volání ARES API:', unexpectedError);
-      setAresError(`Neočekávaná chyba při načítání dat: ${unexpectedError.message}`);
+      setAresError('Neočekávaná chyba při načítání dat');
     } finally {
       setIsLoadingAres(false);
     }
   };
+
+  // Hledání podle názvu s debounce
+  useEffect(() => {
+    const handler = setTimeout(async () => {
+      const q = nameQuery.trim();
+      if (q.length < 3) { setNameResults([]); return; }
+      const { data, error } = await AresService.searchByName(q);
+      if (error) {
+        setAresError(error);
+        setNameResults([]);
+      } else {
+        setAresError(null);
+        setNameResults(data);
+        setShowDropdown(true);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [nameQuery]);
+
+  // Klik mimo dropdown zavře
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
@@ -129,15 +175,43 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
           Název firmy
         </label>
         <div className="flex">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" ref={dropdownRef}>
             <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              value={data.companyName || ''}
-              onChange={(e) => updateField('companyName', e.target.value)}
+              value={data.companyName || nameQuery}
+              onChange={(e) => {
+                const v = e.target.value;
+                updateField('companyName', v);
+                setNameQuery(v);
+                if (v.length >= 3) setShowDropdown(true);
+              }}
               className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="Název společnosti"
+              placeholder="Název společnosti (začněte psát pro vyhledávání)"
+              title="Název společnosti"
+              autoComplete="off"
             />
+            {showDropdown && nameResults.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                {nameResults.map((item) => (
+                  <button
+                    key={`${item.ico}-${item.companyName}`}
+                    type="button"
+                    onClick={() => {
+                      updateField('ico', item.ico);
+                      updateField('companyName', item.companyName);
+                      updateField('companyAddress', item.address);
+                      setNameQuery(item.companyName);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50"
+                  >
+                    <div className="text-sm font-medium text-gray-900">{item.companyName}</div>
+                    <div className="text-xs text-gray-600">IČO: {item.ico} • {item.address}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <CopyButton text={data.companyName || ''} />
         </div>
@@ -203,6 +277,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             value={data.contractType || ''}
             onChange={(e) => updateField('contractType', e.target.value)}
             className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            title="Typ smlouvy"
           >
             <option value="">Vyberte typ smlouvy</option>
             <option value="určitou">Určitou</option>
@@ -225,6 +300,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                   value={data.contractFromDate || ''}
                   onChange={(e) => updateField('contractFromDate', e.target.value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  title="Doba určitá od"
                 />
                 <CopyButton text={data.contractFromDate || ''} />
               </div>
@@ -240,6 +316,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                   value={data.contractToDate || ''}
                   onChange={(e) => updateField('contractToDate', e.target.value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  title="Doba určitá do"
                 />
                 <CopyButton text={data.contractToDate || ''} />
               </div>
@@ -255,6 +332,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                 value={data.contractExtended || ''}
                 onChange={(e) => updateField('contractExtended', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                title="Doba určitá - prodlouženo?"
               >
                 <option value="">Vyberte možnost</option>
                 <option value="ano">Ano</option>
@@ -276,6 +354,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             value={data.employedSince || ''}
             onChange={(e) => updateField('employedSince', e.target.value)}
             className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            title="Zaměstnán od"
           />
           <CopyButton text={data.employedSince || ''} />
         </div>

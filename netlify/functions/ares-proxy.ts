@@ -4,7 +4,7 @@ import { Handler } from '@netlify/functions';
  * Netlify Function pro CORS proxy k ARES API
  * Umožňuje volání ARES API z webové aplikace bez CORS problémů
  */
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event) => {
   // Povolení CORS pro všechny domény
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -32,36 +32,39 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Získání IČO z query parametrů
+    // Získání parametrů z query
     const ico = event.queryStringParameters?.ico;
-    
-    if (!ico) {
+    const name = event.queryStringParameters?.name; // vyhledávání podle názvu firmy
+
+    if (!ico && !name) {
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          error: 'IČO parameter is required',
-          usage: 'GET /.netlify/functions/ares-proxy?ico=12345678'
+      error: 'Either ico=8digits or name=query is required',
+      usage: 'GET /.netlify/functions/ares-proxy?ico=12345678 OR /.netlify/functions/ares-proxy?name=Seznam%20s.r.o.'
         })
       };
     }
 
-    // Validace IČO formátu
-    if (!/^\d{8}$/.test(ico)) {
+    // Validace IČO formátu (pokud je poskytováno)
+    if (ico && !/^\d{8}$/.test(ico)) {
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           error: 'IČO must be exactly 8 digits',
-          provided: ico
+      provided: ico || null
         })
       };
     }
 
     console.log(`🔍 ARES proxy: Hledám firmu s IČO ${ico}`);
 
-    // Volání ARES API
-    const aresUrl = `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?ico=${ico}`;
+    // Volání ARES API – podle parametru buď IČO nebo obchodní jméno (obch_jm)
+    const aresUrl = ico
+      ? `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?ico=${ico}`
+      : `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?obch_jm=${encodeURIComponent(name!)}&maxpoc=10`;
     
     const response = await fetch(aresUrl, {
       method: 'GET',

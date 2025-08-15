@@ -1,9 +1,12 @@
-import * as pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { formatNumber } from '../utils/formatHelpers';
 
 // Nastavení pdfMake s Roboto fontem (obsahuje českou diakritiku)
-(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
+// Nastavení vfs musí jít přes default import, jinak Vite vyhodí chybu o přiřazení do importu
+// Typové rozšíření pro pdfFonts, které exportuje vfs přes pdfMake namespace
+type PdfFontsModule = { pdfMake: { vfs: Record<string, string> } };
+pdfMake.vfs = (pdfFonts as unknown as PdfFontsModule).pdfMake.vfs;
 
 interface ClientData {
   applicant_title?: string;
@@ -127,7 +130,7 @@ export class PDFMakeService {
             ]
           },
           layout: {
-            hLineWidth: function(i: number, node: any) {
+            hLineWidth: function(i: number, node: { table: { body: unknown[] } }) {
               return (i === 0 || i === node.table.body.length) ? 0 : 0.5;
             },
             vLineWidth: function() { return 0; },

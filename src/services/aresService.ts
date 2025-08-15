@@ -117,6 +117,52 @@ export class AresService {
   }
 
   /**
+   * Vyhledá firmy podle obchodního jména (název firmy) – vrací seznam výsledků
+   */
+  static async searchByName(query: string): Promise<{ data: AresCompanyData[]; error: string | null }> {
+    try {
+      const q = (query || '').trim();
+      if (q.length < 3) {
+        return { data: [], error: 'Zadejte alespoň 3 znaky názvu' };
+      }
+
+      const aresUrl = `${this.ARES_BASE_URL}?obch_jm=${encodeURIComponent(q)}&maxpoc=10`;
+      console.log('🔎 Hledám firmy dle názvu v ARES:', q);
+
+      let lastError = '';
+      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
+        const proxy = this.CORS_PROXIES[i];
+        try {
+          let url: string;
+          if (proxy.startsWith('/.netlify/functions/ares-proxy')) {
+            // náš proxy podporuje name=
+            url = `/.netlify/functions/ares-proxy?name=${encodeURIComponent(q)}`;
+          } else {
+            url = `${proxy}${encodeURIComponent(aresUrl)}`;
+          }
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Accept': 'application/xml, text/xml' }
+          });
+          if (!response.ok) throw new Error(`ARES API error: ${response.status} ${response.statusText}`);
+          const xmlText = await response.text();
+          const list = this.parseAresXmlList(xmlText);
+          return { data: list, error: null };
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : 'Neznámá chyba';
+          console.warn(`❌ Proxy ${i + 1} (name) selhalo:`, lastError);
+        }
+      }
+      // Fallback – žádné proxy nevyšlo, vrať prázdný výsledek
+      return { data: [], error: lastError || 'Nepodařilo se vyhledat firmy' };
+    } catch (error) {
+      console.error('❌ Chyba při vyhledávání dle názvu v ARES:', error);
+      return { data: [], error: 'Chyba při vyhledávání' };
+    }
+  }
+
+  /**
    * Parsuje XML odpověď z ARES API
    * @param xmlText - XML odpověď z ARES
    * @param ico - IČO pro které byla data načtena
@@ -242,6 +288,49 @@ export class AresService {
     
     console.log(`⚠️ Nenalezen element: ${tagName}`);
     return null;
+  }
+
+  /**
+   * Zpracuje XML výpis s více záznamy firem (výsledek hledání dle názvu)
+   */
+  private static parseAresXmlList(xmlText: string): AresCompanyData[] {
+    const results: AresCompanyData[] = [];
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const errorElement = xmlDoc.querySelector('parsererror');
+      if (errorElement) {
+        console.error('❌ XML parser error (list):', errorElement.textContent);
+        return results;
+      }
+      const zaznamNodes: Element[] = Array.from(xmlDoc.querySelectorAll('Zaznam'));
+      if (zaznamNodes.length === 0) {
+        // pokus o namespace varianty
+        const alt = xmlDoc.querySelectorAll('*[local-name="Zaznam"]');
+        zaznamNodes.push(...(Array.from(alt) as Element[]));
+      }
+      for (const z of zaznamNodes) {
+        const ico = this.getXmlElementText(z, 'ICO') || '';
+        const companyName = this.getXmlElementText(z, 'OF') || this.getXmlElementText(z, 'ObchodniFirma') || 'Neznámá firma';
+        const dic = this.getXmlElementText(z, 'DIC') || undefined;
+        const legalForm = this.getXmlElementText(z, 'PF') || undefined;
+        const address = this.buildAddressFromXml(z);
+        const datumZaniku = this.getXmlElementText(z, 'DZ');
+        const isActive = !datumZaniku;
+        results.push({
+          ico,
+          dic: dic || undefined,
+          companyName,
+          legalForm,
+          address,
+          isActive,
+          registrationDate: this.getXmlElementText(z, 'DV') || undefined
+        });
+      }
+    } catch (e) {
+      console.error('❌ Chyba parsování seznamu ARES:', e);
+    }
+    return results;
   }
 
   /**
