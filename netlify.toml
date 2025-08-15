@@ -11,3 +11,6 @@
 [functions]
   # Enable Node.js 18.x runtime
   node_bundler = "esbuild"
+
+[[plugins]]
+package = "@netlify/plugin-functions-install-core"
