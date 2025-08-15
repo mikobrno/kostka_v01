@@ -15,20 +15,23 @@ export interface AresCompanyData {
 
 export class AresService {
   private static readonly ARES_BASE_URL = 'https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi';
-  // Alternativní CORS proxy služby
-  private static readonly CORS_PROXIES = [
-    // Náš vlastní Netlify proxy (nejspolehlivější)
-    '/.netlify/functions/ares-proxy?ico=',
-    // Backup proxy služby
-    'https://api.allorigins.win/raw?url=',
-    'https://thingproxy.freeboard.io/fetch/',
-    'https://cors.bridged.cc/',
-    'https://yacdn.org/proxy/',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    // Backup proxies
-    'https://corsproxy.io/?',
-    'https://cors-anywhere.herokuapp.com/'
-  ];
+  // Výběr CORS proxy podle prostředí; defaultně jen naše Netlify funkce
+  private static get CORS_PROXIES(): string[] {
+    // Vite exportuje import.meta.env jako záznam; vyhneme se 'any' pomocí částečného typu
+    const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
+    const allowPublic = env.VITE_ARES_PUBLIC_PROXIES === '1';
+    const base = ['/.netlify/functions/ares-proxy?ico='];
+    if (!allowPublic) return base;
+    return base.concat([
+      'https://api.allorigins.win/raw?url=',
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://cors.bridged.cc/',
+      'https://yacdn.org/proxy/',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://corsproxy.io/?',
+      'https://cors-anywhere.herokuapp.com/'
+    ]);
+  }
 
   /**
    * Vyhledá firmu podle IČO v ARES registru
@@ -52,10 +55,11 @@ export class AresService {
       
       // Zkouším různé CORS proxy postupně
       let lastError = '';
-      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
-        const proxy = this.CORS_PROXIES[i];
+      const proxies = this.CORS_PROXIES;
+      for (let i = 0; i < proxies.length; i++) {
+        const proxy = proxies[i];
         try {
-          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${this.CORS_PROXIES.length}: ${proxy.split('?')[0]}`);
+          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${proxies.length}: ${proxy.split('?')[0]}`);
           
           let url: string;
           
@@ -130,8 +134,9 @@ export class AresService {
       console.log('🔎 Hledám firmy dle názvu v ARES:', q);
 
       let lastError = '';
-      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
-        const proxy = this.CORS_PROXIES[i];
+      const proxies = this.CORS_PROXIES;
+      for (let i = 0; i < proxies.length; i++) {
+        const proxy = proxies[i];
         try {
           let url: string;
           if (proxy.startsWith('/.netlify/functions/ares-proxy')) {
