@@ -166,18 +166,69 @@ export class SimpleBohemikaService {
 
     const customFont = await this.loadCustomFont(pdfDoc);
     const form = pdfDoc.getForm();
+    // Debug: vypiš názvy polí (jen v dev na localhost)
+    try {
+      if (typeof window !== 'undefined' && window.location?.hostname?.includes('localhost')) {
+        const fields = form.getFields();
+        const names = fields.map((f) => {
+          try {
+            const maybe = String((f as object));
+            // pokus o extrakci názvu z defaultního toString
+            const m = maybe.match(/name=([^,>]+)/i);
+            return m?.[1] || 'unknown';
+          } catch {
+            return 'unknown';
+          }
+        });
+        console.info('Bohemika PDF fields:', names);
+      }
+    } catch { /* ignore */ }
     const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
 
     const sanitize = (t?: string) => (t ? (forceSanitize ? this.removeDiacritics(t) : t) : '');
-    const currency = (n?: number) => (n ? `${n} Kč` : '');
-    const percent = (v?: number | string) => {
+  const currency = (n?: number) => (n ? `${n} Kč` : '');
+    // převod na procenta s ohledem na různé vstupy (0.8 -> 80 %, "80" -> 80 %, "80%" -> 80 %)
+    const percentSmart = (v?: number | string, opts?: { maxFractionDigits?: number }) => {
       if (v === undefined || v === null || v === '') return '';
-      const num = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : v;
-      if (typeof num !== 'number' || Number.isNaN(num)) return '';
-      // formát CZ: čárka odděluje desetiny
-      const formatted = num.toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      let raw: string = String(v).toString().trim();
+      const hasPercent = raw.includes('%');
+      raw = raw.replace('%', '').replace(/\s+/g, '');
+      // podporuj čárku jako desetinnou tečku
+      const n0 = parseFloat(raw.replace(',', '.'));
+      if (Number.isNaN(n0)) return '';
+      // Pokud není explicitně %, odhadni měřítko: hodnoty <= 1.5 považuj za zlomek
+      const n = hasPercent ? n0 : (n0 <= 1.5 && n0 > -1.5 ? n0 * 100 : n0);
+      const maxFractionDigits = opts?.maxFractionDigits ?? 2;
+      const formatted = n.toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: maxFractionDigits });
       return `${formatted}%`;
     };
+
+    // pomocný getter na aliasy s bezpečnou typovou kontrolou
+    const get = (obj: unknown, keys: string[]): string | undefined => {
+      if (!obj || typeof obj !== 'object') return undefined;
+      const rec = obj as Record<string, unknown>;
+      for (const k of keys) {
+        const v = rec[k];
+        if (typeof v === 'string') {
+          const t = v.trim();
+          if (t) return t;
+        } else if (typeof v === 'number' && !Number.isNaN(v)) {
+          return String(v);
+        }
+      }
+      return undefined;
+    };
+
+    // aliasy a robustní odvození hodnot
+    const advisorName = get(loan, ['advisor', 'advisor_name', 'advisorName']) || '';
+    let advisorAgency = get(loan, ['advisor_agency_number', 'advisorAgencyNumber', 'advisor_agencyNumber']) || '';
+    if (!advisorAgency && advisorName) {
+      // pokusit se vytáhnout číslo z tvaru "Jméno Příjmení - 8680020061" nebo "Jméno (8680020061)"
+      const m = advisorName.match(/(?:-|\(|\b)\s*(\d{5,})\s*(?:\)|$)/);
+      if (m) advisorAgency = m[1];
+    }
+    const interestVal = get(loan, ['interest_rate', 'interestRate', 'urok']);
+    const ltvVal = get(loan, ['ltv', 'LTV', 'ltvPercent']);
     const defaultProduct = 'Např. Hypoteční úvěr';
 
     const formData: Record<string, string> = {
@@ -188,13 +239,14 @@ export class SimpleBohemikaService {
       'email': sanitize(client.applicant_email),
       'fill_16': 'Ing. Milan Kost', // Zpracovatel
       'fill_17': '8680020061', // IČO zpracovatele
-  // Úrok úvěru (%)
-  'fill_4': percent(loan.interest_rate),
+      // Úrok úvěru (%) – přijímá 5.79, "5,79" i 0.0579/0.058
+      'fill_4': percentSmart(interestVal, { maxFractionDigits: 2 }),
       'Produkt': sanitize(loan.product || defaultProduct),
       'fill_21': currency(loan.amount),
       'fill_22': currency(loan.amount),
-      'LTV': percent(loan.ltv),
-      'ltv': percent(loan.ltv), // alternativní název pole (pro jinou šablonu)
+      // LTV – škálování 0–1 -> 0–100 %
+      'LTV': percentSmart(ltvVal, { maxFractionDigits: 2 }),
+      'ltv': percentSmart(ltvVal, { maxFractionDigits: 2 }), // alternativní název pole (pro jinou šablonu)
       'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
       'fill_25': currency(loan.monthly_payment),
       // Datum podpisu dole ("dne") a datum smlouvy (fill_26) ve formátu dd.MM.yyyy
@@ -203,12 +255,23 @@ export class SimpleBohemikaService {
       'V': 'Brno',
       // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
       'contract_number': sanitize(loan.contract_number),
-      'advisor_name': sanitize(loan.advisor),
-      'advisor_agency_number': sanitize(loan.advisor_agency_number),
-      // Nová pole podle PDF šablony
+      'advisor_name': sanitize(advisorName),
+      'advisor_agency_number': sanitize(advisorAgency),
+  // Nová pole podle PDF šablony
       'fill_10': sanitize(loan.contract_number), // Číslo smlouvy nahoře
-      'fill_18': sanitize(loan.advisor), // Doporučitel – jméno a příjmení
-      'fill_19': sanitize(loan.advisor_agency_number), // Doporučitel – agenturní číslo
+      'fill_18': sanitize(advisorName), // Doporučitel – jméno a příjmení
+      'fill_19': sanitize(advisorAgency), // Doporučitel – agenturní číslo
+  // Aliasové názvy polí – pro jistotu zkusíme i typické varianty
+  'Úrok úvěru (%)': percentSmart(interestVal, { maxFractionDigits: 2 }),
+  'Urok uveru (%)': percentSmart(interestVal, { maxFractionDigits: 2 }),
+  'Úrok (%)': percentSmart(interestVal, { maxFractionDigits: 2 }),
+  'Urok (%)': percentSmart(interestVal, { maxFractionDigits: 2 }),
+  'TIPAŘ': sanitize(advisorName),
+  'TIPAR': sanitize(advisorName),
+  'Doporučitel': sanitize(advisorName),
+  'Agenturní číslo': sanitize(advisorAgency),
+  'Agenturni cislo': sanitize(advisorAgency),
+  'LTV (%)': percentSmart(ltvVal, { maxFractionDigits: 2 })
     };
 
     if (customFont) {
