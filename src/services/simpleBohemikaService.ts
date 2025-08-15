@@ -193,8 +193,8 @@ export class SimpleBohemikaService {
       'Produkt': sanitize(loan.product || defaultProduct),
       'fill_21': currency(loan.amount),
       'fill_22': currency(loan.amount),
-      'LTV': loan.ltv ? `${loan.ltv}%` : '',
-      'ltv': loan.ltv ? `${loan.ltv}%` : '', // alternativní název pole (pro jinou šablonu)
+      'LTV': percent(loan.ltv),
+      'ltv': percent(loan.ltv), // alternativní název pole (pro jinou šablonu)
       'fill_24': sanitize(loan.purpose || 'Nákup nemovitosti'),
       'fill_25': currency(loan.monthly_payment),
       // Datum podpisu dole ("dne") a datum smlouvy (fill_26) ve formátu dd.MM.yyyy
@@ -204,11 +204,11 @@ export class SimpleBohemikaService {
       // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
       'contract_number': sanitize(loan.contract_number),
       'advisor_name': sanitize(loan.advisor),
-  'advisor_agency_number': sanitize(loan.advisor_agency_number),
+      'advisor_agency_number': sanitize(loan.advisor_agency_number),
       // Nová pole podle PDF šablony
       'fill_10': sanitize(loan.contract_number), // Číslo smlouvy nahoře
-  'fill_18': sanitize(loan.advisor), // Doporučitel – jméno a příjmení
-  'fill_19': sanitize(loan.advisor_agency_number), // Doporučitel – agenturní číslo
+      'fill_18': sanitize(loan.advisor), // Doporučitel – jméno a příjmení
+      'fill_19': sanitize(loan.advisor_agency_number), // Doporučitel – agenturní číslo
     };
 
     if (customFont) {
