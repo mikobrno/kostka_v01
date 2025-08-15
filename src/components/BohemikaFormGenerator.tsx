@@ -22,6 +22,8 @@ interface LoanData {
   contract_number?: string;
   advisor_name?: string;
   advisor_agency_number?: string;
+  interest_rate?: number | string;
+  property_value?: number | string;
 }
 
 interface BohemikaFormGeneratorProps {
@@ -58,7 +60,9 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
   contract_date: '',
   contract_number: '',
   advisor_name: '',
-  advisor_agency_number: ''
+  advisor_agency_number: '',
+  interest_rate: '',
+  property_value: ''
   });
 
   // Načtení seznamu klientů
@@ -129,7 +133,10 @@ const BohemikaFormGenerator: React.FC<BohemikaFormGeneratorProps> = ({
               contract_date: loanData.signature_date || loanData.signatureDate || '',
               contract_number: loanData.contract_number || loanData.contractNumber || '',
               advisor_name: loanData.advisor_name || loanData.advisorName || (loanData.advisor ? loanData.advisor.split(' - ')[0] : ''),
-              advisor_agency_number: loanData.advisor_agency_number || loanData.advisorAgentNumber || (loanData.advisor && loanData.advisor.includes(' - ') ? loanData.advisor.split(' - ').slice(1).join(' - ') : '')
+              advisor_agency_number: loanData.advisor_agency_number || loanData.advisorAgentNumber || (loanData.advisor && loanData.advisor.includes(' - ') ? loanData.advisor.split(' - ').slice(1).join(' - ') : ''),
+              // Nové: úrok a ocenění pro PDF (fill_4, Suma zjištění, LTV výpočet)
+              interest_rate: loanData.interest_rate ?? loanData.interestRate ?? '',
+              property_value: loanData.property_value ?? loanData.propertyValue ?? ''
             });
           }
           
