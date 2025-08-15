@@ -23,6 +23,8 @@ interface LoanData {
   contract_date?: string;
   contract_number?: string;
   advisor?: string;
+  advisor_agency_number?: string;
+  interest_rate?: number | string;
 }
 
 export class SimpleBohemikaService {
@@ -168,6 +170,14 @@ export class SimpleBohemikaService {
 
     const sanitize = (t?: string) => (t ? (forceSanitize ? this.removeDiacritics(t) : t) : '');
     const currency = (n?: number) => (n ? `${n} Kč` : '');
+    const percent = (v?: number | string) => {
+      if (v === undefined || v === null || v === '') return '';
+      const num = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : v;
+      if (typeof num !== 'number' || Number.isNaN(num)) return '';
+      // formát CZ: čárka odděluje desetiny
+      const formatted = num.toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      return `${formatted}%`;
+    };
     const defaultProduct = 'Např. Hypoteční úvěr';
 
     const formData: Record<string, string> = {
@@ -178,6 +188,8 @@ export class SimpleBohemikaService {
       'email': sanitize(client.applicant_email),
       'fill_16': 'Ing. Milan Kost', // Zpracovatel
       'fill_17': '8680020061', // IČO zpracovatele
+  // Úrok úvěru (%)
+  'fill_4': percent(loan.interest_rate),
       'Produkt': sanitize(loan.product || defaultProduct),
       'fill_21': currency(loan.amount),
       'fill_22': currency(loan.amount),
@@ -192,11 +204,11 @@ export class SimpleBohemikaService {
       // Rozšířená pole – číslo smlouvy a doporučitel (TIPAŘ)
       'contract_number': sanitize(loan.contract_number),
       'advisor_name': sanitize(loan.advisor),
-      'advisor_agency_number': '', // Není v systému
+  'advisor_agency_number': sanitize(loan.advisor_agency_number),
       // Nová pole podle PDF šablony
       'fill_10': sanitize(loan.contract_number), // Číslo smlouvy nahoře
-      'fill_18': sanitize(loan.advisor), // Jméno TIPAŘe
-      'fill_19': '', // Agenturní číslo TIPAŘe - není v systému
+  'fill_18': sanitize(loan.advisor), // Doporučitel – jméno a příjmení
+  'fill_19': sanitize(loan.advisor_agency_number), // Doporučitel – agenturní číslo
     };
 
     if (customFont) {
