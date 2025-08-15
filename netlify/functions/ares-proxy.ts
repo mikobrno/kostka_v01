@@ -10,7 +10,8 @@ export const handler: Handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/xml; charset=utf-8'
+  'Content-Type': 'application/xml; charset=utf-8',
+  'Cache-Control': 'no-store'
   };
 
   // Handle preflight OPTIONS request
@@ -59,58 +60,68 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    console.log(`🔍 ARES proxy: Hledám firmu s IČO ${ico}`);
+    const target = ico
+      ? `?ico=${ico}`
+      : `?obch_jm=${encodeURIComponent(name!)}&maxpoc=10`;
 
-    // Volání ARES API – podle parametru buď IČO nebo obchodní jméno (obch_jm)
-    const aresUrl = ico
-      ? `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?ico=${ico}`
-      : `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?obch_jm=${encodeURIComponent(name!)}&maxpoc=10`;
-    
-    const response = await fetch(aresUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'KostKa-ARES-Proxy/1.0',
-        'Accept': 'application/xml, text/xml, */*'
-      },
-      // Timeout po 10 sekundách
-      signal: AbortSignal.timeout(10000)
-    });
+    const baseUrls = [
+      `https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi${target}`,
+      // Některé proxy jako nouzový server-side fallback (mimo prohlížečové CORS limity)
+      `https://api.allorigins.win/raw?url=${encodeURIComponent('https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi' + target)}`,
+      `https://cors.isomorphic-git.org/https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi${target}`,
+      `https://yacdn.org/proxy/https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi${target}`
+    ];
 
-    if (!response.ok) {
-      console.error(`❌ ARES API error: ${response.status} ${response.statusText}`);
-      return {
-        statusCode: response.status,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          error: `ARES API returned status ${response.status}`,
-          details: response.statusText
-        })
-      };
+    const makeRequest = async (url: string, attempt: number) => {
+      const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 KostKa-ARES-Proxy/1.0';
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': ua,
+          'Accept': 'application/xml, text/xml, */*',
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!res.ok) {
+        throw new Error(`ARES HTTP ${res.status} ${res.statusText}`);
+      }
+      const text = await res.text();
+      if (!text || text.length < 100) {
+        throw new Error('Empty or too short XML');
+      }
+      return text;
+    };
+
+    let lastErr: unknown = null;
+    for (let i = 0; i < baseUrls.length; i++) {
+      const url = baseUrls[i];
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          console.log(`🔗 ARES try ${i + 1}/${baseUrls.length} (attempt ${attempt}): ${url.substring(0, 120)}`);
+          const xmlData = await makeRequest(url, attempt);
+          console.log(`✅ ARES OK (${xmlData.length} chars)`);
+          return { statusCode: 200, headers, body: xmlData };
+        } catch (e) {
+          lastErr = e;
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn(`⚠️ ARES fetch failed [source ${i + 1}, attempt ${attempt}]: ${msg}`);
+          // krátký backoff
+          await new Promise(r => setTimeout(r, 300 * attempt));
+        }
+      }
     }
 
-    // Získání XML dat
-    const xmlData = await response.text();
-    
-    // Kontrola zda obsahuje data
-    if (!xmlData || xmlData.length < 100) {
-      console.warn(`⚠️ ARES vrátil podezřele krátká data pro IČO ${ico}`);
-      return {
-        statusCode: 404,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          error: 'No data found for this IČO',
-          ico: ico
-        })
-      };
-    }
-
-    console.log(`✅ ARES proxy: Úspěšně načteno ${xmlData.length} znaků XML dat pro IČO ${ico}`);
-
-    // Vrácení XML dat
+    console.error('❌ ARES proxy: all attempts failed', lastErr);
     return {
-      statusCode: 200,
-      headers,
-      body: xmlData
+      statusCode: 503,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        error: 'Network error - Cannot reach ARES API',
+        details: lastErr instanceof Error ? lastErr.message : String(lastErr || 'unknown'),
+        timestamp: new Date().toISOString()
+      })
     };
 
   } catch (error) {
