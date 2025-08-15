@@ -25,6 +25,7 @@ interface LoanData {
   advisor?: string;
   advisor_agency_number?: string;
   interest_rate?: number | string;
+  property_value?: number | string;
 }
 
 export class SimpleBohemikaService {
@@ -186,7 +187,18 @@ export class SimpleBohemikaService {
     const clientName = `${client.applicant_first_name || ''} ${client.applicant_last_name || ''}`.trim();
 
     const sanitize = (t?: string) => (t ? (forceSanitize ? this.removeDiacritics(t) : t) : '');
-  const currency = (n?: number) => (n ? `${n} Kč` : '');
+    const parseNumber = (v?: number | string): number | undefined => {
+      if (v === undefined || v === null || v === '') return undefined;
+      if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+      const cleaned = v.replace(/\s+/g, '').replace(',', '.');
+      const n = parseFloat(cleaned);
+      return Number.isNaN(n) ? undefined : n;
+    };
+    const currency = (v?: number | string) => {
+      const n = parseNumber(v);
+      if (n === undefined) return '';
+      return `${n.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })} Kč`;
+    };
     // převod na procenta s ohledem na různé vstupy (0.8 -> 80 %, "80" -> 80 %, "80%" -> 80 %)
     const percentSmart = (v?: number | string, opts?: { maxFractionDigits?: number }) => {
       if (v === undefined || v === null || v === '') return '';
@@ -220,15 +232,26 @@ export class SimpleBohemikaService {
     };
 
     // aliasy a robustní odvození hodnot
-    const advisorName = get(loan, ['advisor', 'advisor_name', 'advisorName']) || '';
-    let advisorAgency = get(loan, ['advisor_agency_number', 'advisorAgencyNumber', 'advisor_agencyNumber']) || '';
+  const advisorName = get(loan, ['advisor', 'advisor_name', 'advisorName']) || '';
+  let advisorAgency = get(loan, ['advisor_agency_number', 'advisorAgencyNumber', 'advisor_agencyNumber']) || '';
     if (!advisorAgency && advisorName) {
       // pokusit se vytáhnout číslo z tvaru "Jméno Příjmení - 8680020061" nebo "Jméno (8680020061)"
       const m = advisorName.match(/(?:-|\(|\b)\s*(\d{5,})\s*(?:\)|$)/);
       if (m) advisorAgency = m[1];
     }
     const interestVal = get(loan, ['interest_rate', 'interestRate', 'urok']);
-    const ltvVal = get(loan, ['ltv', 'LTV', 'ltvPercent']);
+    // Získej částky a ocenění pro případný výpočet LTV
+    const amountVal = get(loan, ['amount', 'loan_amount', 'loanAmount']);
+    const propertyVal = get(loan, ['property_value', 'propertyValue', 'oceneni', 'ocenění']);
+    // Preferuj zadané LTV, jinak dopočítej z amount/property_value
+    let ltvVal = get(loan, ['ltv', 'LTV', 'ltvPercent']);
+    if (!ltvVal) {
+      const a = parseNumber(amountVal);
+      const p = parseNumber(propertyVal);
+      if (a && p && p > 0) {
+        ltvVal = String((a / p) * 100);
+      }
+    }
     const defaultProduct = 'Např. Hypoteční úvěr';
 
     const formData: Record<string, string> = {
@@ -244,6 +267,12 @@ export class SimpleBohemikaService {
       'Produkt': sanitize(loan.product || defaultProduct),
       'fill_21': currency(loan.amount),
       'fill_22': currency(loan.amount),
+  // Suma zjištění / Hodnota nemovitosti – ocenění
+  'Suma zjištění': currency(propertyVal),
+  'Suma zjisteni': currency(propertyVal),
+  'Hodnota nemovitosti': currency(propertyVal),
+  'Hodnota nemovitosti (ocenění)': currency(propertyVal),
+  'Hodnota nemovitosti (oceneni)': currency(propertyVal),
       // LTV – škálování 0–1 -> 0–100 %
       'LTV': percentSmart(ltvVal, { maxFractionDigits: 2 }),
       'ltv': percentSmart(ltvVal, { maxFractionDigits: 2 }), // alternativní název pole (pro jinou šablonu)
