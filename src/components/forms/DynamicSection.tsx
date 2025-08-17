@@ -417,7 +417,77 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
       {/* Vertical Stack Content */}
       <div className="space-y-6">
-        {/* 1. Základní Parametry (Basic Parameters) Section */}
+        {/* 1. Úkoly (Tasks) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <CheckSquare className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Úkoly</h3>
+            </div>
+            <div className="flex items-center space-x-2 w-1/2">
+              <input
+                type="text"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                placeholder="Nový úkol..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addTask();
+                }}
+              />
+              <button
+                onClick={addTask}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600"
+                disabled={!newTaskTitle.trim()}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Přidat
+              </button>
+            </div>
+          </div>
+          
+          <div className="mt-3">
+            {tasks.length > 0 ? (
+              <ul className="space-y-2">
+                {tasks.map((task) => (
+                  <li key={task.id} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        className="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400"
+                        title={task.done ? "Označit jako nesplněné" : "Označit jako splněné"}
+                      >
+                        {task.done ? (
+                          <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-500" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
+                      </button>
+                      <span className={`${task.done ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                        {task.title}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                      title="Smazat úkol"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                <CheckSquare className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                <p>Žádné úkoly</p>
+                <p className="text-sm">Přidejte první úkol pomocí pole výše</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 2. Základní Parametry (Basic Parameters) Section */}
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2 mb-4">
             <Calculator className="w-5 h-5 text-green-600" />
