@@ -7,6 +7,13 @@ export interface DynamicSectionContent {
     url: string;
     title?: string;
   }>;
+  tasks?: Array<{
+    id: string;
+    title: string;
+    done: boolean;
+    createdAt: string;
+    doneAt?: string;
+  }>;
   basicParameters?: {
     financingPurpose?: string;
     requestedLoanAmount?: number;
@@ -46,7 +53,7 @@ export class DynamicSectionService {
   /**
    * Fetches all dynamic sections for a client
    */
-  static async getDynamicSections(clientId: string): Promise<{ data: DynamicSection[] | null; error: any }> {
+  static async getDynamicSections(clientId: string): Promise<{ data: DynamicSection[] | null; error: unknown }> {
     if (!clientId) {
       return { data: [], error: null };
     }
@@ -80,11 +87,12 @@ export class DynamicSectionService {
     clientId: string, 
     sectionName: string, 
     orderIndex: number
-  ): Promise<{ data: DynamicSection | null; error: any }> {
+  ): Promise<{ data: DynamicSection | null; error: unknown }> {
     try {
       const defaultContent: DynamicSectionContent = {
         notes: '',
         links: [],
+  tasks: [],
         basicParameters: {},
         files: [],
         generalFields: []
@@ -117,7 +125,7 @@ export class DynamicSectionService {
       content?: DynamicSectionContent;
       order_index?: number;
     }
-  ): Promise<{ data: DynamicSection | null; error: any }> {
+  ): Promise<{ data: DynamicSection | null; error: unknown }> {
     try {
       const { data, error } = await supabase
         .from('client_dynamic_sections')
@@ -135,7 +143,7 @@ export class DynamicSectionService {
   /**
    * Deletes a dynamic section
    */
-  static async deleteDynamicSection(sectionId: string): Promise<{ error: any }> {
+  static async deleteDynamicSection(sectionId: string): Promise<{ error: unknown }> {
     try {
       const { error } = await supabase
         .from('client_dynamic_sections')
@@ -153,7 +161,7 @@ export class DynamicSectionService {
    */
   static async reorderSections(
     sections: Array<{ id: string; order_index: number }>
-  ): Promise<{ error: any }> {
+  ): Promise<{ error: unknown }> {
     try {
       const updates = sections.map(section => 
         supabase
@@ -164,8 +172,8 @@ export class DynamicSectionService {
 
       await Promise.all(updates);
       return { error: null };
-    } catch (error) {
-      return { error };
+    } catch (err) {
+      return { error: err };
     }
   }
 

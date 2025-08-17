@@ -13,6 +13,8 @@ import {
   Upload, 
   ExternalLink,
   Calculator,
+  CheckSquare,
+  Square
 
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
@@ -44,6 +46,30 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showLinkDeleteConfirm, setShowLinkDeleteConfirm] = useState<string | null>(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const tasks = content.tasks || [];
+
+  const updateTasks = async (newTasks: typeof tasks) => {
+    await updateContent({ ...content, tasks: newTasks });
+  };
+
+  const addTask = async () => {
+    const title = newTaskTitle.trim();
+    if (!title) return;
+    const newTasks = [...tasks, { id: `task-${Date.now()}`, title, done: false, createdAt: new Date().toISOString() }];
+    setNewTaskTitle('');
+    await updateTasks(newTasks);
+  };
+
+  const toggleTask = async (id: string) => {
+    const newTasks = tasks.map(t => t.id === id ? { ...t, done: !t.done, doneAt: !t.done ? new Date().toISOString() : undefined } : t);
+    await updateTasks(newTasks);
+  };
+
+  const deleteTask = async (id: string) => {
+    const newTasks = tasks.filter(t => t.id !== id);
+    await updateTasks(newTasks);
+  };
 
   const updateContent = async (newContent: DynamicSectionContent) => {
     setContent(newContent);
@@ -72,10 +98,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     toast?.showSuccess('Poznámky uloženy', 'Poznámky byly úspěšně aktualizovány');
   };
 
-  const updateNotes = async (notes: string) => {
-    const newContent = { ...content, notes };
-    setContent(newContent);
-  };
+  // updateNotes removed (unused)
 
   const addLink = async () => {
     const newLink = {
@@ -169,14 +192,12 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
       await updateContent(newContent);
       
       toast?.showSuccess('Soubory nahrány', `Úspěšně nahráno ${uploadedFiles.length} souborů`);
-    } catch (error) {
+  } catch (error) {
       console.error('File upload error:', error);
       const err = error as Error;
       toast?.showError('Chyba při nahrávání', err.message || 'Neznámá chyba');
     } finally {
       setIsUploading(false);
-      // Reset file input
-      event.target.value = '';
     }
   };
 
@@ -574,6 +595,81 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               </div>
             )}
           </div>
+        </div>
+
+        {/* 2b. Úkoly (Tasks) Section */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <CheckSquare className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Seznam úkolů</h3>
+            </div>
+            {tasks.length > 0 && (
+              <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                {Math.round((tasks.filter(t => t.done).length / tasks.length) * 100)}% dokončeno
+              </div>
+            )}
+          </div>
+          <div className="flex mb-4 space-x-2">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addTask(); }}
+              placeholder="Nový úkol..."
+              className="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            <button
+              onClick={addTask}
+              disabled={!newTaskTitle.trim()}
+              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Přidat
+            </button>
+          </div>
+          {tasks.length === 0 ? (
+            <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">Žádné úkoly. Přidejte první...</div>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-600">
+              {tasks.map(task => (
+                <li key={task.id} className="flex items-center py-2 group">
+                  <button
+                    onClick={() => toggleTask(task.id)}
+                    className="mr-3 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    title={task.done ? 'Odznačit' : 'Dokončit'}
+                  >
+                    {task.done ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                  </button>
+                  <span
+                    onClick={() => toggleTask(task.id)}
+                    className={`flex-1 text-sm cursor-pointer select-none ${task.done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'}`}
+                  >
+                    {task.title}
+                  </span>
+                  <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {task.done && task.doneAt && (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden md:inline" title={new Date(task.doneAt).toLocaleString('cs-CZ')}>✓ {new Date(task.doneAt).toLocaleDateString('cs-CZ')}</span>
+                    )}
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      title="Smazat úkol"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {tasks.length > 0 && (
+            <div className="mt-4 grid grid-flow-col auto-cols-fr gap-px rounded-full bg-gray-300 dark:bg-gray-600 p-px" aria-label="Progress">
+              {tasks.map(t => (
+                <span key={t.id} className={`h-1 rounded-full ${t.done ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-white dark:bg-gray-700'}`} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 3. Odkazy (Links) Section */}
