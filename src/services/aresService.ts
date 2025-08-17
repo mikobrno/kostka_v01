@@ -15,20 +15,23 @@ export interface AresCompanyData {
 
 export class AresService {
   private static readonly ARES_BASE_URL = 'https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi';
-  // Alternativní CORS proxy služby
-  private static readonly CORS_PROXIES = [
-    // Náš vlastní Netlify proxy (nejspolehlivější)
-    '/.netlify/functions/ares-proxy?ico=',
-    // Backup proxy služby
-    'https://api.allorigins.win/raw?url=',
-    'https://thingproxy.freeboard.io/fetch/',
-    'https://cors.bridged.cc/',
-    'https://yacdn.org/proxy/',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    // Backup proxies
-    'https://corsproxy.io/?',
-    'https://cors-anywhere.herokuapp.com/'
-  ];
+  // Výběr CORS proxy podle prostředí; defaultně jen naše Netlify funkce
+  private static get CORS_PROXIES(): string[] {
+    // Vite exportuje import.meta.env jako záznam; vyhneme se 'any' pomocí částečného typu
+    const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
+    const allowPublic = env.VITE_ARES_PUBLIC_PROXIES === '1';
+    const base = ['/.netlify/functions/ares-proxy?ico='];
+    if (!allowPublic) return base;
+    return base.concat([
+      'https://api.allorigins.win/raw?url=',
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://cors.bridged.cc/',
+      'https://yacdn.org/proxy/',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://corsproxy.io/?',
+      'https://cors-anywhere.herokuapp.com/'
+    ]);
+  }
 
   /**
    * Vyhledá firmu podle IČO v ARES registru
@@ -52,10 +55,11 @@ export class AresService {
       
       // Zkouším různé CORS proxy postupně
       let lastError = '';
-      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
-        const proxy = this.CORS_PROXIES[i];
+      const proxies = this.CORS_PROXIES;
+      for (let i = 0; i < proxies.length; i++) {
+        const proxy = proxies[i];
         try {
-          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${this.CORS_PROXIES.length}: ${proxy.split('?')[0]}`);
+          console.log(`🔄 Zkouším CORS proxy ${i + 1}/${proxies.length}: ${proxy.split('?')[0]}`);
           
           let url: string;
           
@@ -113,6 +117,53 @@ export class AresService {
       // V případě chyby zkusí mock data
       console.warn('🔄 Používám mock data kvůli chybě');
       return this.getMockData(ico);
+    }
+  }
+
+  /**
+   * Vyhledá firmy podle obchodního jména (název firmy) – vrací seznam výsledků
+   */
+  static async searchByName(query: string): Promise<{ data: AresCompanyData[]; error: string | null }> {
+    try {
+      const q = (query || '').trim();
+      if (q.length < 3) {
+        return { data: [], error: 'Zadejte alespoň 3 znaky názvu' };
+      }
+
+      const aresUrl = `${this.ARES_BASE_URL}?obch_jm=${encodeURIComponent(q)}&maxpoc=10`;
+      console.log('🔎 Hledám firmy dle názvu v ARES:', q);
+
+      let lastError = '';
+      const proxies = this.CORS_PROXIES;
+      for (let i = 0; i < proxies.length; i++) {
+        const proxy = proxies[i];
+        try {
+          let url: string;
+          if (proxy.startsWith('/.netlify/functions/ares-proxy')) {
+            // náš proxy podporuje name=
+            url = `/.netlify/functions/ares-proxy?name=${encodeURIComponent(q)}`;
+          } else {
+            url = `${proxy}${encodeURIComponent(aresUrl)}`;
+          }
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Accept': 'application/xml, text/xml' }
+          });
+          if (!response.ok) throw new Error(`ARES API error: ${response.status} ${response.statusText}`);
+          const xmlText = await response.text();
+          const list = this.parseAresXmlList(xmlText);
+          return { data: list, error: null };
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : 'Neznámá chyba';
+          console.warn(`❌ Proxy ${i + 1} (name) selhalo:`, lastError);
+        }
+      }
+      // Fallback – žádné proxy nevyšlo, vrať prázdný výsledek
+      return { data: [], error: lastError || 'Nepodařilo se vyhledat firmy' };
+    } catch (error) {
+      console.error('❌ Chyba při vyhledávání dle názvu v ARES:', error);
+      return { data: [], error: 'Chyba při vyhledávání' };
     }
   }
 
@@ -242,6 +293,49 @@ export class AresService {
     
     console.log(`⚠️ Nenalezen element: ${tagName}`);
     return null;
+  }
+
+  /**
+   * Zpracuje XML výpis s více záznamy firem (výsledek hledání dle názvu)
+   */
+  private static parseAresXmlList(xmlText: string): AresCompanyData[] {
+    const results: AresCompanyData[] = [];
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const errorElement = xmlDoc.querySelector('parsererror');
+      if (errorElement) {
+        console.error('❌ XML parser error (list):', errorElement.textContent);
+        return results;
+      }
+      const zaznamNodes: Element[] = Array.from(xmlDoc.querySelectorAll('Zaznam'));
+      if (zaznamNodes.length === 0) {
+        // pokus o namespace varianty
+        const alt = xmlDoc.querySelectorAll('*[local-name="Zaznam"]');
+        zaznamNodes.push(...(Array.from(alt) as Element[]));
+      }
+      for (const z of zaznamNodes) {
+        const ico = this.getXmlElementText(z, 'ICO') || '';
+        const companyName = this.getXmlElementText(z, 'OF') || this.getXmlElementText(z, 'ObchodniFirma') || 'Neznámá firma';
+        const dic = this.getXmlElementText(z, 'DIC') || undefined;
+        const legalForm = this.getXmlElementText(z, 'PF') || undefined;
+        const address = this.buildAddressFromXml(z);
+        const datumZaniku = this.getXmlElementText(z, 'DZ');
+        const isActive = !datumZaniku;
+        results.push({
+          ico,
+          dic: dic || undefined,
+          companyName,
+          legalForm,
+          address,
+          isActive,
+          registrationDate: this.getXmlElementText(z, 'DV') || undefined
+        });
+      }
+    } catch (e) {
+      console.error('❌ Chyba parsování seznamu ARES:', e);
+    }
+    return results;
   }
 
   /**

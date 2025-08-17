@@ -19,7 +19,8 @@ export default defineConfig({
       '/.netlify/functions': {
         target: 'http://localhost:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/.netlify\/functions/, ''),
+  // Neprovádějte rewrite – Netlify dev očekává prefix '/.netlify/functions'
+  // takže požadavek zůstane jako '/.netlify/functions/<fn>'
       },
     },
   },
