@@ -755,7 +755,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Typ dokladu
@@ -826,6 +826,32 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Platnost do
+                </label>
+                <div className="flex relative">
+                  {/* Readonly formatted display */}
+                  <div className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm border-r-0 relative">
+                    {document.documentValidUntil ? formatDateDDMMYYYY(document.documentValidUntil) : ''}
+                  </div>
+                  {/* Invisible date input overlay */}
+                  <input
+                    type="date"
+                    value={document.documentValidUntil || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, documentValidUntil: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label="Vybrat datum platnosti dokladu"
+                  />
+                  <CopyButton text={document.documentValidUntil ? formatDateDDMMYYYY(document.documentValidUntil) : ''} title="Kopírovat platnost" />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                     Doklad vydal
                   </label>
                 <div className="flex">
@@ -892,40 +918,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Telefon
-          </label>
-          <div className="flex">
-            <input
-              type="tel"
-              value={data.phone || ''}
-              onChange={(e) => updateField('phone', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="+420 xxx xxx xxx"
-            />
-            <CopyButton text={data.phone || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <div className="flex">
-            <input
-              type="email"
-              value={data.email || ''}
-              onChange={(e) => updateField('email', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="email@example.com"
-            />
-            <CopyButton text={data.email || ''} />
-          </div>
-        </div>
       </div>
 
       <div>

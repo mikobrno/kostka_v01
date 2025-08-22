@@ -7,6 +7,10 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
   PYTHON_VERSION = "3.8"
+  # Supabase environment variables should be set in Netlify UI:
+  # Site settings → Environment variables → Add new
+  # VITE_SUPABASE_URL = your production supabase project URL
+  # VITE_SUPABASE_ANON_KEY = your production anon key
 
 [functions]
   # Enable Node.js 18.x runtime

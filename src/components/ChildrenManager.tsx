@@ -112,10 +112,13 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Věk
               </label>
-              <div className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
-                <span className="text-sm text-gray-600">
-                  {child.age ? `${child.age} let` : 'Zadejte datum'}
-                </span>
+              <div className="flex">
+                <div className="flex-1 flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-l-md border border-gray-300 dark:border-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {child.age ? `${child.age} let` : 'Zadejte datum'}
+                  </span>
+                </div>
+                <CopyButton text={child.age ? `${child.age} let` : ''} />
               </div>
             </div>
           </div>
