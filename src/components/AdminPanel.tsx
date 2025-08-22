@@ -127,10 +127,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
   const saveAdminList = async (listKey: string) => {
     setLoading(true);
     try {
+      console.log('🔄 Ukládání seznamu:', listKey, 'položky:', managedLists[listKey].items);
       const { data, error } = await AdminService.updateAdminList(listKey, managedLists[listKey].items);
       if (error) {
+        console.error('❌ Chyba při ukládání:', error);
         throw new Error(error.message || 'Chyba při ukládání');
       }
+      console.log('✅ Úspěšně uloženo:', data);
       toast?.showSuccess('Seznam uložen', `${managedLists[listKey].name} byl úspěšně aktualizován`);
     } catch (error) {
       console.error('Chyba při ukládání:', error);
