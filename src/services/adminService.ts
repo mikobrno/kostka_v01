@@ -22,13 +22,17 @@ export class AdminService {
         return { data: null, error: 'Uživatel není přihlášen' }
       }
 
+      // Použijeme upsert s onConflict na list_type, aby se záznam vložil pokud neexistuje
       const { data, error } = await supabase
         .from('admin_lists')
-        .update({
-          items,
-          updated_by: user.id
-        })
-        .eq('list_type', listType)
+        .upsert(
+          {
+            list_type: listType,
+            items,
+            updated_by: user.id
+          },
+          { onConflict: 'list_type' }
+        )
         .select()
         .single()
 

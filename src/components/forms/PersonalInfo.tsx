@@ -16,6 +16,17 @@ interface PersonalInfoProps {
   toast?: any;
 }
 
+// Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
+export const formatDateDDMMYYYY = (dateStr?: string | null) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+};
+
 export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
@@ -186,6 +197,17 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     return { age, birthYear: fullYear, birthDate: formattedBirthDate };
   };
 
+  // Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
+  const formatDateDDMMYYYY = (dateStr?: string | null) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  };
+
   const updateField = (field: string, value: any) => {
     const updated = { ...data, [field]: value };
     
@@ -203,12 +225,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       }
     }
     
-    // Auto-set document validity to +10 years
+    // Auto-set document validity to +10 years, but only when not manually specified
     if (field === 'documentIssueDate' && value) {
-      const issueDate = new Date(value);
-      const validityDate = new Date(issueDate);
-      validityDate.setFullYear(validityDate.getFullYear() + 10);
-      updated.documentValidUntil = validityDate.toISOString().split('T')[0];
+      if (!updated.documentValidUntil) {
+        const issueDate = new Date(value);
+        const validityDate = new Date(issueDate);
+        validityDate.setFullYear(validityDate.getFullYear() + 10);
+        updated.documentValidUntil = validityDate.toISOString().split('T')[0];
+      }
     }
     
     onChange(updated);
@@ -318,11 +342,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               value={data.title || ''}
               onChange={(e) => updateField('title', e.target.value)}
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              title="Titul"
             >
               <option value="">Vyberte titul</option>
-              {adminLists.titles.map(title => (
-                <option key={title} value={title}>{title}</option>
-              ))}
+                  {adminLists.titles.map((title: string) => (
+                    <option key={title} value={title}>{title}</option>
+                  ))}
             </select>
             <CopyButton text={data.title || ''} />
           </div>
@@ -355,7 +380,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte stav</option>
-              {adminLists.maritalStatuses.map(status => (
+              {adminLists.maritalStatuses.map((status: string) => (
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
@@ -374,7 +399,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte občanství</option>
-              {adminLists.citizenships.map(citizenship => (
+              {adminLists.citizenships.map((citizenship: string) => (
                 <option key={citizenship} value={citizenship}>{citizenship}</option>
               ))}
             </select>
@@ -393,7 +418,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte druh bydlení</option>
-              {adminLists.housingTypes.map(type => (
+              {adminLists.housingTypes.map((type: string) => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
@@ -412,7 +437,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte vzdělání</option>
-              {adminLists.educationLevels.map(level => (
+              {adminLists.educationLevels.map((level: string) => (
                 <option key={level} value={level}>{level}</option>
               ))}
             </select>
@@ -467,6 +492,41 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       )}
 
+      {/* Telefon a Email (přesunuto pod tlačítko kopírování jména) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Telefon
+          </label>
+          <div className="flex">
+            <input
+              type="tel"
+              value={data.phone || ''}
+              onChange={(e) => updateField('phone', e.target.value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
+              placeholder="+420 xxx xxx xxx"
+            />
+            <CopyButton text={data.phone || ''} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <div className="flex">
+            <input
+              type="email"
+              value={data.email || ''}
+              onChange={(e) => updateField('email', e.target.value)}
+              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
+              placeholder="email@example.com"
+            />
+            <CopyButton text={data.email || ''} />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -518,7 +578,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
             <Calendar className="w-4 h-4 text-gray-400 mr-2" />
             <span className="text-sm text-gray-600">
-              {data.birthDate ? new Date(data.birthDate).toLocaleDateString('cs-CZ') : 'Automaticky z rodného čísla'}
+              {data.birthDate ? formatDateDDMMYYYY(data.birthDate) : 'Automaticky z rodného čísla'}
             </span>
           </div>
         </div>
@@ -561,7 +621,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="">Vyberte typ</option>
-              {adminLists.documentTypes.map(type => (
+              {adminLists.documentTypes.map((type: string) => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
@@ -608,15 +668,25 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         <div className="flex w-full">
           <div className="flex-1 min-w-0 relative">
             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {/* Visible, formatted text to keep previous look */}
             <input
               type="text"
-              value={data.documentValidUntil ? new Date(data.documentValidUntil).toLocaleDateString('cs-CZ') : ''}
+              value={data.documentValidUntil ? formatDateDDMMYYYY(data.documentValidUntil) : ''}
               readOnly
               className="block w-full pl-10 rounded-l-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm"
               placeholder="Automaticky +10 let od vydání"
+              title="Platnost dokladu"
+            />
+            {/* Transparent date input overlayed so user can pick a date while look remains the same */}
+            <input
+              type="date"
+              value={data.documentValidUntil || ''}
+              onChange={(e) => updateField('documentValidUntil', e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              aria-label="Vybrat datum platnosti dokladu"
             />
           </div>
-          <CopyButton text={data.documentValidUntil ? new Date(data.documentValidUntil).toLocaleDateString('cs-CZ') : ''} />
+          <CopyButton text={data.documentValidUntil ? formatDateDDMMYYYY(data.documentValidUntil) : ''} title="Kopírovat platnost" />
         </div>
       </div>
 
@@ -649,7 +719,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </button>
         </div>
         
-        {(data.documents || []).map((document, index) => (
+  {(data.documents || []).map((document: any, index: number) => (
           <div key={document.id} className="bg-gray-50 rounded-lg p-4 border mb-4">
             <div className="flex justify-between items-center mb-4">
               <h5 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -690,110 +760,134 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Typ dokladu
                 </label>
-                <select
-                  value={document.documentType || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, documentType: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
-                  <option value="">Vyberte typ</option>
-                  {adminLists.documentTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                <div className="flex">
+                  <select
+                    value={document.documentType || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, documentType: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    title="Typ dokladu"
+                  >
+                    <option value="">Vyberte typ</option>
+                          {adminLists.documentTypes.map((type: string) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                  </select>
+                  <CopyButton text={document.documentType || ''} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Číslo dokladu
                 </label>
-                <input
-                  type="text"
-                  value={document.documentNumber || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, documentNumber: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Číslo dokladu"
-                />
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={document.documentNumber || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, documentNumber: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="Číslo dokladu"
+                    title="Číslo dokladu"
+                  />
+                  <CopyButton text={document.documentNumber || ''} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Datum vydání
                 </label>
-                <input
-                  type="date"
-                  value={document.documentIssueDate || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, documentIssueDate: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
+                <div className="flex">
+                  <input
+                    type="date"
+                    value={document.documentIssueDate || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, documentIssueDate: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    title="Datum vydání dokladu"
+                  />
+                  <CopyButton text={document.documentIssueDate || ''} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vydáno kým
-                </label>
-                <input
-                  type="text"
-                  value={document.issuingAuthority || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, issuingAuthority: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Magistrát města Brna"
-                />
+                    Doklad vydal
+                  </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={document.issuingAuthority || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, issuingAuthority: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="Kdo doklad vydal"
+                    title="Doklad vydal"
+                  />
+                  <CopyButton text={document.issuingAuthority || ''} title="Kopírovat vydavatele" />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Místo narození
                 </label>
-                <input
-                  type="text"
-                  value={document.placeOfBirth || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Praha"
-                />
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={document.placeOfBirth || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="Praha"
+                    title="Místo narození"
+                  />
+                  <CopyButton text={document.placeOfBirth || ''} title="Kopírovat místo narození" />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Kontrolní číslo OP
                 </label>
-                <input
-                  type="text"
-                  value={document.controlNumber || ''}
-                  onChange={(e) => {
-                    const updatedDocuments = (data.documents || []).map(d => 
-                      d.id === document.id ? { ...d, controlNumber: e.target.value } : d
-                    );
-                    updateField('documents', updatedDocuments);
-                  }}
-                  className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="ABC123"
-                />
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={document.controlNumber || ''}
+                    onChange={(e) => {
+                      const updatedDocuments = (data.documents || []).map((d: any) => 
+                        d.id === document.id ? { ...d, controlNumber: e.target.value } : d
+                      );
+                      updateField('documents', updatedDocuments);
+                    }}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="ABC123"
+                    title="Kontrolní číslo"
+                  />
+                  <CopyButton text={document.controlNumber || ''} title="Kopírovat kontrolní číslo" />
+                </div>
               </div>
             </div>
           </div>
@@ -908,13 +1002,13 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
         </div>
         
-        {(data.businesses || []).map((business, index) => (
+  {(data.businesses || []).map((business: any, index: number) => (
           <BusinessDisplay
             key={business.id}
             business={business}
             index={index}
             onUpdate={(updatedBusiness) => {
-              const updatedBusinesses = (data.businesses || []).map(b => 
+              const updatedBusinesses = (data.businesses || []).map((b: any) => 
                 b.id === business.id ? updatedBusiness : b
               );
               updateField('businesses', updatedBusinesses);
@@ -1113,7 +1207,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
         
         <div className="space-y-3">
-          {(data.extraFields || []).map((field, index) => (
+    {(data.extraFields || []).map((field: any, index: number) => (
             <ExtraFieldDisplay
               key={field.id}
               field={field}
@@ -1354,7 +1448,7 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
         </div>
 
         <div className="space-y-3">
-          <div>
+              <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               IČO *
             </label>
@@ -1369,16 +1463,14 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
                     fetchAresData(ico);
                   }
                 }}
-                className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm rounded-l-md"
                 placeholder="12345678"
                 maxLength={8}
-                style={{ borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}
               />
               <button
                 onClick={() => fetchAresData(editData.ico)}
                 disabled={isLoadingAres || editData.ico?.length !== 8}
-                className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ borderTopRightRadius: '0.375rem', borderBottomRightRadius: '0.375rem' }}
+                className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
               >
                 {isLoadingAres ? (
                   <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
@@ -1481,9 +1573,9 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
             <span className="text-gray-500">Začátek podnikání:</span>
             <div className="flex items-center space-x-2">
               <span className="text-gray-900 dark:text-white">
-                {business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : 'Neuvedeno'}
+                {business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : 'Neuvedeno'}
               </span>
-              <CopyButton text={business.businessStartDate ? new Date(business.businessStartDate).toLocaleDateString('cs-CZ') : ''} />
+              <CopyButton text={business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''} />
             </div>
           </div>
         </div>
