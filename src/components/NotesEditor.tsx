@@ -1,8 +1,6 @@
 
 
 import React from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 
 interface NotesEditorProps {
   value?: string;
@@ -23,19 +21,12 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         <span className="w-5 h-5 text-blue-600">📝</span>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">Poznámky</h3>
       </div>
-      <ReactQuill
+      <textarea
         value={value}
-        onChange={onChange}
+        onChange={(e: any) => onChange(e.target.value)}
         placeholder={placeholder}
-        theme="snow"
-        modules={{
-          toolbar: [
-            ['bold', 'italic', 'underline'],
-            [{ list: 'bullet' }, { list: 'ordered' }],
-            ['clean'],
-          ],
-        }}
-        className="min-h-[200px] bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
+        rows={8}
+        className="w-full min-h-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 p-3 resize-vertical"
       />
     </div>
   );

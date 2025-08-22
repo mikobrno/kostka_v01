@@ -11,7 +11,13 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['draft-js'],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          pdf: ['pdf-lib', '@pdf-lib/fontkit', 'jspdf'],
+          supabase: ['@supabase/supabase-js']
+        }
+      }
     },
   },
   server: {
