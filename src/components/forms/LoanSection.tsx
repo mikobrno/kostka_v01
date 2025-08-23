@@ -334,13 +334,28 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            Hodnota nemovitosti - ocenění (Kč)
+          </label>
+          <div className="flex">
+            <FormattedNumberInput
+              value={data.propertyValue || propertyPrice || ''}
+              onChange={(value) => updateField('propertyValue', value)}
+              className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              placeholder="2 000 000"
+            />
+            <CopyButton text={data.propertyValue ? formatNumber(data.propertyValue) : (propertyPrice ? formatNumber(propertyPrice.toString()) : '')} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Výše úvěru (Kč)
           </label>
-      <div className="flex">
+          <div className="flex">
             <FormattedNumberInput
               value={data.loanAmount || ''}
               onChange={(value) => updateField('loanAmount', value)}
-        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+              className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="1 500 000"
             />
             <CopyButton text={data.loanAmount ? formatNumber(data.loanAmount) : ''} />
@@ -421,21 +436,6 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Hodnota nemovitosti - ocenění (Kč)
-          </label>
-          <div className="flex">
-            <FormattedNumberInput
-              value={data.propertyValue || propertyPrice || ''}
-              onChange={(value) => updateField('propertyValue', value)}
-        className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
-              placeholder="2 000 000"
-            />
-            <CopyButton text={data.propertyValue ? formatNumber(data.propertyValue) : (propertyPrice ? formatNumber(propertyPrice.toString()) : '')} />
-          </div>
-        </div>
-
-        <div>
           <label htmlFor="maturityYears" className="block text-sm font-medium text-gray-700 mb-1">
             Doba splatnosti (roky)
           </label>
@@ -477,11 +477,11 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
       {/* LTV Výpočet */}
       {(data.loanAmount && (data.propertyValue || propertyPrice)) && (
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="flex items-center space-x-2 mb-4">
             <Calculator className="w-5 h-5 text-green-600" />
             <h4 className="text-sm font-medium text-green-900">Výpočet LTV</h4>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
             <div>
               <span className="text-green-700">Výše úvěru:</span>
               <div className="font-medium">{parseInt(data.loanAmount || '0').toLocaleString('cs-CZ')} Kč</div>
@@ -493,6 +493,42 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
             <div>
               <span className="text-green-700 dark:text-green-400">LTV poměr:</span>
               <div className="font-bold text-lg text-green-800 dark:text-green-300">{calculateLTV()}%</div>
+            </div>
+          </div>
+          
+          {/* Výpočet vlastních zdrojů pro 80% a 90% LTV */}
+          <div className="border-t border-green-200 pt-4">
+            <h5 className="text-sm font-medium text-green-900 mb-3">Vlastní zdroje při různých LTV</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg p-3 border border-green-200">
+                <div className="text-xs text-green-600 mb-1">LTV 80%</div>
+                <div className="font-semibold text-green-800">
+                  {(() => {
+                    const propertyVal = data.propertyValue ? parseInt(data.propertyValue) : (propertyPrice ?? 0);
+                    const maxLoan80 = Math.floor(propertyVal * 0.8);
+                    const ownFunds80 = propertyVal - maxLoan80;
+                    return `${ownFunds80.toLocaleString('cs-CZ')} Kč`;
+                  })()}
+                </div>
+                <div className="text-xs text-green-600">
+                  Vlastní zdroje (20%)
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-3 border border-green-200">
+                <div className="text-xs text-green-600 mb-1">LTV 90%</div>
+                <div className="font-semibold text-green-800">
+                  {(() => {
+                    const propertyVal = data.propertyValue ? parseInt(data.propertyValue) : (propertyPrice ?? 0);
+                    const maxLoan90 = Math.floor(propertyVal * 0.9);
+                    const ownFunds90 = propertyVal - maxLoan90;
+                    return `${ownFunds90.toLocaleString('cs-CZ')} Kč`;
+                  })()}
+                </div>
+                <div className="text-xs text-green-600">
+                  Vlastní zdroje (10%)
+                </div>
+              </div>
             </div>
           </div>
         </div>
