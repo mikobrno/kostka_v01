@@ -123,8 +123,8 @@ export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               className={`block w-full max-w-full pl-10 rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${className}`}
-              placeholder={apiError ? 'Chyba načítání API' : placeholder}
-              disabled={!!apiError}
+              placeholder={apiError ? 'Zadejte adresu ručně (Google Maps API nedostupné)' : placeholder}
+              disabled={false}
             />
             {(loading || !isApiLoaded) && !apiError && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
