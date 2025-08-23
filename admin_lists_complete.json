@@ -1,0 +1,142 @@
+﻿[
+    {
+        "id":  "32f6b347-51b5-4660-9693-405bad6402dd",
+        "list_type":  "marital_statuses",
+        "items":  [
+                      "svobodný/á",
+                      "ženatý/vdaná",
+                      "rozvedený/á",
+                      "vdovec/vdova",
+                      "partnerský svazek"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "4c6e8c3f-68e6-425c-a33c-13eaa158765f",
+        "list_type":  "banks",
+        "items":  [
+                      "Česká spořitelna",
+                      "Komerční banka",
+                      "ČSOB",
+                      "UniCredit Bank",
+                      "Raiffeisenbank",
+                      "mBank",
+                      "Fio banka",
+                      "Air Bank",
+                      "Equa bank"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "bac9937b-2c95-4af3-8fa4-ad13513ad6e9",
+        "list_type":  "institutions",
+        "items":  [
+                      "Česká spořitelna",
+                      "Komerční banka",
+                      "ČSOB",
+                      "UniCredit Bank",
+                      "Raiffeisenbank",
+                      "mBank",
+                      "Fio banka",
+                      "Air Bank",
+                      "Equa bank",
+                      "Cetelem",
+                      "Home Credit",
+                      "Provident",
+                      "Cofidis"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "ab61c3b0-c39a-4a1c-8070-06f0acaf2f70",
+        "list_type":  "liability_types",
+        "items":  [
+                      "hypotéka",
+                      "spotřebitelský úvěr",
+                      "kreditní karta",
+                      "kontokorent",
+                      "úvěr ze stavebního spoření",
+                      "leasing",
+                      "jiný"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "c79f33c9-fa54-4427-9188-1cdcbdf6676b",
+        "list_type":  "citizenships",
+        "items":  [
+                      "Česká republika",
+                      "Slovenská republika",
+                      "Německo",
+                      "Rakousko",
+                      "Polsko",
+                      "Maďarsko",
+                      "Ukrajina",
+                      "Rusko",
+                      "Jiné"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "fb13454b-96c5-4db9-9b54-7cd860d28e71",
+        "list_type":  "housing_types",
+        "items":  [
+                      "vlastní byt",
+                      "vlastní dům",
+                      "nájemní byt",
+                      "nájemní dům",
+                      "družstevní byt",
+                      "služební byt",
+                      "u rodičů/příbuzných",
+                      "jiné"
+                  ],
+        "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+        "updated_by":  null
+    },
+    {
+        "id":  "661fbb72-5dc3-4a75-8f22-3e6ad253b8e6",
+        "list_type":  "titles",
+        "items":  [
+                      "Bc.",
+                      "Mgr.",
+                      "Ing.",
+                      "MUDr.",
+                      "JUDr.",
+                      "PhDr.",
+                      "RNDr.",
+                      "Dr."
+                  ],
+        "updated_at":  "2025-07-26T18:50:07.661226+00:00",
+        "updated_by":  "980dcdc4-06f3-42d0-a1cf-ed37675589eb"
+    },
+    {
+        "id":  "457f5d0a-0914-457a-9c90-085458292ccf",
+        "list_type":  "advisors",
+        "items":  [
+                      "Ladislav Báča - 8680030222",
+                      "Ludmila Břečková - 8680020011",
+                      "Pavla Veselá Hanusová - 8680030310",
+                      "Ilona Suchomelová - 8680020000",
+                      "Báča Lukáš - 8680030997"
+                  ],
+        "updated_at":  "2025-08-13T19:44:34.266704+00:00",
+        "updated_by":  "980dcdc4-06f3-42d0-a1cf-ed37675589eb"
+    },
+    {
+        "id":  "db265865-8413-4ee8-907f-39adffcc4b8a",
+        "list_type":  "document_types",
+        "items":  [
+                      "občanský průkaz",
+                      "pas",
+                      "řidičský průkaz",
+                      "povolení k pobytu"
+                  ],
+        "updated_at":  "2025-08-23T07:16:23.882952+00:00",
+        "updated_by":  null
+    }
+]

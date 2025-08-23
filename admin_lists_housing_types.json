@@ -1,0 +1,16 @@
+﻿{
+    "id":  "fb13454b-96c5-4db9-9b54-7cd860d28e71",
+    "list_type":  "housing_types",
+    "items":  [
+                  "vlastní byt",
+                  "vlastní dům",
+                  "nájemní byt",
+                  "nájemní dům",
+                  "družstevní byt",
+                  "služební byt",
+                  "u rodičů/příbuzných",
+                  "jiné"
+              ],
+    "updated_at":  "2025-07-26T18:21:42.224016+00:00",
+    "updated_by":  null
+}

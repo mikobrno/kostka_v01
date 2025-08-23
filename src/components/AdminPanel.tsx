@@ -8,14 +8,17 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
-  const [activeList, setActiveList] = useState('titles');
+  type ManagedListItem = { name: string; items: string[]; isAdvanced?: boolean };
+  type ManagedLists = Record<string, ManagedListItem>;
+
+  const [activeList, setActiveList] = useState<string>('titles');
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [managedLists, setManagedLists] = useState({});
+  const [newItem, setNewItem] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [managedLists, setManagedLists] = useState<ManagedLists>({} as ManagedLists);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{listKey: string, index: number} | null>(null);
 
-  const defaultLists = {
+  const defaultLists: ManagedLists = {
     titles: {
       name: 'Tituly',
       items: ['Bc.', 'Mgr.', 'Ing.', 'MUDr.', 'JUDr.', 'PhDr.', 'RNDr.', 'Dr.']
@@ -76,10 +79,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
       }
 
       if (data) {
-        const updatedLists = { ...defaultLists };
-        data.forEach(item => {
-          if (updatedLists[item.list_type]) {
-            updatedLists[item.list_type].items = item.items;
+        // map DB list_type (snake_case) to frontend keys
+        const frontendToDb: Record<string, string> = {
+          titles: 'titles',
+          maritalStatuses: 'marital_statuses',
+          documentTypes: 'document_types',
+          banks: 'banks',
+          institutions: 'institutions',
+          liabilityTypes: 'liability_types',
+          advisors: 'advisors',
+          citizenships: 'citizenships',
+          housingTypes: 'housing_types'
+        };
+
+        const dbToFrontend: Record<string, string> = Object.fromEntries(
+          Object.entries(frontendToDb).map(([k, v]) => [v, k])
+        );
+
+        const updatedLists: ManagedLists = { ...defaultLists };
+        data.forEach((item: any) => {
+          const frontKey = dbToFrontend[item.list_type] || item.list_type;
+          if (updatedLists[frontKey]) {
+            updatedLists[frontKey].items = item.items;
           }
         });
         setManagedLists(updatedLists);
@@ -94,7 +115,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
   const addItem = (listKey: string) => {
     if (!newItem.trim()) return;
     
-    setManagedLists(prev => ({
+    setManagedLists((prev: ManagedLists) => ({
       ...prev,
       [listKey]: {
         ...prev[listKey],
@@ -105,21 +126,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
   };
 
   const removeItem = (listKey: string, index: number) => {
-    setManagedLists(prev => ({
+    setManagedLists((prev: ManagedLists) => ({
       ...prev,
       [listKey]: {
         ...prev[listKey],
-        items: prev[listKey].items.filter((_, i) => i !== index)
+        items: prev[listKey].items.filter((_, i: number) => i !== index)
       }
     }));
   };
 
   const updateItem = (listKey: string, index: number, value: string) => {
-    setManagedLists(prev => ({
+    setManagedLists((prev: ManagedLists) => ({
       ...prev,
       [listKey]: {
         ...prev[listKey],
-        items: prev[listKey].items.map((item, i) => i === index ? value : item)
+        items: prev[listKey].items.map((item: string, i: number) => i === index ? value : item)
       }
     }));
   };
@@ -128,7 +149,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
     setLoading(true);
     try {
       console.log('🔄 Ukládání seznamu:', listKey, 'položky:', managedLists[listKey].items);
-      const { data, error } = await AdminService.updateAdminList(listKey, managedLists[listKey].items);
+
+      // Map frontend list key to DB list_type (snake_case). If not present, disallow saving to DB.
+      const frontendToDb: Record<string, string> = {
+        titles: 'titles',
+        maritalStatuses: 'marital_statuses',
+        documentTypes: 'document_types',
+        banks: 'banks',
+        institutions: 'institutions',
+        liabilityTypes: 'liability_types',
+        advisors: 'advisors',
+        citizenships: 'citizenships',
+        housingTypes: 'housing_types'
+      };
+
+      const dbListType = frontendToDb[listKey];
+      if (!dbListType) {
+        // This list is not backed by DB schema CHECK — avoid attempting to upsert
+        const msg = 'Tento seznam nelze ukládat do databáze (není povolen v DB)';
+        console.error(msg, listKey);
+        toast?.showError('Nelze uložit', msg);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await AdminService.updateAdminList(dbListType, managedLists[listKey].items);
       if (error) {
         console.error('❌ Chyba při ukládání:', error);
         throw new Error(error.message || 'Chyba při ukládání');
@@ -137,7 +182,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
       toast?.showSuccess('Seznam uložen', `${managedLists[listKey].name} byl úspěšně aktualizován`);
     } catch (error) {
       console.error('Chyba při ukládání:', error);
-      toast?.showError('Chyba při ukládání', error.message);
+      const msg = (error as any)?.message || String(error);
+      toast?.showError('Chyba při ukládání', msg);
     } finally {
       setLoading(false);
     }
