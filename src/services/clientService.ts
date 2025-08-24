@@ -521,6 +521,7 @@ export class ClientService {
         }
       }
 
+      // Správa dětí - pouze nové děti se vkládají, existující se aktualizují
       const allChildren = [
         ...(formData.applicant.children || []).map((child: any) => ({
           ...child,
@@ -532,8 +533,13 @@ export class ClientService {
         }))
       ]
 
-      if (allChildren.length > 0) {
-        const childrenData = allChildren.map((child: any) => ({
+      // Zpracuj děti - rozděl na nové a existující
+      const newChildren = allChildren.filter((child: any) => !child.supabase_id);
+      const existingChildren = allChildren.filter((child: any) => child.supabase_id);
+
+      // Vlož pouze nové děti
+      if (newChildren.length > 0) {
+        const childrenData = newChildren.map((child: any) => ({
           client_id: clientId,
           parent_type: child.parent_type,
           name: child.name,
@@ -543,7 +549,23 @@ export class ClientService {
         await supabase.from('children').insert(childrenData)
       }
 
-      // Vytvoření podnikání
+      // Aktualizuj existující děti
+      for (const child of existingChildren) {
+        const childData = {
+          client_id: clientId,
+          parent_type: child.parent_type,
+          name: child.name,
+          birth_date: child.birthDate || null,
+          age: child.age || null,
+        }
+        
+        await supabase
+          .from('children')
+          .update(childData)
+          .eq('id', child.supabase_id);
+      }
+
+      // Správa podnikání - pouze nové business se vkládají, existující se aktualizují
       const allBusinesses = [
         ...(formData.applicant.businesses || []).map((business: any) => ({
           ...business,
@@ -555,8 +577,13 @@ export class ClientService {
         }))
       ]
 
-      if (allBusinesses.length > 0) {
-        const businessesData = allBusinesses.map((business: any) => ({
+      // Zpracuj podnikání - rozděl na nové a existující
+      const newBusinesses = allBusinesses.filter((business: any) => !business.supabase_id);
+      const existingBusinesses = allBusinesses.filter((business: any) => business.supabase_id);
+
+      // Vlož pouze nové podnikání
+      if (newBusinesses.length > 0) {
+        const businessesData = newBusinesses.map((business: any) => ({
           client_id: clientId,
           parent_type: business.parent_type,
           ico: business.ico || null,
@@ -567,7 +594,24 @@ export class ClientService {
         await supabase.from('businesses').insert(businessesData)
       }
 
-      // Znovu vytvoření dokladů totožnosti
+      // Aktualizuj existující podnikání
+      for (const business of existingBusinesses) {
+        const businessData = {
+          client_id: clientId,
+          parent_type: business.parent_type,
+          ico: business.ico || null,
+          company_name: business.companyName || null,
+          company_address: business.companyAddress || null,
+          business_start_date: business.businessStartDate || null,
+        }
+        
+        await supabase
+          .from('businesses')
+          .update(businessData)
+          .eq('id', business.supabase_id);
+      }
+
+      // Správa dokladů totožnosti - pouze nové dokumenty se vkládají, existující se aktualizují
       const allDocuments = [
         ...(formData.applicant.documents || []).map((document: any) => ({
           ...document,
@@ -579,8 +623,13 @@ export class ClientService {
         }))
       ]
 
-      if (allDocuments.length > 0) {
-        const documentsData = allDocuments.map((document: any) => ({
+      // Zpracuj dokumenty - rozděl na nové a existující
+      const newDocuments = allDocuments.filter((doc: any) => !doc.supabase_id);
+      const existingDocuments = allDocuments.filter((doc: any) => doc.supabase_id);
+
+      // Vlož pouze nové dokumenty
+      if (newDocuments.length > 0) {
+        const documentsData = newDocuments.map((document: any) => ({
           client_id: clientId,
           parent_type: document.parent_type,
           document_type: document.documentType || null,
@@ -592,6 +641,26 @@ export class ClientService {
           control_number: document.controlNumber || null,
         }))
         await supabase.from('documents').insert(documentsData)
+      }
+
+      // Aktualizuj existující dokumenty
+      for (const document of existingDocuments) {
+        const documentData = {
+          client_id: clientId,
+          parent_type: document.parent_type,
+          document_type: document.documentType || null,
+          document_number: document.documentNumber || null,
+          document_issue_date: document.documentIssueDate || null,
+          document_valid_until: document.documentValidUntil || null,
+          issuing_authority: document.issuingAuthority || null,
+          place_of_birth: document.placeOfBirth || null,
+          control_number: document.controlNumber || null,
+        }
+        
+        await supabase
+          .from('documents')
+          .update(documentData)
+          .eq('id', document.supabase_id);
       }
 
       if (formData.liabilities && formData.liabilities.length > 0) {
