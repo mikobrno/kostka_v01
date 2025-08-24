@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
 import { DocumentManager } from './DocumentManager';
@@ -158,7 +158,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   <option key={title} value={title}>{title}</option>
                 ))}
               </select>
-              <CopyButton text={data.title || ''} />
+              <InlineEditableCopy value={data.title || ''} onSave={(v) => onChange({ ...data, title: v })} />
             </div>
           </div>
 
@@ -177,7 +177,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
-              <CopyButton text={data.maritalStatus || ''} />
+              <InlineEditableCopy value={data.maritalStatus || ''} onSave={(v) => onChange({ ...data, maritalStatus: v })} />
             </div>
           </div>
 
@@ -193,7 +193,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="Zadejte jméno"
               />
-              <CopyButton text={data.firstName || ''} />
+              <InlineEditableCopy value={data.firstName || ''} onSave={(v) => onChange({ ...data, firstName: v })} />
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="Zadejte příjmení"
               />
-              <CopyButton text={data.lastName || ''} />
+              <InlineEditableCopy value={data.lastName || ''} onSave={(v) => onChange({ ...data, lastName: v })} />
             </div>
           </div>
 
@@ -226,7 +226,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="Rodné příjmení (pokud se liší)"
               />
-              <CopyButton text={data.maidenName || ''} />
+              <InlineEditableCopy value={data.maidenName || ''} onSave={(v) => onChange({ ...data, maidenName: v })} />
             </div>
           </div>
 
@@ -248,7 +248,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   ))}
                 </select>
               </div>
-              <CopyButton text={data.citizenship || ''} />
+              <InlineEditableCopy value={data.citizenship || ''} onSave={(v) => onChange({ ...data, citizenship: v })} />
             </div>
           </div>
 
@@ -268,7 +268,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   <option key={level} value={level}>{level}</option>
                 ))}
               </select>
-              <CopyButton text={data.education || ''} />
+              <InlineEditableCopy value={data.education || ''} onSave={(v) => onChange({ ...data, education: v })} />
             </div>
           </div>
         </div>
@@ -287,7 +287,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 placeholder="YYMMDDXXXX"
                 maxLength={10}
               />
-              <CopyButton text={data.birthNumber || ''} />
+              <InlineEditableCopy value={data.birthNumber || ''} onSave={(v) => onChange({ ...data, birthNumber: v })} />
             </div>
           </div>
 
@@ -355,7 +355,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="+420 xxx xxx xxx"
               />
-              <CopyButton text={data.phone || ''} />
+              <InlineEditableCopy value={data.phone || ''} onSave={(v) => onChange({ ...data, phone: v })} />
             </div>
           </div>
 
@@ -371,7 +371,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="email@example.com"
               />
-              <CopyButton text={data.email || ''} />
+              <InlineEditableCopy value={data.email || ''} onSave={(v) => onChange({ ...data, email: v })} />
             </div>
           </div>
 
@@ -390,7 +390,7 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   <option key={bank} value={bank}>{bank}</option>
                 ))}
               </select>
-              <CopyButton text={data.bank || ''} />
+              <InlineEditableCopy value={data.bank || ''} onSave={(v) => onChange({ ...data, bank: v })} />
             </div>
           </div>
         </div>

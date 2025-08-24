@@ -1,9 +1,8 @@
 import React from 'react';
 import { AdminService } from '../../services/adminService';
-import { CopyButton } from '../CopyButton';
+import { useToast } from '../../hooks/useToast';
 import { FormattedNumberInput } from '../FormattedNumberInput';
-import { formatNumber } from '../../utils/formatHelpers';
-import { Calculator, CreditCard, Percent, Calendar } from 'lucide-react';
+import { Calculator, CreditCard, Percent, Calendar, Copy, Check } from 'lucide-react';
 
 type LoanData = {
   bank?: string;
@@ -30,6 +29,32 @@ interface LoanSectionProps {
 }
 
 export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, propertyPrice }) => {
+  const toast = useToast();
+
+  const CopyIconButton: React.FC<{ value: string | undefined; label?: string }> = ({ value, label }) => {
+    const [done, setDone] = React.useState(false);
+    const handle = async () => {
+      try {
+        await navigator.clipboard.writeText(value || '');
+        toast?.showSuccess('Zkopírováno', label || 'Text zkopírován');
+        setDone(true);
+        setTimeout(() => setDone(false), 1500);
+      } catch {
+        // ignore
+      }
+    };
+    return (
+      <button
+        type="button"
+        onClick={handle}
+        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+        title={label || 'Kopírovat'}
+        aria-label={label || 'Kopírovat'}
+      >
+        {done ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+      </button>
+    );
+  };
   const [adminLists, setAdminLists] = React.useState<{ banks: string[]; advisors: string[] }>({
     banks: [],
     advisors: []
@@ -224,7 +249,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                 <option key={bank} value={bank}>{bank}</option>
               ))}
             </select>
-            <CopyButton text={data.bank || ''} />
+            <CopyIconButton value={data.bank} label="Kopírovat banku" />
           </div>
         </div>
 
@@ -242,7 +267,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="Číslo úvěrové smlouvy"
             />
-            <CopyButton text={data.contractNumber || ''} />
+            <CopyIconButton value={data.contractNumber} label="Kopírovat číslo smlouvy" />
           </div>
         </div>
 
@@ -262,7 +287,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                 className="flex-1 w-full min-w-0 pl-9 rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               />
             </div>
-            <CopyButton text={data.signatureDate || ''} />
+            <CopyIconButton value={data.signatureDate} label="Kopírovat datum podpisu" />
           </div>
         </div>
 
@@ -305,7 +330,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                   ))}
                 </datalist>
               </div>
-              <CopyButton text={data.advisorName || ''} />
+              <CopyIconButton value={data.advisorName} label="Kopírovat jméno doporučitele" />
             </div>
           </div>
 
@@ -325,7 +350,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                   placeholder="např. 12345"
                 />
               </div>
-              <CopyButton text={data.advisorAgentNumber || ''} />
+              <CopyIconButton value={data.advisorAgentNumber} label="Kopírovat agenturní číslo" />
             </div>
           </div>
         </div>
@@ -343,7 +368,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="2 000 000"
             />
-            <CopyButton text={data.propertyValue ? formatNumber(data.propertyValue) : (propertyPrice ? formatNumber(propertyPrice.toString()) : '')} />
+            <CopyIconButton value={data.propertyValue || (propertyPrice ? String(propertyPrice) : undefined)} label="Kopírovat hodnotu nemovitosti" />
           </div>
         </div>
 
@@ -358,7 +383,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="1 500 000"
             />
-            <CopyButton text={data.loanAmount ? formatNumber(data.loanAmount) : ''} />
+            <CopyIconButton value={data.loanAmount} label="Kopírovat výši úvěru" />
           </div>
         </div>
 
@@ -387,7 +412,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               min="1"
               max="30"
             />
-            <CopyButton text={data.fixationYears || ''} />
+            <CopyIconButton value={data.fixationYears} label="Kopírovat fixaci" />
           </div>
         </div>
 
@@ -411,7 +436,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                 max="20"
               />
             </div>
-            <CopyButton text={data.interestRate || ''} />
+            <CopyIconButton value={data.interestRate} label="Kopírovat úrok" />
           </div>
         </div>
 
@@ -431,7 +456,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
               <option value="ano">Ano</option>
               <option value="ne">Ne</option>
             </select>
-            <CopyButton text={data.insurance || ''} />
+            <CopyIconButton value={data.insurance} label="Kopírovat pojištění" />
           </div>
         </div>
 
@@ -454,7 +479,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
                 max="50"
               />
             </div>
-            <CopyButton text={data.maturityYears || ''} />
+            <CopyIconButton value={data.maturityYears} label="Kopírovat dobu splatnosti" />
           </div>
         </div>
 
@@ -469,7 +494,7 @@ export const LoanSection: React.FC<LoanSectionProps> = ({ data, onChange, proper
         className="flex-1 w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
               placeholder="8 500"
             />
-            <CopyButton text={data.monthlyPayment ? formatNumber(data.monthlyPayment) : ''} />
+            <CopyIconButton value={data.monthlyPayment} label="Kopírovat měsíční splátku" />
           </div>
         </div>
       </div>

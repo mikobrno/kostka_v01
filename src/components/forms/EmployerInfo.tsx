@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CopyButton } from '../CopyButton';
 import { AddressInput } from '../AddressInput';
-import { Search, Building, MapPin } from 'lucide-react';
+import { Search, Building, MapPin, Copy, Check } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
 // Importujte AresService a AresCompanyData
 import { AresService, AresCompanyData } from '../../services/aresService'; // Zkontrolujte, zda je cesta správná
 
@@ -46,6 +46,33 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   // Funkce pro odstranění formátování (mezery) z čísla
   const unformatNumber = (value: string): string => {
     return value.replace(/\s/g, '');
+  };
+
+  // Small copy icon button used inline to avoid duplicated visible values
+  const toast = useToast();
+  const CopyIconButton: React.FC<{ value: string | undefined; label?: string }> = ({ value, label }) => {
+    const [done, setDone] = React.useState(false);
+    const handle = async () => {
+      try {
+        await navigator.clipboard.writeText(value || '');
+        toast?.showSuccess('Zkopírováno', label || 'Text zkopírován');
+        setDone(true);
+        setTimeout(() => setDone(false), 1500);
+      } catch {
+        // ignore
+      }
+    };
+    return (
+      <button
+        type="button"
+        onClick={handle}
+        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+        title={label || 'Kopírovat'}
+        aria-label={label || 'Kopírovat'}
+      >
+        {done ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+      </button>
+    );
   };
 
   const fetchAresData = async (ico: string) => {
@@ -122,10 +149,6 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-        Informace o zaměstnavateli
-      </h3>
-      
       <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -139,7 +162,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
               const newIco = e.target.value.replace(/\D/g, ''); // Pouze číslice
               updateField('ico', newIco);
             }}
-            className="flex-1 block w-full p-2 border border-gray-300 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="flex-1 block w-full p-2 rounded-l-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             placeholder="Zadejte IČO (8 číslic)"
             maxLength={8}
             autoComplete="off"
@@ -160,7 +183,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
               <Search className="w-4 h-4" />
             )}
           </button>
-          <CopyButton text={data.ico || ''} />
+          <CopyIconButton value={data.ico} label="Kopírovat IČO" />
         </div>
         {aresError && (
           <p className="mt-1 text-sm text-red-600">{aresError}</p>
@@ -213,7 +236,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
               </div>
             )}
           </div>
-          <CopyButton text={data.companyName || ''} />
+          <CopyIconButton value={data.companyName} label="Kopírovat název firmy" />
         </div>
       </div>
 
@@ -221,14 +244,17 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Adresa firmy
         </label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400 z-10" />
-          <AddressInput
-            value={data.companyAddress || ''}
-            onChange={(value) => updateField('companyAddress', value)}
-            placeholder="Adresa společnosti"
-            className="pl-10"
-          />
+        <div className="flex items-center">
+          <div className="relative flex-1">
+            <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400 z-10" />
+            <AddressInput
+              value={data.companyAddress || ''}
+              onChange={(value) => updateField('companyAddress', value)}
+              placeholder="Adresa společnosti"
+              className="pl-10"
+            />
+          </div>
+          <CopyIconButton value={data.companyAddress} label="Kopírovat adresu firmy" />
         </div>
       </div>
 
@@ -248,7 +274,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             placeholder="50 000"
             pattern="[0-9\s]*"
           />
-          <CopyButton text={formatNumber(data.netIncome || '')} />
+          <CopyIconButton value={String(data.netIncome || '')} label="Kopírovat čistý příjem" />
         </div>
       </div>
 
@@ -264,7 +290,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             placeholder="Manažer, Programátor, Účetní..."
           />
-          <CopyButton text={data.jobPosition || ''} />
+          <CopyIconButton value={data.jobPosition} label="Kopírovat pracovní pozici" />
         </div>
       </div>
 
@@ -283,7 +309,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             <option value="určitou">Určitou</option>
             <option value="neurčitou">Neurčitou</option>
           </select>
-          <CopyButton text={data.contractType || ''} />
+          <CopyIconButton value={data.contractType} label="Kopírovat typ smlouvy" />
         </div>
       </div>
 
@@ -302,7 +328,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   title="Doba určitá od"
                 />
-                <CopyButton text={data.contractFromDate || ''} />
+                  <CopyIconButton value={data.contractFromDate} label="Kopírovat datum od" />
               </div>
             </div>
 
@@ -318,7 +344,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                   className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   title="Doba určitá do"
                 />
-                <CopyButton text={data.contractToDate || ''} />
+                  <CopyIconButton value={data.contractToDate} label="Kopírovat datum do" />
               </div>
             </div>
           </div>
@@ -338,7 +364,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
                 <option value="ano">Ano</option>
                 <option value="ne">Ne</option>
               </select>
-              <CopyButton text={data.contractExtended || ''} />
+                <CopyIconButton value={data.contractExtended} label="Kopírovat informace o prodloužení" />
             </div>
           </div>
         </>
@@ -356,7 +382,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
             className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             title="Zaměstnán od"
           />
-          <CopyButton text={data.employedSince || ''} />
+          <CopyIconButton value={data.employedSince} label="Kopírovat datum zaměstnání od" />
         </div>
       </div>
       </div>

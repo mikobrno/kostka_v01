@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, FileText, Calendar, MapPin, User, Shield } from 'lucide-react';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 
 interface Document {
   id: string;
@@ -290,7 +290,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="123456789"
               />
-              <CopyButton text={editData.document_number || ''} />
+              <InlineEditableCopy value={editData.document_number || ''} onSave={(v) => handleFieldChange('document_number', v)} />
             </div>
           </div>
 
@@ -333,7 +333,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                   placeholder="Magistrát města Brna"
                 />
               </div>
-              <CopyButton text={editData.issuing_authority || ''} />
+              <InlineEditableCopy value={editData.issuing_authority || ''} onSave={(v) => handleFieldChange('issuing_authority', v)} />
             </div>
           </div>
 
@@ -352,7 +352,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                   placeholder="Praha"
                 />
               </div>
-              <CopyButton text={editData.place_of_birth || ''} />
+              <InlineEditableCopy value={editData.place_of_birth || ''} onSave={(v) => handleFieldChange('place_of_birth', v)} />
             </div>
           </div>
 
@@ -368,7 +368,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="ABC123"
               />
-              <CopyButton text={editData.control_number || ''} />
+              <InlineEditableCopy value={editData.control_number || ''} onSave={(v) => handleFieldChange('control_number', v)} />
             </div>
           </div>
         </div>

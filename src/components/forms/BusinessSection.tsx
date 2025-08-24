@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Building, Search, Plus, Edit, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 import { AresService } from '../../services/aresService';
 
 interface BusinessData {
@@ -412,7 +412,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                 placeholder="12345678"
                 maxLength={8}
               />
-              <CopyButton text={editData.ico || ''} />
+              <InlineEditableCopy value={editData.ico || ''} onSave={(v) => handleFieldChange('ico', v.replace(/\D/g, '').slice(0, 8))} />
             </div>
           </div>
 
@@ -428,7 +428,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 placeholder="Název společnosti"
               />
-              <CopyButton text={editData.company_name || ''} />
+              <InlineEditableCopy value={editData.company_name || ''} onSave={(v) => handleFieldChange('company_name', v)} />
             </div>
           </div>
 
@@ -472,7 +472,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 placeholder="Adresa sídla společnosti"
               />
-              <CopyButton text={editData.business_address || ''} />
+              <InlineEditableCopy value={editData.business_address || ''} onSave={(v) => handleFieldChange('business_address', v)} />
             </div>
           </div>
 

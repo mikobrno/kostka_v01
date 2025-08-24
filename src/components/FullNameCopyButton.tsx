@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Copy, Check, User } from 'lucide-react';
+import React from 'react';
+import { User } from 'lucide-react';
+import InlineEditableCopy from './InlineEditableCopy';
 
 interface FullNameCopyButtonProps {
   title?: string;
@@ -29,8 +30,6 @@ export const FullNameCopyButton: React.FC<FullNameCopyButtonProps> = ({
   className = '',
   variant = 'button'
 }) => {
-  const [copied, setCopied] = useState(false);
-
   // Combine title, first name, and last name with proper formatting
   const getFullName = (): string => {
     const nameParts = [
@@ -44,87 +43,25 @@ export const FullNameCopyButton: React.FC<FullNameCopyButtonProps> = ({
 
   const fullName = getFullName();
 
-  const handleCopy = async () => {
-    if (!fullName) {
-      console.warn('No name data available to copy');
-      return;
-    }
-    
-    try {
-      await navigator.clipboard.writeText(fullName);
-      setCopied(true);
-      
-      // Reset the copied state after 2 seconds
-      setTimeout(() => setCopied(false), 2000);
-      
-      console.log('Full name copied to clipboard:', fullName);
-    } catch (error) {
-      console.error('Failed to copy full name to clipboard:', error);
-      
-      // Fallback for older browsers
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = fullName;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (fallbackError) {
-        console.error('Fallback copy method also failed:', fallbackError);
-      }
-    }
-  };
+  // If no full name, render nothing
+  if (!fullName) return null;
 
-  // Don't render if no name data is available
-  if (!fullName) {
-    return null;
-  }
-
+  // For icon variant, render a small InlineEditableCopy but visually as an icon button
   if (variant === 'icon') {
     return (
-      <button
-        onClick={handleCopy}
-        className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all duration-200 ${
-          copied ? 'text-green-600 bg-green-100' : ''
-        } ${className}`}
-        title={copied ? `Zkopírováno: ${fullName}` : `Kopírovat celé jméno: ${fullName}`}
-        aria-label={copied ? 'Jméno zkopírováno' : 'Kopírovat celé jméno'}
-      >
-        {copied ? (
-          <Check className="w-4 h-4" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
-      </button>
+      <InlineEditableCopy
+        value={fullName}
+        className={`p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 ${className}`}
+      />
     );
   }
 
+  // Default: render a button-like InlineEditableCopy with user icon
   return (
-    <button
-      onClick={handleCopy}
-      disabled={!fullName}
-      className={`inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${
-        copied ? 'bg-green-100 text-green-700 border-green-300' : ''
-      } ${className}`}
-      title={copied ? `Zkopírováno: ${fullName}` : `Kopírovat: ${fullName}`}
-      aria-label={copied ? 'Celé jméno zkopírováno' : 'Kopírovat celé jméno'}
-    >
-      <User className="w-4 h-4 mr-2" />
-      {copied ? (
-        <>
-          <Check className="w-4 h-4 mr-2" />
-          Zkopírováno!
-        </>
-      ) : (
-        <>
-          <Copy className="w-4 h-4 mr-2" />
-          Kopírovat jméno
-        </>
-      )}
-    </button>
+    <div className={`inline-flex items-center ${className}`}>
+      <User className="w-4 h-4 mr-2 text-gray-500" />
+      <InlineEditableCopy value={fullName} className="" />
+    </div>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DollarSign, Briefcase, TrendingUp, TrendingDown, Calculator, Plus, Trash2 } from 'lucide-react';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 
 interface IncomeData {
   id: string;
@@ -206,7 +206,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                     placeholder="Název společnosti"
                   />
-                  <CopyButton text={currentIncomeData?.employer_name || ''} />
+                  <InlineEditableCopy value={currentIncomeData?.employer_name || ''} onSave={(v) => updateIncomeData(personType, 'employer_name', v)} />
                 </div>
               </div>
 
@@ -222,7 +222,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                     placeholder="Manažer, Programátor, ..."
                   />
-                  <CopyButton text={currentIncomeData?.position || ''} />
+                  <InlineEditableCopy value={currentIncomeData?.position || ''} onSave={(v) => updateIncomeData(personType, 'position', v)} />
                 </div>
               </div>
 
@@ -239,7 +239,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     placeholder="50000"
                     min="0"
                   />
-                  <CopyButton text={currentIncomeData?.gross_salary?.toString() || ''} />
+                  <InlineEditableCopy value={currentIncomeData?.gross_salary?.toString() || ''} />
                 </div>
               </div>
 
@@ -256,7 +256,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     placeholder="38000"
                     min="0"
                   />
-                  <CopyButton text={currentIncomeData?.net_salary?.toString() || ''} />
+                  <InlineEditableCopy value={currentIncomeData?.net_salary?.toString() || ''} />
                 </div>
               </div>
             </div>

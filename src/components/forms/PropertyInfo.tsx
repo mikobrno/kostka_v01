@@ -1,9 +1,9 @@
 import React from 'react';
-import { CopyButton } from '../CopyButton';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { formatNumber } from '../../utils/formatHelpers';
-import { MapPin } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
 
 interface PropertyInfoProps {
   data: any;
@@ -12,6 +12,35 @@ interface PropertyInfoProps {
 }
 
 export const PropertyInfo: React.FC<PropertyInfoProps> = ({ data, onChange, title = "Nemovitost" }) => {
+  const toast = useToast();
+
+  const CopyIconButton: React.FC<{ value?: string | number; label?: string }> = ({ value, label }) => {
+    const [copied, setCopied] = React.useState(false);
+    const text = value !== undefined && value !== null ? String(value) : '';
+    const handleCopy = async () => {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast?.showSuccess(label || 'Zkopírováno');
+        setTimeout(() => setCopied(false), 1400);
+      } catch {
+        // fall back silently
+      }
+    };
+
+    return (
+      <button
+        type="button"
+        onClick={handleCopy}
+        title={label}
+        aria-label={label}
+        className="flex items-center justify-center w-10 border border-l-0 rounded-r-md bg-white dark:bg-gray-800 text-gray-500 hover:text-gray-700"
+      >
+        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+      </button>
+    );
+  };
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -43,7 +72,7 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ data, onChange, titl
               className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               placeholder="2 000 000"
             />
-            <CopyButton text={data.price ? formatNumber(data.price) : ''} />
+            <CopyIconButton value={data.price ? formatNumber(data.price) : ''} label="Kopírovat cenu" />
           </div>
         </div>
 

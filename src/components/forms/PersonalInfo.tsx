@@ -2,20 +2,54 @@ import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { AresService } from '../../services/aresService';
 import { supabase } from '../../lib/supabase';
-import { CopyButton } from '../CopyButton';
-import { FullNameCopyButton } from '../FullNameCopyButton';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
-import { Copy, Calendar, User, Plus, Trash2, Save, X, Edit, Building, Search, ExternalLink, Check } from 'lucide-react';
+import InlineEditableCopy from '../InlineEditableCopy';
+import { User, Plus, Trash2, Save, X, Edit, Building, Search, Check, Copy } from 'lucide-react';
 
 interface PersonalInfoProps {
   data: any;
   onChange: (data: any) => void;
   prefix: string;
   clientId?: string | number;
-  toast?: any;
-}
-
+                {document.documentType === 'občanský průkaz' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kontrolní číslo OP</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.controlNumber || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, controlNumber: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="ABC123"
+                      title="Kontrolní číslo"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.controlNumber || '');
+                            toast?.showSuccess('Zkopírováno', 'Kontrolní číslo zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat kontrolní číslo"
+                        aria-label="Kopírovat kontrolní číslo"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                )}
 // Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
 export const formatDateDDMMYYYY = (dateStr?: string | null) => {
   if (!dateStr) return '';
@@ -55,23 +89,15 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     }
   }, []);
   
-  const [hasChildren, setHasChildren] = useState(false);
-
-  // Inicializace hasChildren na základě existujících dat
-  React.useEffect(() => {
-    if (data.children && data.children.length > 0) {
-      setHasChildren(true);
-    }
-  }, [data.children]);
-
+  // admin lists stored in state so we can update them after loading
   const [adminLists, setAdminLists] = useState({
-    titles: [],
-    maritalStatuses: [],
-    documentTypes: [],
-    banks: [],
+    titles: [] as string[],
+    maritalStatuses: [] as string[],
+    documentTypes: [] as string[],
+    banks: [] as string[],
     citizenships: [
       'Česká republika',
-      'Slovenská republika', 
+      'Slovenská republika',
       'Německo',
       'Rakousko',
       'Polsko',
@@ -79,7 +105,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       'Ukrajina',
       'Rusko',
       'Jiné'
-    ],
+    ] as string[],
     educationLevels: [
       'Základní',
       'Vyučen',
@@ -90,7 +116,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       'Vysokoškolské - magisterské',
       'Vysokoškolské - doktorské',
       'Bez vzdělání'
-    ],
+    ] as string[],
     housingTypes: [
       'vlastní byt',
       'vlastní dům',
@@ -100,7 +126,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       'služební byt',
       'u rodičů/příbuzných',
       'jiné'
-    ]
+    ] as string[]
   });
 
   // Načtení admin seznamů ze Supabase
@@ -113,7 +139,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           return;
         }
 
-        if (data) {
+          if (data) {
           const lists = {
             titles: [],
             maritalStatuses: [],
@@ -127,25 +153,25 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           data.forEach(item => {
             switch (item.list_type) {
               case 'titles':
-                lists.titles = item.items;
+                lists.titles = item.items as string[];
                 break;
               case 'marital_statuses':
-                lists.maritalStatuses = item.items;
+                lists.maritalStatuses = item.items as string[];
                 break;
               case 'document_types':
-                lists.documentTypes = item.items;
+                lists.documentTypes = item.items as string[];
                 break;
               case 'banks':
-                lists.banks = item.items;
+                lists.banks = item.items as string[];
                 break;
               case 'citizenships':
-                lists.citizenships = item.items;
+                lists.citizenships = item.items as string[];
                 break;
               case 'housing_types':
-                lists.housingTypes = item.items;
+                lists.housingTypes = item.items as string[];
                 break;
               case 'education_levels':
-                lists.educationLevels = item.items;
+                lists.educationLevels = item.items as string[];
                 break;
             }
           });
@@ -161,48 +187,34 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   }, []);
 
   const calculateAgeFromBirthNumber = (birthNumber: string) => {
-    if (birthNumber.length !== 10) return null;
-    
-    let year = parseInt(birthNumber.substring(0, 2));
-    let month = parseInt(birthNumber.substring(2, 4));
-    let day = parseInt(birthNumber.substring(4, 6));
-    
+    if (!birthNumber || birthNumber.length !== 10) return null;
+
+    const year = parseInt(birthNumber.substring(0, 2), 10);
+    let month = parseInt(birthNumber.substring(2, 4), 10);
+    const day = parseInt(birthNumber.substring(4, 6), 10);
+
     // Adjust month for women (month - 50)
-    if (month > 50) {
-      month -= 50;
-    }
-    
-    // Determine century (simplified, assumes 19xx or 20xx)
+    if (month > 50) month -= 50;
+
+    // Determine century (simple heuristic: 00- currentYear%100 => 2000s else 1900s)
     const currentYearFull = new Date().getFullYear();
-    let fullYear;
-    if (year <= (currentYearFull % 100)) {
-      fullYear = 2000 + year;
-    } else {
-      fullYear = 1900 + year;
-    }
-    
+    const century = year <= (currentYearFull % 100) ? 2000 : 1900;
+    const fullYear = century + year;
+
     // Basic validation for month and day
-    if (month < 1 || month > 12 || day < 1 || day > 31) {
-      return null; // Invalid month or day
-    }
-    
-    const birthDateObj = new Date(fullYear, month - 1, day); // Month is 0-indexed in Date object
-    
-    // Check if the date is valid (e.g., 31st Feb would be invalid)
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    const birthDateObj = new Date(fullYear, month - 1, day);
     if (birthDateObj.getFullYear() !== fullYear || birthDateObj.getMonth() !== (month - 1) || birthDateObj.getDate() !== day) {
-      return null; // Invalid date (e.g., 31st Feb)
+      return null;
     }
-    
+
     const today = new Date();
     let age = today.getFullYear() - birthDateObj.getFullYear();
     const m = today.getMonth() - birthDateObj.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-      age--;
-    }
-    
-    // Format birthDate to YYYY-MM-DD
+    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) age--;
+
     const formattedBirthDate = `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
     return { age, birthYear: fullYear, birthDate: formattedBirthDate };
   };
 
@@ -215,6 +227,44 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
     return `${dd}.${mm}.${yyyy}`;
+  };
+
+  // Helper to display date as dd-mm-yyyy from ISO or other formats
+  const formatDateDisplay = (isoOrAny?: string | null) => {
+    if (!isoOrAny) return '';
+    const d = new Date(isoOrAny);
+    if (Number.isNaN(d.getTime())) return isoOrAny; // fallback to raw
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  // Parse display format dd-mm-yyyy to ISO yyyy-mm-dd. If parsing fails, return original string.
+  const parseDisplayToISO = (display?: string | null) => {
+    if (!display) return '';
+    const parts = display.split('-');
+    if (parts.length === 3) {
+      const [dd, mm, yyyy] = parts;
+      // basic validation
+      const day = parseInt(dd, 10);
+      const month = parseInt(mm, 10);
+      const year = parseInt(yyyy, 10);
+      if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+    }
+    // try Date parse fallback
+    const d = new Date(display);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    return display;
+  };
+
+  const getBirthYearFromDate = (dateStr?: string | null) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    return String(d.getFullYear());
   };
 
   const updateField = (field: string, value: any) => {
@@ -270,7 +320,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       // Připrav data pro Supabase (bez lokálního ID)
       const documentData = {
         client_id: String(clientId),
-        parent_type: prefix, // 'applicant' nebo 'co_applicant'
         document_type: document.documentType || null,
         document_number: document.documentNumber || null,
         document_issue_date: document.documentIssueDate || null,
@@ -407,844 +456,915 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     }
   };
 
+  // Derived values for top summary
+  const derivedAge = calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '';
+  const derivedBirthYear = calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate);
+
+  const CopyIconButton: React.FC<{ value?: string | number; label?: string }> = ({ value, label }) => {
+    const [done, setDone] = React.useState(false);
+    const handle = async () => {
+      try {
+        await navigator.clipboard.writeText(String(value || ''));
+        toast?.showSuccess('Zkopírováno', label || 'Text zkopírován');
+        setDone(true);
+        setTimeout(() => setDone(false), 1500);
+      } catch {
+        // ignore
+      }
+    };
+    return (
+      <button
+        type="button"
+        onClick={handle}
+        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+        title={label || 'Kopírovat'}
+        aria-label={label || 'Kopírovat'}
+      >
+        {done ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+      </button>
+    );
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
         {prefix === 'applicant' ? 'Osobní údaje žadatele' : 'Osobní údaje spolužadatele'}
       </h3>
       
-  <div className="grid gap-6 items-start form-grid-layout">
-    <Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Titul
-          </label>
-          <div className="flex">
-            <select
-              value={data.title || ''}
-              onChange={(e) => updateField('title', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              title="Titul"
-            >
-              <option value="">Vyberte titul</option>
-                  {adminLists.titles.map((title: string) => (
-                    <option key={title} value={title}>{title}</option>
-                  ))}
-            </select>
-            <CopyButton text={data.title || ''} />
+      {/* Horní sekce: Základní údaje (upravené rozložení) */}
+  <div className="mb-4">
+  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 p-4 min-h-40">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white">Základní údaje</h4>
+              <div className="flex items-center space-x-2">
+                {/* small per-field copy buttons are used next to each input */}
+              </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Rodné příjmení
-          </label>
-          <div className="flex">
-            <input
-              type="text"
-              value={data.maidenName || ''}
-              onChange={(e) => updateField('maidenName', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="Rodné příjmení (pokud se liší)"
-            />
-            <CopyButton text={data.maidenName || ''} />
-          </div>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+            <div className="space-y-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jméno</label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    title="Jméno"
+                    placeholder="Jméno"
+                    value={data.firstName || ''}
+                    onChange={(e) => updateField('firstName', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                  <CopyIconButton value={`${data.firstName || ''}`} label="Kopírovat jméno" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    title="Telefon"
+                    placeholder="Telefon"
+                    value={data.phone || ''}
+                    onChange={(e) => updateField('phone', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm"
+                  />
+                  <CopyIconButton value={`${data.phone || ''}`} label="Kopírovat telefon" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rodné číslo</label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    title="Rodné číslo"
+                    placeholder="Rodné číslo"
+                    value={data.birthNumber || ''}
+                    onChange={(e) => updateField('birthNumber', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+                  />
+                  <CopyIconButton value={`${data.birthNumber || ''}`} label="Kopírovat rodné číslo" />
+                </div>
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rodinný stav
-          </label>
-          <div className="flex">
-            <select
-              value={data.maritalStatus || ''}
-              onChange={(e) => updateField('maritalStatus', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">Vyberte stav</option>
-              {adminLists.maritalStatuses.map((status: string) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-            <CopyButton text={data.maritalStatus || ''} />
+            <div className="space-y-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Příjmení</label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    title="Příjmení"
+                    placeholder="Příjmení"
+                    value={data.lastName || ''}
+                    onChange={(e) => updateField('lastName', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                  <CopyIconButton value={`${data.lastName || ''}`} label="Kopírovat příjmení" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="flex items-center">
+                  <input
+                    type="email"
+                    title="Email"
+                    placeholder="Email"
+                    value={data.email || ''}
+                    onChange={(e) => updateField('email', e.target.value)}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm"
+                  />
+                  <CopyIconButton value={`${data.email || ''}`} label="Kopírovat email" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Datum narození</label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    title="Datum narození"
+                    placeholder="dd-mm-rrrr"
+                    value={data.birthDate ? formatDateDisplay(data.birthDate) : ''}
+                    onChange={(e) => updateField('birthDate', parseDisplayToISO(e.target.value))}
+                    className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                  <CopyIconButton value={`${data.birthDate ? formatDateDisplay(data.birthDate) : ''}`} label="Kopírovat datum narození" />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Občanství
-          </label>
-          <div className="flex">
-            <select
-              value={data.citizenship || 'Česká republika'}
-              onChange={(e) => updateField('citizenship', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">Vyberte občanství</option>
-              {adminLists.citizenships.map((citizenship: string) => (
-                <option key={citizenship} value={citizenship}>{citizenship}</option>
-              ))}
-            </select>
-            <CopyButton text={data.citizenship || ''} />
+          <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300">
+            <div className="py-1 flex items-center">
+              <label className="text-sm text-gray-600 mr-2">Věk</label>
+              <div className="flex items-center w-full">
+                <input type="text" readOnly value={String(calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '')} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm" />
+                <CopyIconButton value={String(calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '')} label="Kopírovat věk" />
+              </div>
+            </div>
+            <div className="py-1 text-right flex items-center justify-end">
+              <label className="text-sm text-gray-600 mr-2">Rok narození</label>
+              <div className="flex items-center w-40">
+                <input type="text" readOnly value={String(calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate))} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm text-right" />
+                <CopyIconButton value={String(calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate))} label="Kopírovat rok narození" />
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Druh současného bydlení
-          </label>
-          <div className="flex">
-            <select
-              value={data.housingType || ''}
-              onChange={(e) => updateField('housingType', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">Vyberte druh bydlení</option>
-              {adminLists.housingTypes.map((type: string) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            <CopyButton text={data.housingType || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nejvyšší dosažené vzdělání
-          </label>
-          <div className="flex">
-            <select
-              value={data.education || ''}
-              onChange={(e) => updateField('education', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">Vyberte vzdělání</option>
-              {adminLists.educationLevels.map((level: string) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
-            <CopyButton text={data.education || ''} />
-          </div>
         </div>
       </div>
 
+      <div className="grid gap-6 items-start form-grid-layout">
+    <Card>
+      {/* Levý sloupec */}
+      <div>
+        {/* Osobní údaje */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Titul
+            </label>
+            <div className="flex">
+              <select
+                value={data.title || ''}
+                onChange={(e) => updateField('title', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Titul"
+              >
+                <option value="">Vyberte titul</option>
+                    {adminLists.titles.map((title: string) => (
+                      <option key={title} value={title}>{title}</option>
+                    ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Rodné příjmení
+            </label>
+            <div className="flex">
+              <input
+                type="text"
+                value={data.maidenName || ''}
+                onChange={(e) => updateField('maidenName', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                placeholder="Rodné příjmení (pokud se liší)"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rodinný stav
+            </label>
+            <div className="flex">
+              <select
+                value={data.maritalStatus || ''}
+                onChange={(e) => updateField('maritalStatus', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Rodinný stav"
+              >
+                <option value="">Vyberte stav</option>
+                {adminLists.maritalStatuses.map((status: string) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Občanství
+            </label>
+            <div className="flex">
+              <select
+                value={data.citizenship || 'Česká republika'}
+                onChange={(e) => updateField('citizenship', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Občanství"
+              >
+                <option value="">Vyberte občanství</option>
+                {adminLists.citizenships.map((citizenship: string) => (
+                  <option key={citizenship} value={citizenship}>{citizenship}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Druh současného bydlení
+            </label>
+            <div className="flex">
+              <select
+                value={data.housingType || ''}
+                onChange={(e) => updateField('housingType', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Druh bydlení"
+              >
+                <option value="">Vyberte druh bydlení</option>
+                {adminLists.housingTypes.map((type: string) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nejvyšší dosažené vzdělání
+            </label>
+            <div className="flex">
+              <select
+                value={data.education || ''}
+                onChange={(e) => updateField('education', e.target.value)}
+                className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Nejvyšší dosažené vzdělání"
+              >
+                <option value="">Vyberte vzdělání</option>
+                {adminLists.educationLevels.map((level: string) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+  {/* starší duplicity telefon/email/rodne cislo/vek/rok/datum byly odstraněny protože jsou v horní sekci */}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Trvalé bydliště
+          </label>
+          <AddressWithMapLinks
+            value={data.permanentAddress || ''}
+            onChange={(value) => updateField('permanentAddress', value)}
+            onCopy={() => toast?.showSuccess('Zkopírováno', 'Trvalé bydliště zkopírováno')}
+            placeholder="Začněte psát adresu..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Kontaktní adresa
+          </label>
+          <AddressWithMapLinks
+            value={data.contactAddress || ''}
+            onChange={(value) => updateField('contactAddress', value)}
+            onCopy={() => toast?.showSuccess('Zkopírováno', 'Kontaktní adresa zkopírována')}
+            placeholder="Začněte psát adresu..."
+          />
+        </div>
+
+        {/* Doklady totožnosti sekce - vloženo nad Podnikání */}
+        {prefix === 'applicant' && (
+          <span id="doklady" className="block -mt-20 pt-20" />
+        )}
+  <div className="mt-6 min-h-64">
+            <div className="flex items-center space-x-3 mb-4">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
+            <button
+              onClick={() => {
+                const newDocument = {
+                  id: Date.now(),
+                  documentType: '',
+                  documentNumber: '',
+                  documentIssueDate: '',
+                  documentValidUntil: '',
+                  issuingAuthority: '',
+                  placeOfBirth: '',
+                  controlNumber: ''
+                };
+                const currentDocuments = data.documents || [];
+                updateField('documents', [...currentDocuments, newDocument]);
+              }}
+        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
+        title="Přidat doklad"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Přidat doklad
+            </button>
+          </div>
+
+            {(data.documents || []).map((document: DocumentShape, index: number) => (
+            <div key={document.id} className="bg-gray-50 rounded-lg p-4 border mb-4">
+              <div className="flex justify-between items-center mb-4">
+                <h5 className="text-sm font-medium text-gray-900 dark:text-white">Doklad #{index + 1}</h5>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => saveDocument(document.id)}
+                    disabled={savingDocument === document.id}
+                    className="p-1 text-blue-600 hover:text-blue-800 disabled:text-blue-400 transition-colors"
+                    title="Uložit doklad"
+                    aria-label={`Uložit doklad ${index + 1}`}
+                  >
+                    {savingDocument === document.id ? (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : savedDocument === document.id ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(`document-${document.id.toString()}`)}
+                    className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                    title="Smazat doklad"
+                    aria-label={`Smazat doklad ${index + 1}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Typ dokladu</label>
+                  <div className="flex">
+                    <select
+                      value={document.documentType || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, documentType: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      title="Typ dokladu"
+                    >
+                      <option value="">Vyberte typ</option>
+                      {adminLists.documentTypes.map((type: string) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.documentType || '');
+                            toast?.showSuccess('Zkopírováno', 'Typ dokladu zkopírován');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat typ dokladu"
+                        aria-label="Kopírovat typ dokladu"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Číslo dokladu</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.documentNumber || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, documentNumber: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="Číslo dokladu"
+                      title="Číslo dokladu"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.documentNumber || '');
+                            toast?.showSuccess('Zkopírováno', 'Číslo dokladu zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat číslo dokladu"
+                        aria-label="Kopírovat číslo dokladu"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Datum vydání</label>
+                  <div className="flex">
+                    <input
+                      type="date"
+                      value={document.documentIssueDate || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, documentIssueDate: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      title="Datum vydání dokladu"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.documentIssueDate || '');
+                            toast?.showSuccess('Zkopírováno', 'Datum vydání zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat datum vydání"
+                        aria-label="Kopírovat datum vydání"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Platnost do</label>
+                  <div className="flex">
+                    <input
+                      type="date"
+                      value={document.documentValidUntil || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, documentValidUntil: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      title="Platnost do"
+                      aria-label="Platnost do"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.documentValidUntil || '');
+                            toast?.showSuccess('Zkopírováno', 'Platnost do zkopírována');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat platnost"
+                        aria-label="Kopírovat platnost dokladu"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Doklad vydal</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.issuingAuthority || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, issuingAuthority: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="Kdo doklad vydal"
+                      title="Doklad vydal"
+                    />
+                     <div className="ml-2">
+                       <button
+                         type="button"
+                         onClick={async () => {
+                           try {
+                             await navigator.clipboard.writeText(document.issuingAuthority || '');
+                             toast?.showSuccess('Zkopírováno', 'Doklad vydal - zkopírováno');
+                           } catch {
+                             /* ignore */
+                           }
+                         }}
+                         className="p-1 text-gray-500 hover:text-gray-700"
+                         title="Kopírovat kdo vydal doklad"
+                         aria-label="Kopírovat kdo vydal doklad"
+                       >
+                         <Copy className="w-4 h-4" />
+                       </button>
+                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Místo narození</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.placeOfBirth || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="Praha"
+                      title="Místo narození"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.placeOfBirth || '');
+                            toast?.showSuccess('Zkopírováno', 'Místo narození zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat místo narození"
+                        aria-label="Kopírovat místo narození"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kontrolní číslo OP</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.controlNumber || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, controlNumber: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="ABC123"
+                      title="Kontrolní číslo"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.controlNumber || '');
+                            toast?.showSuccess('Zkopírováno', 'Kontrolní číslo zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat kontrolní číslo"
+                        aria-label="Kopírovat kontrolní číslo"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-6 mt-4">
+          {/* Podnikání - samostatný blok (nad sebou) */}
+          {prefix === 'applicant' && (
+            <span id="podnikani" className="block -mt-20 pt-20" />
+          )}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Building className="w-5 h-5 text-purple-600" />
+                <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    const newBusiness = {
+                      id: Date.now(),
+                      ico: '',
+                      companyName: '',
+                      companyAddress: '',
+                      businessStartDate: ''
+                    };
+                    const currentBusinesses = data.businesses || [];
+                    updateField('businesses', [...currentBusinesses, newBusiness]);
+                  }}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Přidat podnikání
+                </button>
+              </div>
+            </div>
+
+            {(data.businesses || []).map((business: BusinessShape, index: number) => (
+              <BusinessDisplay
+                key={business.id}
+                business={business}
+                index={index}
+                onUpdate={(updatedBusiness) => {
+                  const updatedBusinesses = (data.businesses || []).map((b: BusinessShape) => 
+                      b.id === business.id ? updatedBusiness : b
+                    );
+                  updateField('businesses', updatedBusinesses);
+                }}
+                onDelete={() => {
+                  setShowDeleteConfirm(`business-${business.id.toString()}`);
+                }}
+              />
+            ))}
+
+            {(!data.businesses || data.businesses.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                <Building className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p>Žádné podnikání není přidáno.</p>
+                <p className="text-sm">Klikněte na "Přidat podnikání" pro vytvoření záznamu o podnikání.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Sekce Děti - samostatný blok pod podnikáním */}
+          {prefix === 'applicant' && (
+            <span id="deti" className="block -mt-20 pt-20" />
+          )}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <User className="w-5 h-5 text-blue-600" />
+                <h4 className="text-md font-medium text-gray-900 dark:text-white">Děti</h4>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3 mb-4">
+              <input
+                type="checkbox"
+                id={`${prefix}-no-children`}
+                checked={!(data.children && data.children.length > 0)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    updateField('children', []);
+                  } else {
+                    updateField('children', data.children || []);
+                  }
+                }}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+              />
+              <label htmlFor={`${prefix}-no-children`} className="text-sm font-medium text-gray-700">
+                Nemá děti
+              </label>
+            </div>
+
+            {(data.children && data.children.length > 0) && (
+              <ChildrenManager
+                children={data.children || []}
+                onChange={(children: ChildShape[]) => updateField('children', children)}
+              />
+            )}
+          </div>
+
+          {/* Extra dynamická pole - pod nimi */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium text-gray-900 dark:text-white">Extra pole</h4>
+              <button
+                onClick={() => {
+                  const newField = { id: Date.now(), label: '', value: '' };
+                  const currentFields = data.extraFields || [];
+                  updateField('extraFields', [...currentFields, newField]);
+                }}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Přidat pole
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(data.extraFields || []).map((field: ExtraFieldShape, index: number) => (
+                <ExtraFieldDisplay
+                  key={field.id}
+                  field={field}
+                  index={index}
+                  onUpdate={(updatedField) => {
+                    const updatedFields = (data.extraFields || []).map((f: ExtraFieldShape) => 
+                      f.id === field.id ? updatedField : f
+                    );
+                    updateField('extraFields', updatedFields);
+                  }}
+                  onDelete={() => setShowDeleteConfirm(`field-${field.id.toString()}`)}
+                />
+              ))}
+            </div>
+            {(!data.extraFields || data.extraFields.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                <p>Žádná extra pole nejsou přidána.</p>
+                <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </Card>
 
     <Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Jméno
-          </label>
-          <div className="flex items-center space-x-2">
-            <input
-              type="text"
-              value={data.firstName || ''}
-              onChange={(e) => updateField('firstName', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="Zadejte jméno"
-            />
-            <CopyButton text={data.firstName || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Příjmení
-          </label>
-          <div className="flex items-center space-x-2">
-            <input
-              type="text"
-              value={data.lastName || ''}
-              onChange={(e) => updateField('lastName', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="Zadejte příjmení"
-            />
-            <CopyButton text={data.lastName || ''} />
-          </div>
-        </div>
+      {/* Pravý sloupec - vyhrazený pro budoucí obsah */}
+      <div>
+        {/* Prázdný pravý sloupec */}
+      </div>
+    </Card>
   </div>
 
-      {/* Full Name Copy Button */}
-      {(data.title || data.firstName || data.lastName) && (
-        <div className="flex justify-center">
-          <FullNameCopyButton
-            title={data.title}
-            firstName={data.firstName}
-            lastName={data.lastName}
-            className="w-auto"
-          />
-        </div>
-      )}
-
-      {/* Telefon a Email (přesunuto pod tlačítko kopírování jména) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Telefon
-          </label>
-          <div className="flex">
-            <input
-              type="tel"
-              value={data.phone || ''}
-              onChange={(e) => updateField('phone', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="+420 xxx xxx xxx"
-            />
-            <CopyButton text={data.phone || ''} />
+  {/* Delete Confirmation Modal for Documents */}
+  {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div className="mt-3">
+          <div className="flex items-center mb-4">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <div className="flex">
-            <input
-              type="email"
-              value={data.email || ''}
-              onChange={(e) => updateField('email', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold"
-              placeholder="email@example.com"
-            />
-            <CopyButton text={data.email || ''} />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rodné číslo
-          </label>
-          <div className="flex">
-            <input
-              type="text"
-              value={data.birthNumber || ''}
-              onChange={(e) => updateField('birthNumber', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="YYMMDDXXXX"
-              maxLength={10}
-            />
-            <CopyButton text={data.birthNumber || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Věk
-          </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
-            <Calendar className="w-4 h-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-600">
-              {data.age ? `${data.age} let` : 'Zadejte rodné číslo'}
-            </span>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rok narození
-          </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
-            <User className="w-4 h-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-600">
-              {data.birthYear || 'Automaticky'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Datum narození
-          </label>
-          <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600">
-            <Calendar className="w-4 h-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-600">
-              {data.birthDate ? formatDateDDMMYYYY(data.birthDate) : 'Automaticky z rodného čísla'}
-            </span>
-          </div>
-        </div>
-        <div>
-          {/* Placeholder for future field or leave empty for layout */}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Trvalé bydliště
-        </label>
-        <AddressWithMapLinks
-          value={data.permanentAddress || ''}
-          onChange={(value) => updateField('permanentAddress', value)}
-          placeholder="Začněte psát adresu..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Kontaktní adresa
-        </label>
-        <AddressWithMapLinks
-          value={data.contactAddress || ''}
-          onChange={(value) => updateField('contactAddress', value)}
-          placeholder="Začněte psát adresu..."
-        />
-      </div>
-
-  {/* Horní jednorázová pole dokladu odstraněna - používáme pouze sekci 'Doklady totožnosti' níže */}
-
-  {/* Spacer removed - using CSS Grid on parent container to align column tops */}
-
-  {/* Doklady totožnosti sekce */}
-      {prefix === 'applicant' && (
-        <span id="doklady" className="block -mt-20 pt-20" />
-      )}
-      <div className="mt-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
-          <button
-            onClick={() => {
-              const newDocument = {
-                id: Date.now(),
-                documentType: '',
-                documentNumber: '',
-                documentIssueDate: '',
-                documentValidUntil: '',
-                issuingAuthority: '',
-                placeOfBirth: '',
-                controlNumber: ''
-              };
-              const currentDocuments = data.documents || [];
-              updateField('documents', [...currentDocuments, newDocument]);
-            }}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Přidat doklad
-          </button>
-        </div>
-        
-  {(data.documents || []).map((document: any, index: number) => (
-          <div key={document.id} className="bg-gray-50 rounded-lg p-4 border mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h5 className="text-sm font-medium text-gray-900 dark:text-white">
-                Doklad #{index + 1}
-              </h5>
-              <div className="flex items-center space-x-2">
-                {/* Tlačítko pro uložení */}
-                <button
-                  onClick={() => saveDocument(document.id)}
-                  disabled={savingDocument === document.id}
-                  className="p-1 text-blue-600 hover:text-blue-800 disabled:text-blue-400 transition-colors"
-                  title="Uložit doklad"
-                >
-                  {savingDocument === document.id ? (
-                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  ) : savedDocument === document.id ? (
-                    <Check className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                </button>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
+            Smazat doklad
+          </h3>
+          <p className="text-sm text-gray-500 text-center mb-6">
+            Opravdu chcete smazat tento doklad? Tato akce je nevratná.
+          </p>
+          <div className="flex items-center justify-center space-x-3">
+            <button
+              onClick={() => setShowDeleteConfirm(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Ne, zrušit
+            </button>
+            <button
+              onClick={async () => {
+                // Získej celé ID dokumentu ze showDeleteConfirm (odstraň prefix "document-")
+                const documentId = showDeleteConfirm.replace('document-', '');
+                console.log('�️ Pokus o smazání dokumentu s ID:', documentId);
                 
-                {/* Tlačítko pro smazání */}
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(`document-${document.id.toString()}`);
-                  }}
-                  className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                  title="Smazat doklad"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                // Najdi doklad pro smazání podle správného ID
+                const documentToDelete = (data.documents || []).find((d: DocumentShape) => d.id == documentId);
+                console.log('📄 Dokument k smazání:', documentToDelete);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Typ dokladu
-                </label>
-                <div className="flex">
-                  <select
-                    value={document.documentType || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, documentType: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    title="Typ dokladu"
-                  >
-                    <option value="">Vyberte typ</option>
-                          {adminLists.documentTypes.map((type: string) => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                  </select>
-                  <CopyButton text={document.documentType || ''} />
-                </div>
-              </div>
+                // Pokud má doklad supabase_id, smaž ho i z databáze
+                if (documentToDelete?.supabase_id) {
+                  console.log('🗑️ Mažu dokument ze Supabase s ID:', documentToDelete.supabase_id);
+                  try {
+                    const { error } = await supabase
+                      .from('documents')
+                      .delete()
+                      .eq('id', documentToDelete.supabase_id);
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Číslo dokladu
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={document.documentNumber || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, documentNumber: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Číslo dokladu"
-                    title="Číslo dokladu"
-                  />
-                  <CopyButton text={document.documentNumber || ''} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Datum vydání
-                </label>
-                <div className="flex">
-                  <input
-                    type="date"
-                    value={document.documentIssueDate || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, documentIssueDate: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    title="Datum vydání dokladu"
-                  />
-                  <CopyButton text={document.documentIssueDate || ''} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platnost do
-                </label>
-                <div className="flex">
-                  {/* Visible editable date input (previously an invisible overlay) */}
-                  <input
-                    type="date"
-                    value={document.documentValidUntil || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, documentValidUntil: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    title="Platnost do"
-                    aria-label="Platnost do"
-                  />
-                  <CopyButton text={document.documentValidUntil ? formatDateDDMMYYYY(document.documentValidUntil) : ''} title="Kopírovat platnost" />
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Doklad vydal
-                  </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={document.issuingAuthority || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, issuingAuthority: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Kdo doklad vydal"
-                    title="Doklad vydal"
-                  />
-                  <CopyButton text={document.issuingAuthority || ''} title="Kopírovat vydavatele" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Místo narození
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={document.placeOfBirth || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Praha"
-                    title="Místo narození"
-                  />
-                  <CopyButton text={document.placeOfBirth || ''} title="Kopírovat místo narození" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kontrolní číslo OP
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={document.controlNumber || ''}
-                    onChange={(e) => {
-                      const updatedDocuments = (data.documents || []).map((d: any) => 
-                        d.id === document.id ? { ...d, controlNumber: e.target.value } : d
-                      );
-                      updateField('documents', updatedDocuments);
-                    }}
-                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="ABC123"
-                    title="Kontrolní číslo"
-                  />
-                  <CopyButton text={document.controlNumber || ''} title="Kopírovat kontrolní číslo" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Banka
-        </label>
-        <div className="flex">
-          <select
-            value={data.bank || ''}
-            onChange={(e) => updateField('bank', e.target.value)}
-            className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value="">Vyberte banku</option>
-            {adminLists.banks.map(bank => (
-              <option key={bank} value={bank}>{bank}</option>
-            ))}
-          </select>
-          <CopyButton text={data.bank || ''} />
-        </div>
-      </div>
-
-    <div className="flex flex-col gap-6">
-
-  {/* Podnikání sekce */}
-      {prefix === 'applicant' && (
-        <span id="podnikani" className="block -mt-20 pt-20" />
-      )}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <Building className="w-5 h-5 text-purple-600" />
-            <h4 className="text-md font-medium text-gray-900 dark:text-white">Podnikání</h4>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-                if (fullName) {
-                  // Zkopíruj jméno do schránky
-                  navigator.clipboard.writeText(fullName).then(() => {
-                    // Zobraz notifikaci
-                    alert(`Jméno "${fullName}" bylo zkopírováno do schránky. Vložte ho na RŽP stránce.`);
-                    // Otevři RŽP stránku
-                    window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
-                  }).catch(() => {
-                    // Fallback pokud clipboard nefunguje
-                    window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
-                  });
+                    if (error) {
+                      console.error('❌ Chyba při mazání dokumentu ze Supabase:', error);
+                      toast?.showError('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
+                      // Zastavíme se, pokud smazání z DB selže
+                      return; 
+                    }
+                    console.log('✅ Dokument úspěšně smazán ze Supabase.');
+                    toast?.showSuccess('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
+                  } catch (error) {
+                    console.error('❌ Došlo k výjimce při mazání:', error);
+                    toast?.showError('Chyba', String((error as any)?.message || error));
+                    return;
+                  }
                 } else {
-                  window.open('https://rzp.gov.cz/verejne-udaje/cs/udaje/vyber-subjektu', '_blank');
+                  console.log('ℹ️ Dokument nemá supabase_id, mažu pouze lokálně.');
                 }
+
+                // Smaž doklad z lokálního stavu
+                console.log('🔄 Aktualizuji lokální stav.');
+                const updatedDocuments = (data.documents || []).filter((d: { id: string | number }) => d.id !== documentId);
+                updateField('documents', updatedDocuments);
+                setShowDeleteConfirm(null);
               }}
-              className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Zkopírovat jméno do schránky a otevřít RŽP vyhledávání"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
             >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              RŽP vyhledání
+              Ano, smazat
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Delete Confirmation Modal for Extra Fields and Business */}
+  {showDeleteConfirm && (showDeleteConfirm.startsWith('field-') || showDeleteConfirm.startsWith('business-')) && (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div className="mt-3">
+          <div className="flex items-center mb-4">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
+            {showDeleteConfirm.startsWith('business-') ? 'Smazat podnikání' : 'Smazat pole'}
+          </h3>
+          <p className="text-sm text-gray-500 text-center mb-6">
+            {showDeleteConfirm.startsWith('business-') 
+              ? 'Opravdu chcete smazat tento záznam o podnikání? Tato akce je nevratná.'
+              : 'Opravdu chcete smazat toto pole? Tato akce je nevratná.'
+            }
+          </p>
+          <div className="flex items-center justify-center space-x-3">
+            <button
+              onClick={() => setShowDeleteConfirm(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Ne, zrušit
             </button>
             <button
               onClick={() => {
-                const newBusiness = {
-                  id: Date.now(),
-                  ico: '',
-                  companyName: '',
-                  companyAddress: '',
-                  businessStartDate: ''
-                };
-                const currentBusinesses = data.businesses || [];
-                updateField('businesses', [...currentBusinesses, newBusiness]);
+                if (showDeleteConfirm.startsWith('business-')) {
+                  const businessId = parseInt(showDeleteConfirm.replace('business-', ''));
+                  const updatedBusinesses = (data.businesses || []).filter((b: { id: string | number }) => b.id !== businessId);
+                  updateField('businesses', updatedBusinesses);
+                } else {
+                  const fieldId = parseInt(showDeleteConfirm.replace('field-', ''));
+                  const updatedFields = (data.extraFields || []).filter((f: { id: string | number }) => f.id !== fieldId);
+                  updateField('extraFields', updatedFields);
+                }
+                setShowDeleteConfirm(null);
               }}
-              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
             >
-              <Plus className="w-3 h-3 mr-1" />
-              Přidat podnikání
+              Ano, smazat
             </button>
           </div>
         </div>
-        
-  {(data.businesses || []).map((business: any, index: number) => (
-          <BusinessDisplay
-            key={business.id}
-            business={business}
-            index={index}
-            onUpdate={(updatedBusiness) => {
-              const updatedBusinesses = (data.businesses || []).map((b: any) => 
-                b.id === business.id ? updatedBusiness : b
-              );
-              updateField('businesses', updatedBusinesses);
-            }}
-            onDelete={() => {
-              setShowDeleteConfirm(`business-${business.id.toString()}`);
-            }}
-          />
-        ))}
-        
-        {(!data.businesses || data.businesses.length === 0) && (
-          <div className="text-center py-8 text-gray-500">
-            <Building className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>Žádné podnikání není přidáno.</p>
-            <p className="text-sm">Klikněte na "Přidat podnikání" pro vytvoření záznamu o podnikání.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Sekce Děti */}
-      {prefix === 'applicant' && (
-        <span id="deti" className="block -mt-20 pt-20" />
-      )}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <User className="w-5 h-5 text-blue-600" />
-            <h4 className="text-md font-medium text-gray-900 dark:text-white">Děti</h4>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-3 mb-4">
-          <input
-            type="checkbox"
-            id={`${prefix}-no-children`}
-            checked={!hasChildren}
-            onChange={(e) => setHasChildren(!e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
-          />
-          <label htmlFor={`${prefix}-no-children`} className="text-sm font-medium text-gray-700">
-            Nemá děti
-          </label>
-        </div>
-        
-        {hasChildren && (
-          <ChildrenManager
-            children={data.children || []}
-            onChange={(children) => updateField('children', children)}
-          />
-        )}
-      </div>
-
-    </div>
-  </Card>
-
-      {/* Delete Confirmation Modal for Documents */}
-      {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div className="mt-3">
-              <div className="flex items-center mb-4">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
-                  <Trash2 className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
-                Smazat doklad
-              </h3>
-              <p className="text-sm text-gray-500 text-center mb-6">
-                Opravdu chcete smazat tento doklad? Tato akce je nevratná.
-              </p>
-              <div className="flex items-center justify-center space-x-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Ne, zrušit
-                </button>
-                <button
-                  onClick={async () => {
-                    // Získej celé ID dokumentu ze showDeleteConfirm (odstraň prefix "document-")
-                    const documentId = showDeleteConfirm.replace('document-', '');
-                    console.log('�️ Pokus o smazání dokumentu s ID:', documentId);
-                    
-                    // Najdi doklad pro smazání podle správného ID
-                    const documentToDelete = (data.documents || []).find(d => d.id == documentId);
-                    console.log('📄 Dokument k smazání:', documentToDelete);
-
-                    // Pokud má doklad supabase_id, smaž ho i z databáze
-                    if (documentToDelete?.supabase_id) {
-                      console.log('🗑️ Mažu dokument ze Supabase s ID:', documentToDelete.supabase_id);
-                      try {
-                        const { error } = await supabase
-                          .from('documents')
-                          .delete()
-                          .eq('id', documentToDelete.supabase_id);
-
-                        if (error) {
-                          console.error('❌ Chyba při mazání dokumentu ze Supabase:', error);
-                          toast?.showError('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
-                          // Zastavíme se, pokud smazání z DB selže
-                          return; 
-                        }
-                        console.log('✅ Dokument úspěšně smazán ze Supabase.');
-                        toast?.showSuccess('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
-                      } catch (error) {
-                        console.error('❌ Došlo k výjimce při mazání:', error);
-                        toast?.showError('Chyba', `Chyba při komunikaci s databází: ${error.message}`);
-                        return;
-                      }
-                    } else {
-                      console.log('ℹ️ Dokument nemá supabase_id, mažu pouze lokálně.');
-                    }
-
-                    // Smaž doklad z lokálního stavu
-                    console.log('🔄 Aktualizuji lokální stav.');
-                    const updatedDocuments = (data.documents || []).filter(d => d.id != documentId);
-                    updateField('documents', updatedDocuments);
-                    setShowDeleteConfirm(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  Ano, smazat
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal for Extra Fields and Business */}
-      {showDeleteConfirm && (showDeleteConfirm.startsWith('field-') || showDeleteConfirm.startsWith('business-')) && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div className="mt-3">
-              <div className="flex items-center mb-4">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
-                  <Trash2 className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center mb-4">
-                {showDeleteConfirm.startsWith('business-') ? 'Smazat podnikání' : 'Smazat pole'}
-              </h3>
-              <p className="text-sm text-gray-500 text-center mb-6">
-                {showDeleteConfirm.startsWith('business-') 
-                  ? 'Opravdu chcete smazat tento záznam o podnikání? Tato akce je nevratná.'
-                  : 'Opravdu chcete smazat toto pole? Tato akce je nevratná.'
-                }
-              </p>
-              <div className="flex items-center justify-center space-x-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Ne, zrušit
-                </button>
-                <button
-                  onClick={() => {
-                    if (showDeleteConfirm.startsWith('business-')) {
-                      const businessId = parseInt(showDeleteConfirm.replace('business-', ''));
-                      const updatedBusinesses = (data.businesses || []).filter(b => b.id !== businessId);
-                      updateField('businesses', updatedBusinesses);
-                    } else {
-                      const fieldId = parseInt(showDeleteConfirm.replace('field-', ''));
-                      const updatedFields = (data.extraFields || []).filter(f => f.id !== fieldId);
-                      updateField('extraFields', updatedFields);
-                    }
-                    setShowDeleteConfirm(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  Ano, smazat
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Extra dynamická pole */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-md font-medium text-gray-900 dark:text-white">Extra pole</h4>
-          <button
-            onClick={() => {
-              const newField = {
-                id: Date.now(),
-                label: '',
-                value: ''
-              };
-              const currentFields = data.extraFields || [];
-              updateField('extraFields', [...currentFields, newField]);
-            }}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Přidat pole
-          </button>
-        </div>
-        
-        <div className="space-y-3">
-    {(data.extraFields || []).map((field: any, index: number) => (
-            <ExtraFieldDisplay
-              key={field.id}
-              field={field}
-              index={index}
-              onUpdate={(updatedField) => {
-                const updatedFields = (data.extraFields || []).map(f => 
-                  f.id === field.id ? updatedField : f
-                );
-                updateField('extraFields', updatedFields);
-              }}
-              onDelete={() => {
-                setShowDeleteConfirm(`field-${field.id.toString()}`);
-              }}
-            />
-          ))}
-        </div>
-        
-        {(!data.extraFields || data.extraFields.length === 0) && (
-          <div className="text-center py-8 text-gray-500">
-            <p>Žádná extra pole nejsou přidána.</p>
-            <p className="text-sm">Klikněte na "Přidat pole" pro vytvoření vlastního pole.</p>
-          </div>
-        )}
-      </div>
       </div>
     </div>
+  )}
+
+  {/* konec returnu komponenty PersonalInfo */}
+  </div>
   );
 };
 
 // Enhanced Extra Field Display Component with Edit Functionality
 interface ExtraFieldDisplayProps {
-  field: any;
+  field: ExtraFieldShape;
   index: number;
-  onUpdate: (field: any) => void;
+  onUpdate: (field: ExtraFieldShape) => void;
   onDelete: () => void;
 }
 
@@ -1253,11 +1373,13 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
   const [editData, setEditData] = useState(field);
 
   const handleSave = () => {
-    if (!editData.label.trim() || !editData.value.trim()) {
+    const label = String(editData.label || '').trim();
+    const value = String(editData.value || '').trim();
+    if (!label || !value) {
       alert('Název pole a hodnota jsou povinné');
       return;
     }
-    onUpdate(editData);
+    onUpdate({ ...editData, label, value });
     setIsEditing(false);
   };
 
@@ -1288,12 +1410,14 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
               <X className="w-3 h-3 mr-1" />
               Zrušit
             </button>
-            <button
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-800 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+              <button
+                onClick={onDelete}
+                className="text-red-600 hover:text-red-800 transition-colors"
+                title="Smazat pole"
+                aria-label="Smazat pole"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
           </div>
         </div>
 
@@ -1353,12 +1477,11 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
           </div>
         </div>
         <div className="flex items-start space-x-2 w-full">
-          <span className="text-sm text-gray-700 flex-1 break-words leading-relaxed">
-            {field.value}
-          </span>
-          <div className="flex-shrink-0">
-            <CopyButton text={field.value || ''} />
-          </div>
+          <InlineEditableCopy
+            value={field.value || ''}
+            className="flex-1 break-words leading-relaxed"
+            placeholder="Neuvedeno"
+          />
         </div>
       </div>
     </div>
@@ -1367,19 +1490,25 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
 
 // Business Display Component
 interface BusinessDisplayProps {
-  business: any;
+  business: BusinessShape;
   index: number;
-  onUpdate: (business: any) => void;
+  onUpdate: (business: BusinessShape) => void;
   onDelete: () => void;
 }
 
 const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUpdate, onDelete }) => {
   const [isEditing, setIsEditing] = useState(!business.ico || !business.companyName); // Auto-edit if empty
-  const [editData, setEditData] = useState(business);
+  const [editData, setEditData] = useState(() => ({
+    id: business.id,
+    ico: business.ico || '',
+    companyName: business.companyName || '',
+    companyAddress: business.companyAddress || '',
+    businessStartDate: business.businessStartDate || ''
+  } as BusinessShape));
   const [isLoadingAres, setIsLoadingAres] = useState(false);
 
   const handleSave = () => {
-    if (!editData.ico.trim() || !editData.companyName.trim()) {
+    if (!String(editData.ico || '').trim() || !String(editData.companyName || '').trim()) {
       alert('IČO a název firmy jsou povinné');
       return;
     }
@@ -1444,6 +1573,8 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
             <button
               onClick={onDelete}
               className="text-red-600 hover:text-red-800 transition-colors"
+              title="Smazat podnikání"
+              aria-label="Smazat podnikání"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -1451,7 +1582,7 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
         </div>
 
         <div className="space-y-3">
-              <div>
+          <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               IČO *
             </label>
@@ -1463,7 +1594,8 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
                   const ico = e.target.value.replace(/\D/g, '').slice(0, 8);
                   setEditData({ ...editData, ico });
                   if (ico.length === 8) {
-                    fetchAresData(ico);
+                    // safe-call: fetchAresData expects string
+                    fetchAresData(String(ico));
                   }
                 }}
                 className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm rounded-l-md"
@@ -1471,9 +1603,11 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
                 maxLength={8}
               />
               <button
-                onClick={() => fetchAresData(editData.ico)}
-                disabled={isLoadingAres || editData.ico?.length !== 8}
+                onClick={() => editData.ico && fetchAresData(String(editData.ico))}
+                disabled={isLoadingAres || !(editData.ico && editData.ico.length === 8)}
                 className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
+                title="Načíst data z ARES"
+                aria-label="Načíst data z ARES"
               >
                 {isLoadingAres ? (
                   <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
@@ -1521,6 +1655,8 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
               value={editData.businessStartDate || ''}
               onChange={(e) => setEditData({ ...editData, businessStartDate: e.target.value })}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+              title="Začátek podnikání"
+              placeholder="YYYY-MM-DD"
             />
           </div>
         </div>
@@ -1561,24 +1697,31 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
           <div>
             <span className="text-gray-500">IČO:</span>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-900 dark:text-white">{business.ico || 'Neuvedeno'}</span>
-              <CopyButton text={business.ico || ''} />
+              <InlineEditableCopy
+                value={business.ico || ''}
+                className="text-gray-900 dark:text-white"
+                placeholder="Neuvedeno"
+              />
             </div>
           </div>
           <div>
             <span className="text-gray-500">Adresa:</span>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-900 truncate">{business.companyAddress || 'Neuvedeno'}</span>
-              <CopyButton text={business.companyAddress || ''} />
+              <InlineEditableCopy
+                value={business.companyAddress || ''}
+                className="text-gray-900 truncate"
+                placeholder="Neuvedeno"
+              />
             </div>
           </div>
           <div>
             <span className="text-gray-500">Začátek podnikání:</span>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-900 dark:text-white">
-                {business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : 'Neuvedeno'}
-              </span>
-              <CopyButton text={business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''} />
+              <InlineEditableCopy
+                value={business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''}
+                className="text-gray-900 dark:text-white"
+                placeholder="Neuvedeno"
+              />
             </div>
           </div>
         </div>
@@ -1586,5 +1729,3 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
     </div>
   );
 };
-
-// (Card defined above)

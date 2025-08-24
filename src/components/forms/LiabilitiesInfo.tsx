@@ -1,17 +1,39 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { supabase } from '../../lib/supabase';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { SimpleSearch } from '../SimpleSearch';
 import { formatNumber } from '../../utils/formatHelpers';
 import { Plus, Trash2, Save, Check, FileDown } from 'lucide-react';
 
+// Minimal types for liabilities and toast to avoid any
+interface Liability {
+  id: string | number;
+  supabase_id?: string | number | null;
+  institution?: string | null;
+  type?: string | null;
+  amount?: number | string | null;
+  payment?: number | string | null;
+  balance?: number | string | null;
+  notes?: string | null;
+}
+
+interface ToastShape {
+  showError?: (title: string, msg: string) => void;
+  showSuccess?: (title: string, msg: string) => void;
+}
+
+interface AdminListItem {
+  list_type: string;
+  items: string[];
+}
+
 interface LiabilitiesInfoProps {
-  data: any[];
-  onChange: (data: any[]) => void;
+  data: Liability[];
+  onChange: (data: Liability[]) => void;
   clientId?: string | number;
-  toast?: any;
+  toast?: ToastShape;
 }
 
 export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onChange, clientId, toast }) => {
@@ -20,7 +42,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
   const [saved, setSaved] = useState<string | number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [adminLists, setAdminLists] = React.useState({
+  const [adminLists, setAdminLists] = React.useState<{ institutions: string[]; liabilityTypes: string[] }>({
     institutions: [],
     liabilityTypes: []
   });
@@ -36,12 +58,12 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
         }
 
         if (data) {
-          const lists = {
+          const lists: { institutions: string[]; liabilityTypes: string[] } = {
             institutions: [],
             liabilityTypes: []
           };
 
-          data.forEach(item => {
+          data.forEach((item: AdminListItem) => {
             switch (item.list_type) {
               case 'institutions':
                 lists.institutions = item.items;
@@ -82,8 +104,9 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       try {
         const { error } = await supabase.from('liabilities').delete().eq('id', liability.supabase_id);
         if (error) throw new Error(error.message);
-      } catch (e) {
-        toast?.showError('Chyba', 'Smazání v databázi selhalo');
+      } catch (error) {
+        console.error('Chyba při mazání závazku:', error);
+        if (toast && toast.showError) toast.showError('Chyba', 'Smazání v databázi selhalo');
       }
     }
     onChange(data.filter(item => item.id != id));
@@ -93,7 +116,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
     setShowDeleteConfirm(id);
   };
 
-  const updateLiability = (id: string | number, field: string, value: any) => {
+  const updateLiability = (id: string | number, field: string, value: string | number | null) => {
     onChange(data.map(item => 
       item.id == id ? { ...item, [field]: value } : item
     ));
@@ -101,7 +124,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
 
   const saveLiability = async (liabilityId: string | number) => {
     if (!clientId) {
-      toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení závazku');
+      if (toast && toast.showError) toast.showError('Chyba', 'Není dostupné ID klienta pro uložení závazku');
       return;
     }
 
@@ -156,7 +179,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       }
 
       setSaved(liabilityId);
-      toast?.showSuccess('Uloženo', `Závazek #${data.findIndex(item => item.id == liabilityId) + 1} byl úspěšně uložen`);
+  if (toast && toast.showSuccess) toast.showSuccess('Uloženo', `Závazek #${data.findIndex(item => item.id == liabilityId) + 1} byl úspěšně uložen`);
       
       // Skryj ikonku checkmarku po 2 sekundách
       setTimeout(() => {
@@ -164,7 +187,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       }, 2000);
     } catch (error) {
       console.error('Chyba při ukládání závazku:', error);
-      toast?.showError('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit závazek');
+  if (toast && toast.showError) toast.showError('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit závazek');
     } finally {
       setSaving(null);
     }
@@ -178,19 +201,19 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
       
       const liabilitiesForPDF = data.map(liability => ({
         id: liability.id.toString(),
-        institution: liability.institution,
-        type: liability.type,
+        institution: liability.institution ?? undefined,
+        type: liability.type ?? undefined,
         amount: liability.amount ? parseFloat(String(liability.amount).replace(/\s/g, '')) : undefined,
         payment: liability.payment ? parseFloat(String(liability.payment).replace(/\s/g, '')) : undefined,
         balance: liability.balance ? parseFloat(String(liability.balance).replace(/\s/g, '')) : undefined,
-        notes: liability.notes
+        notes: liability.notes ?? undefined
       }));
 
-      await PDFService.generateLiabilitiesPDF(liabilitiesForPDF);
-      toast?.showSuccess('PDF vytvořeno', 'Seznam závazků byl úspěšně exportován do PDF');
+  await PDFService.generateLiabilitiesPDF(liabilitiesForPDF);
+  if (toast && toast.showSuccess) toast.showSuccess('PDF vytvořeno', 'Seznam závazků byl úspěšně exportován do PDF');
     } catch (error) {
       console.error('Chyba při exportu PDF:', error);
-      toast?.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
+  if (toast && toast.showError) toast.showError('Chyba', 'Nepodařilo se vytvořit PDF soubor');
     }
   };
 
@@ -302,7 +325,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                         <option key={inst} value={inst}>{inst}</option>
                       ))}
                     </select>
-                    <CopyButton text={liability.institution || ''} />
+                    <InlineEditableCopy value={liability.institution || ''} className="ml-2" />
                   </div>
                 </div>
 
@@ -322,7 +345,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
-                    <CopyButton text={liability.type || ''} />
+                    <InlineEditableCopy value={liability.type || ''} className="ml-2" />
                   </div>
                 </div>
               </div>
@@ -339,7 +362,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="500 000"
                     />
-                    <CopyButton text={liability.amount ? formatNumber(liability.amount) : ''} />
+                    <InlineEditableCopy value={liability.amount ? formatNumber(liability.amount) : ''} className="ml-2" />
                   </div>
                 </div>
 
@@ -354,7 +377,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="5 000"
                     />
-                    <CopyButton text={liability.payment ? formatNumber(liability.payment) : ''} />
+                    <InlineEditableCopy value={liability.payment ? formatNumber(liability.payment) : ''} className="ml-2" />
                   </div>
                 </div>
 
@@ -369,7 +392,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="450 000"
                     />
-                    <CopyButton text={liability.balance ? formatNumber(liability.balance) : ''} />
+                    <InlineEditableCopy value={liability.balance ? formatNumber(liability.balance) : ''} className="ml-2" />
                   </div>
                 </div>
               </div>
@@ -386,7 +409,7 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                     placeholder="Poznámky k závazku..."
                     rows={3}
                   />
-                  <CopyButton text={liability.notes || ''} />
+                  <InlineEditableCopy value={liability.notes || ''} className="ml-2" />
                 </div>
               </div>
             </div>

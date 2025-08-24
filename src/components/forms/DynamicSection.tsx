@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DynamicSection as DynamicSectionType, DynamicSectionContent } from '../../services/dynamicSectionService';
 import { FileStorageService } from '../../services/fileStorageService';
-import { CopyButton } from '../CopyButton';
+import InlineEditableCopy from '../InlineEditableCopy';
 import { 
   Edit, 
   Trash2, 
@@ -437,7 +437,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Koupě nemovitosti, refinancování..."
                 />
-                <CopyButton text={content.basicParameters?.financingPurpose || ''} />
+                <InlineEditableCopy value={content.basicParameters?.financingPurpose || ''} onSave={(v) => updateContentField('basicParameters.financingPurpose', v)} />
               </div>
             </div>
 
@@ -452,7 +452,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="1 500 000"
                 />
-                <CopyButton text={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} />
+                <InlineEditableCopy value={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} />
               </div>
             </div>            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -465,7 +465,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="2 000 000"
                 />
-                <CopyButton text={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} />
+                <InlineEditableCopy value={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} />
               </div>
             </div>
 
@@ -480,7 +480,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="500 000"
                 />
-                <CopyButton text={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} />
+                <InlineEditableCopy value={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} />
               </div>
             </div>
 
@@ -498,7 +498,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="50"
                 />
-                <CopyButton text={String(content.basicParameters?.maturityYears || '')} />
+                <InlineEditableCopy value={String(content.basicParameters?.maturityYears || '')} />
               </div>
             </div>
 
@@ -516,7 +516,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   min="1"
                   max="30"
                 />
-                <CopyButton text={String(content.basicParameters?.preferredFixationYears || '')} />
+                <InlineEditableCopy value={String(content.basicParameters?.preferredFixationYears || '')} />
               </div>
             </div>
           </div>
@@ -713,7 +713,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                               placeholder="https://example.com"
                             />
-                            <CopyButton text={link.url} />
+                            <InlineEditableCopy value={link.url} />
                           </div>
                         </div>
                         <div>

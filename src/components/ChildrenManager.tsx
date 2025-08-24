@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { CopyButton } from './CopyButton';
-import { Plus, Trash2, Baby } from 'lucide-react';
+import { Plus, Trash2, Baby, Copy } from 'lucide-react';
 
 interface Child {
   id: number;
@@ -89,7 +88,21 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Jméno dítěte"
                 />
-                <CopyButton text={child.name} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(child.name || '');
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+                  title="Kopírovat jméno"
+                  aria-label="Kopírovat jméno dítěte"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -103,8 +116,23 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
                   value={child.birthDate}
                   onChange={(e) => updateChild(child.id, 'birthDate', e.target.value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  aria-label={`Datum narození ${child.name || ''}`}
                 />
-                <CopyButton text={child.birthDate} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(child.birthDate || '');
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+                  title="Kopírovat datum narození"
+                  aria-label="Kopírovat datum narození dítěte"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -118,7 +146,21 @@ export const ChildrenManager: React.FC<ChildrenManagerProps> = ({ children = [],
                     {child.age ? `${child.age} let` : 'Zadejte datum'}
                   </span>
                 </div>
-                <CopyButton text={child.age ? `${child.age} let` : ''} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(child.age ? `${child.age} let` : '');
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+                  title="Kopírovat věk"
+                  aria-label="Kopírovat věk dítěte"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>

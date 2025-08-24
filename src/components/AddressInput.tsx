@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CopyButton } from './CopyButton';
 import { MapPin } from 'lucide-react';
 import { useGoogleMapsLoader } from '../utils/googleMapsLoader';
 
@@ -125,7 +124,6 @@ export const AddressInput: React.FC<AddressInputProps> = ({
             </div>
           )}
         </div>
-        <CopyButton text={value} />
       </div>
 
       {showSuggestions && suggestions.length > 0 && (

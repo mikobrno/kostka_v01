@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MapPin, ExternalLink } from 'lucide-react';
-import { CopyButton } from './CopyButton';
+import { MapPin, ExternalLink, Copy } from 'lucide-react';
 import { useGoogleMapsLoader } from '../utils/googleMapsLoader';
 
 // Global type declarations for Google Maps API
@@ -16,6 +15,7 @@ interface AddressWithMapLinksProps {
   placeholder?: string;
   className?: string;
   label?: string;
+  onCopy?: () => void;
 }
 
 export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
@@ -23,7 +23,8 @@ export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
   onChange,
   placeholder = "Zadejte adresu",
   className = '',
-  label
+  label,
+  onCopy
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -132,7 +133,24 @@ export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
               </div>
             )}
           </div>
-          <CopyButton text={value} />
+          <div className="ml-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(value || '');
+                  if (onCopy) onCopy();
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="p-1 text-gray-500 hover:text-gray-700"
+              title="Kopírovat adresu"
+              aria-label="Kopírovat adresu"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Address suggestions */}
