@@ -609,92 +609,13 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Typ dokladu
-          </label>
-          <div className="flex">
-            <select
-              value={data.documentType || ''}
-              onChange={(e) => updateField('documentType', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">Vyberte typ</option>
-              {adminLists.documentTypes.map((type: string) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            <CopyButton text={data.documentType || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Číslo dokladu
-          </label>
-          <div className="flex">
-            <input
-              type="text"
-              value={data.documentNumber || ''}
-              onChange={(e) => updateField('documentNumber', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="Číslo dokladu"
-            />
-            <CopyButton text={data.documentNumber || ''} />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Datum vydání
-          </label>
-          <div className="flex">
-            <input
-              type="date"
-              value={data.documentIssueDate || ''}
-              onChange={(e) => updateField('documentIssueDate', e.target.value)}
-              className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
-            <CopyButton text={data.documentIssueDate || ''} />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Platnost do
-        </label>
-        <div className="flex w-full">
-          <div className="flex-1 min-w-0 relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            {/* Visible, formatted text to keep previous look */}
-            <input
-              type="text"
-              value={data.documentValidUntil ? formatDateDDMMYYYY(data.documentValidUntil) : ''}
-              readOnly
-              className="block w-full pl-10 rounded-l-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm"
-              placeholder="Automaticky +10 let od vydání"
-              title="Platnost dokladu"
-            />
-            {/* Transparent date input overlayed so user can pick a date while look remains the same */}
-            <input
-              type="date"
-              value={data.documentValidUntil || ''}
-              onChange={(e) => updateField('documentValidUntil', e.target.value)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              aria-label="Vybrat datum platnosti dokladu"
-            />
-          </div>
-          <CopyButton text={data.documentValidUntil ? formatDateDDMMYYYY(data.documentValidUntil) : ''} title="Kopírovat platnost" />
-        </div>
-      </div>
+  {/* Horní jednorázová pole dokladu odstraněna - používáme pouze sekci 'Doklady totožnosti' níže */}
 
       {/* Doklady totožnosti sekce */}
       {prefix === 'applicant' && (
         <span id="doklady" className="block -mt-20 pt-20" />
       )}
-      <div>
+      <div className="mt-6">
         <div className="flex items-center space-x-3 mb-4">
           <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
           <button
