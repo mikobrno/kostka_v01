@@ -273,18 +273,71 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       
       console.log('💾 Data pro uložení do Supabase:', documentData);
 
-      // Pokud už doklad existuje v DB (má supabase_id), aktualizuj ho
-      if (document.supabase_id) {
-        console.log('🔄 Aktualizuji existující dokument s Supabase ID:', document.supabase_id);
-        const { error } = await supabase
+
+      // Rozhodni, zda aktualizovat existující záznam nebo vytvořit nový.
+      // Některé dokumenty načtené z backendu mají přímo `id` (DB id) a nemají pole `supabase_id`.
+      // Použijeme fallback: dbId = supabase_id || id.
+      let maybeId = document.supabase_id ?? document.id;
+      let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
+
+      // Pokud nemáme žádné ID, zkontroluj na serveru, zda už neexistuje dokument se stejným číslem pro tohoto klienta
+      // (jednoduchá deduplikace podle client_id + document_number + parent_type).
+      if (!dbId && document.documentNumber) {
+        try {
+          const { data: existing, error: selectErr } = await supabase
+            .from('documents')
+            .select('id')
+            .eq('client_id', String(clientId))
+            .eq('document_number', document.documentNumber)
+            .eq('parent_type', prefix)
+            .limit(1)
+            .maybeSingle();
+
+          if (selectErr) {
+            console.warn('⚠️ Chyba při kontrole duplicity dokumentu:', selectErr);
+          } else if (existing && existing.id) {
+            console.log('ℹ️ Nalezen existující dokument na serveru se stejným číslem. Použiju jeho ID pro update:', existing.id);
+            dbId = existing.id;
+            maybeId = existing.id;
+          }
+        } catch (err) {
+          console.warn('⚠️ Výjimka při kontrole duplicity dokumentu:', err);
+        }
+      }
+
+      if (dbId) {
+        console.log('🔄 Aktualizuji existující dokument v Supabase s ID:', dbId);
+        // Po aktualizaci požádej o vrácení upraveného záznamu a aktualizuj lokální položku
+        const { data: updatedRow, error } = await supabase
           .from('documents')
           .update(documentData)
-          .eq('id', document.supabase_id);
+          .eq('id', dbId)
+          .select()
+          .single();
 
         if (error) {
           console.error('❌ Chyba při aktualizaci dokumentu v Supabase:', error);
           throw new Error(error.message || 'Chyba při aktualizaci dokladu');
         }
+
+        console.log('📤 Supabase updated row:', updatedRow);
+        // Aktualizuj lokální data podle vráceného řádku
+        const updatedDocuments = (data.documents || []).map((doc: any) => 
+          doc.id == documentId
+            ? {
+                ...doc,
+                supabase_id: updatedRow.id,
+                documentType: updatedRow.document_type ?? document.documentType,
+                documentNumber: updatedRow.document_number ?? document.documentNumber,
+                documentIssueDate: updatedRow.document_issue_date ?? document.documentIssueDate,
+                documentValidUntil: updatedRow.document_valid_until ?? document.documentValidUntil,
+                issuingAuthority: updatedRow.issuing_authority ?? document.issuingAuthority,
+                placeOfBirth: updatedRow.place_of_birth ?? document.placeOfBirth,
+                controlNumber: updatedRow.control_number ?? document.controlNumber
+              }
+            : doc
+        );
+        onChange({ ...data, documents: updatedDocuments });
         console.log('✅ Dokument úspěšně aktualizován v Supabase.');
       } else {
         // Jinak vytvoř nový záznam
@@ -299,14 +352,34 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           console.error('❌ Chyba při vkládání nového dokumentu do Supabase:', error);
           throw new Error(error.message || 'Chyba při vytváření dokladu');
         }
-        console.log('✅ Nový dokument úspěšně vložen, Supabase ID:', newDocument.id);
+        console.log('📤 Supabase inserted row:', newDocument);
 
-        // Aktualizuj lokální data s novým supabase_id
-        const updatedDocuments = (data.documents || []).map((doc: any) => 
+        // Aktualizuj lokální data s celým vloženým záznamem
+        let updatedDocuments = (data.documents || []).map((doc: any) => 
           doc.id == documentId 
-            ? { ...doc, supabase_id: newDocument.id }
+            ? {
+                ...doc,
+                supabase_id: newDocument.id,
+                documentType: newDocument.document_type ?? doc.documentType,
+                documentNumber: newDocument.document_number ?? doc.documentNumber,
+                documentIssueDate: newDocument.document_issue_date ?? doc.documentIssueDate,
+                documentValidUntil: newDocument.document_valid_until ?? doc.documentValidUntil,
+                issuingAuthority: newDocument.issuing_authority ?? doc.issuingAuthority,
+                placeOfBirth: newDocument.place_of_birth ?? doc.placeOfBirth,
+                controlNumber: newDocument.control_number ?? doc.controlNumber
+              }
             : doc
         );
+
+        // Odeber případné duplicitní lokální záznamy, které referencují stejné supabase_id
+        const seen = new Set<string>();
+        updatedDocuments = updatedDocuments.filter((d: any) => {
+          const key = d.supabase_id ? String(d.supabase_id) : `local:${d.id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         onChange({ ...data, documents: updatedDocuments });
       }
 
@@ -749,12 +822,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Platnost do
                 </label>
-                <div className="flex relative">
-                  {/* Readonly formatted display */}
-                  <div className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm border-r-0 relative">
-                    {document.documentValidUntil ? formatDateDDMMYYYY(document.documentValidUntil) : ''}
-                  </div>
-                  {/* Invisible date input overlay */}
+                <div className="flex">
+                  {/* Visible editable date input (previously an invisible overlay) */}
                   <input
                     type="date"
                     value={document.documentValidUntil || ''}
@@ -764,8 +833,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                       );
                       updateField('documents', updatedDocuments);
                     }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    aria-label="Vybrat datum platnosti dokladu"
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    title="Platnost do"
+                    aria-label="Platnost do"
                   />
                   <CopyButton text={document.documentValidUntil ? formatDateDDMMYYYY(document.documentValidUntil) : ''} title="Kopírovat platnost" />
                 </div>
