@@ -27,6 +27,15 @@ export const formatDateDDMMYYYY = (dateStr?: string | null) => {
   return `${dd}.${mm}.${yyyy}`;
 };
 
+// Card wrapper to standardize column appearance and padding
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      {children}
+    </div>
+  );
+}
+
 export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
@@ -404,7 +413,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         {prefix === 'applicant' ? 'Osobní údaje žadatele' : 'Osobní údaje spolužadatele'}
       </h3>
       
-      <div className="space-y-6">
+  <div className="grid gap-6 items-start form-grid-layout">
+    <Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -519,6 +529,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       </div>
 
+    </Card>
+
+    <Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -551,7 +564,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <CopyButton text={data.lastName || ''} />
           </div>
         </div>
-      </div>
+  </div>
 
       {/* Full Name Copy Button */}
       {(data.title || data.firstName || data.lastName) && (
@@ -684,7 +697,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
   {/* Horní jednorázová pole dokladu odstraněna - používáme pouze sekci 'Doklady totožnosti' níže */}
 
-      {/* Doklady totožnosti sekce */}
+  {/* Spacer removed - using CSS Grid on parent container to align column tops */}
+
+  {/* Doklady totožnosti sekce */}
       {prefix === 'applicant' && (
         <span id="doklady" className="block -mt-20 pt-20" />
       )}
@@ -930,7 +945,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         </div>
       </div>
 
-      {/* Podnikání sekce */}
+    <div className="flex flex-col gap-6">
+
+  {/* Podnikání sekce */}
       {prefix === 'applicant' && (
         <span id="podnikani" className="block -mt-20 pt-20" />
       )}
@@ -1043,6 +1060,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           />
         )}
       </div>
+
+    </div>
+  </Card>
 
       {/* Delete Confirmation Modal for Documents */}
       {showDeleteConfirm && showDeleteConfirm.startsWith('document-') && (
@@ -1566,3 +1586,5 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
     </div>
   );
 };
+
+// (Card defined above)

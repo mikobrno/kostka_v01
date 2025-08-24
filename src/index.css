@@ -137,3 +137,8 @@ kbd {
   font-size: 0.75rem;
   font-family: monospace;
 }
+
+/* Form grid layout: responsive two-column with minimum column width */
+.form-grid-layout {
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+}
