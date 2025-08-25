@@ -19,7 +19,7 @@ interface BusinessData {
   business_phone?: string;
   business_email?: string;
   website?: string;
-  registry_data?: any;
+  registry_data?: Record<string, unknown>;
   last_sync_date?: string;
   sync_status?: 'pending' | 'synced' | 'failed' | 'manual';
   sync_error?: string;
@@ -344,7 +344,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
     setEditData(business);
   }, [business]);
 
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: unknown) => {
     setEditData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -440,6 +440,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               value={editData.legal_form || ''}
               onChange={(e) => handleFieldChange('legal_form', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              title="Právní forma"
+              aria-label="Právní forma"
             >
               <option value="">Vyberte formu</option>
               {legalForms.map(form => (
@@ -457,6 +459,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               value={editData.registration_date || ''}
               onChange={(e) => handleFieldChange('registration_date', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              title="Datum registrace"
+              aria-label="Datum registrace"
             />
           </div>
 
@@ -471,6 +475,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                 onChange={(e) => handleFieldChange('business_address', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 placeholder="Adresa sídla společnosti"
+                title="Adresa firmy"
+                aria-label="Adresa firmy"
               />
               <InlineEditableCopy value={editData.business_address || ''} onSave={(v) => handleFieldChange('business_address', v)} />
             </div>
@@ -486,6 +492,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               onChange={(e) => handleFieldChange('business_activity', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               placeholder="Hlavní činnost"
+              title="Předmět podnikání"
+              aria-label="Předmět podnikání"
             />
           </div>
 
@@ -499,6 +507,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               onChange={(e) => handleFieldChange('nace_code', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               placeholder="62010"
+              title="NACE kód"
+              aria-label="NACE kód"
             />
           </div>
 
@@ -513,6 +523,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               placeholder="1000000"
               min="0"
+              title="Roční obrat"
+              aria-label="Roční obrat"
             />
           </div>
 
@@ -527,6 +539,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               placeholder="10"
               min="0"
+              title="Počet zaměstnanců"
+              aria-label="Počet zaměstnanců"
             />
           </div>
 
@@ -543,6 +557,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               min="0"
               max="100"
               step="0.01"
+              title="Podíl klienta v procentech"
+              aria-label="Podíl klienta v procentech"
             />
           </div>
 
@@ -554,6 +570,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               value={editData.position_in_company || ''}
               onChange={(e) => handleFieldChange('position_in_company', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              title="Pozice ve firmě"
+              aria-label="Pozice ve firmě"
             >
               <option value="">Vyberte pozici</option>
               {positions.map(position => (
@@ -570,6 +588,8 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               value={editData.business_status || ''}
               onChange={(e) => handleFieldChange('business_status', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              title="Stav firmy"
+              aria-label="Stav firmy"
             >
               {businessStatuses.map(status => (
                 <option key={status.value} value={status.value}>{status.label}</option>
@@ -613,40 +633,22 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
         
         <div className="flex items-center space-x-2">
           {business.website && (
-            <a
-              href={business.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-600 hover:text-purple-800"
-              title="Otevřít web"
-            >
+            <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700" title="Otevřít web firmy">
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
-          {onRefresh && business.sync_status !== 'manual' && (
-            <button
-              onClick={onRefresh}
-              className="text-blue-600 hover:text-blue-800"
-              title="Aktualizovat data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          )}
           {onEdit && (
-            <button
-              onClick={onEdit}
-              className="text-blue-600 hover:text-blue-800"
-              title="Upravit"
-            >
+            <button onClick={onEdit} title="Upravit" className="p-2 text-gray-600 hover:text-gray-800">
               <Edit className="w-4 h-4" />
             </button>
           )}
+          {onRefresh && (
+            <button onClick={onRefresh} title="Aktualizovat" className="p-2 text-gray-600 hover:text-gray-800">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
           {onDelete && (
-            <button
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-800"
-              title="Smazat"
-            >
+            <button onClick={onDelete} title="Smazat" className="p-2 text-red-600 hover:text-red-700">
               <Trash2 className="w-4 h-4" />
             </button>
           )}

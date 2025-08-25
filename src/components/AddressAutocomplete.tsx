@@ -3,6 +3,27 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 /**
  * Props interface for the AddressAutocomplete component
  */
+// Local minimal types for Google Places objects (fallback when @types/google.maps isn't installed)
+type AddressComponentLike = { types: string[]; long_name?: string; short_name?: string };
+type PlaceResultLike = {
+  formatted_address?: string;
+  address_components?: AddressComponentLike[];
+  place_id?: string;
+  geometry?: unknown;
+  name?: string;
+};
+
+type AutocompleteOptionsLike = {
+  types?: string[];
+  componentRestrictions?: { country?: string };
+  fields?: string[];
+};
+
+type AutocompleteLike = {
+  getPlace: () => PlaceResultLike;
+  addListener: (event: string, cb: () => void) => void;
+};
+
 interface AddressAutocompleteProps {
   /** Callback function called when an address is selected */
   setAddress: (address: string) => void;
@@ -20,8 +41,8 @@ interface AddressAutocompleteProps {
   onLoadingChange?: (loading: boolean) => void;
   /** Custom debounce delay in milliseconds */
   debounceDelay?: number;
-  /** Additional Google Places API options */
-  placesOptions?: Partial<google.maps.places.AutocompleteOptions>;
+  /** Additional Google Places API options (runtime object, typed locally) */
+  placesOptions?: Partial<AutocompleteOptionsLike>;
 }
 
 /**
@@ -49,6 +70,14 @@ interface AddressValidation {
  * @param props - Component props
  * @returns JSX.Element
  */
+// If `google` types are not available in this environment, provide local fallbacks
+// so the file still typechecks. These are intentionally permissive and should be
+// replaced with the official `@types/google.maps` package in a follow-up.
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  var __google_types_present__: any;
+}
+
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   setAddress,
   placeholder = "Zadejte adresu",
@@ -62,7 +91,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 }) => {
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const autocompleteRef = useRef<AutocompleteLike | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // State management
@@ -76,7 +105,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
    * @param place - Google Places API place object
    * @returns Validation result
    */
-  const validateAddress = useCallback((place: google.maps.places.PlaceResult): AddressValidation => {
+  const validateAddress = useCallback((place: PlaceResultLike): AddressValidation => {
     if (!place.formatted_address) {
       return {
         isValid: false,
@@ -92,8 +121,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     }
 
     // Check if address is in Czech Republic
-    const country = place.address_components.find(
-      component => component.types.includes('country')
+    const country = place.address_components?.find(
+      (component: AddressComponentLike) => component.types.includes('country')
     );
 
     if (country?.short_name !== 'CZ') {
@@ -111,10 +140,10 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
    * @param place - Google Places API place object
    * @returns Formatted address string
    */
-  const formatAddress = useCallback((place: google.maps.places.PlaceResult): string => {
+  const formatAddress = useCallback((place: PlaceResultLike): string => {
     const formatted = place.formatted_address || '';
     const postalCode = place.address_components?.find(
-      component => component.types.includes('postal_code')
+      (component: AddressComponentLike) => component.types.includes('postal_code')
     )?.long_name;
 
     // Add postal code if not already present
@@ -174,7 +203,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
     try {
       // Default options for Czech addresses
-      const defaultOptions: google.maps.places.AutocompleteOptions = {
+  const defaultOptions: AutocompleteOptionsLike = {
         types: ['address'],
         componentRestrictions: { country: 'cz' },
         fields: ['formatted_address', 'address_components', 'geometry']
@@ -183,14 +212,17 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       // Merge with custom options
       const options = { ...defaultOptions, ...placesOptions };
 
-      // Create autocomplete instance
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+      // Create autocomplete instance (typed as AutocompleteLike)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime google object
+      autocompleteRef.current = new (window as any).google.maps.places.Autocomplete(
         inputRef.current,
-        options
-      );
+        options as AutocompleteOptionsLike
+      ) as AutocompleteLike;
 
       // Add place changed listener
-      autocompleteRef.current.addListener('place_changed', handlePlaceChanged);
+      if (autocompleteRef.current) {
+        autocompleteRef.current.addListener('place_changed', handlePlaceChanged);
+      }
 
       setIsApiLoaded(true);
       setError(null);
@@ -263,7 +295,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     return () => {
       if (autocompleteRef.current) {
         // Remove listeners to prevent memory leaks
-        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop with google runtime
+        (window as any).google?.maps?.event?.clearInstanceListeners((autocompleteRef.current as any));
         autocompleteRef.current = null;
       }
       
@@ -342,24 +375,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
 export default AddressAutocomplete;
 
-// Type declarations for Google Maps API (if not already available)
-declare global {
-  interface Window {
-    google: {
-      maps: {
-        places: {
-          Autocomplete: new (
-            input: HTMLInputElement,
-            options?: google.maps.places.AutocompleteOptions
-          ) => google.maps.places.Autocomplete;
-        };
-        event: {
-          clearInstanceListeners: (instance: any) => void;
-        };
-      };
-    };
-  }
-}
+// Note: google runtime is accessed via (window as any).google in this file.
+// We intentionally avoid ambient google type declarations here; add `@types/google.maps` to the project
+// to enable stricter typing.
 
 // Export types for external use
 export type { AddressAutocompleteProps, AddressValidation };

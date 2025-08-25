@@ -137,25 +137,26 @@ export class PDFService {
     let currentY = this.addSection(doc, sectionTitle, startY);
     
     // Osobní údaje
-    const personalData = [
-      ['Titul:', (client as any)[`${prefix}title`] || ''],
-      ['Jméno:', (client as any)[`${prefix}first_name`] || ''],
-      ['Příjmení:', (client as any)[`${prefix}last_name`] || ''],
-      ['Rodné příjmení:', (client as any)[`${prefix}maiden_name`] || ''],
-      ['Rodné číslo:', (client as any)[`${prefix}birth_number`] || ''],
-      ['Datum narození:', this.formatDate((client as any)[`${prefix}birth_date`])],
-      ['Věk:', (client as any)[`${prefix}age`] ? `${(client as any)[`${prefix}age`]} let` : ''],
-      ['Rodinný stav:', (client as any)[`${prefix}marital_status`] || ''],
-      ['Bydliště:', (client as any)[`${prefix}housing_type`] || '']
-    ].filter(([, value]) => value); // Filtruje prázdné hodnoty
+        const clientLike: Record<string, unknown> = client || {};
+        const personalData = [
+          ['Titul:', (clientLike[`${prefix}title`] as string) || ''],
+          ['Jméno:', (clientLike[`${prefix}first_name`] as string) || ''],
+          ['Příjmení:', (clientLike[`${prefix}last_name`] as string) || ''],
+          ['Rodné příjmení:', (clientLike[`${prefix}maiden_name`] as string) || ''],
+          ['Rodné číslo:', (clientLike[`${prefix}birth_number`] as string) || ''],
+          ['Datum narození:', this.formatDate(clientLike[`${prefix}birth_date`] as string)],
+          ['Věk:', clientLike[`${prefix}age`] ? `${(clientLike[`${prefix}age`] as number)} let` : ''],
+          ['Rodinný stav:', (clientLike[`${prefix}marital_status`] as string) || ''],
+          ['Bydliště:', (clientLike[`${prefix}housing_type`] as string) || '']
+        ].filter(([, value]) => value); // Filtruje prázdné hodnoty
 
     // Kontaktní údaje
-    const contactData = [
-      ['Trvalá adresa:', (client as any)[`${prefix}permanent_address`] || ''],
-      ['Korespondenční adresa:', (client as any)[`${prefix}contact_address`] || ''],
-      ['Telefon:', (client as any)[`${prefix}phone`] || ''],
-      ['E-mail:', (client as any)[`${prefix}email`] || '']
-    ].filter(([, value]) => value);
+        const contactData = [
+          ['Trvalá adresa:', (clientLike[`${prefix}permanent_address`] as string) || ''],
+          ['Korespondenční adresa:', (clientLike[`${prefix}contact_address`] as string) || ''],
+          ['Telefon:', (clientLike[`${prefix}phone`] as string) || ''],
+          ['E-mail:', (clientLike[`${prefix}email`] as string) || '']
+        ].filter(([, value]) => value);
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');

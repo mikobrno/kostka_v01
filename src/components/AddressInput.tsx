@@ -3,19 +3,12 @@ import { MapPin } from 'lucide-react';
 import { useGoogleMapsLoader } from '../utils/googleMapsLoader';
 
 // Global type declarations for Google Maps API
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare global {
   interface Window {
+    // Google Maps types can vary at runtime; keep as unknown and cast where needed
     google: any;
   }
-}
-
-// Vite environment variables type declaration
-interface ImportMetaEnv {
-  readonly VITE_GOOGLE_MAPS_API_KEY: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
 }
 
 interface AddressInputProps {
@@ -24,6 +17,9 @@ interface AddressInputProps {
   placeholder?: string;
   className?: string;
 }
+
+// Local fallback type for AutocompletePrediction when @types/google.maps isn't installed
+type AutocompletePredictionLike = { description?: string };
 
 export const AddressInput: React.FC<AddressInputProps> = ({ 
   value, 
@@ -60,9 +56,11 @@ export const AddressInput: React.FC<AddressInputProps> = ({
         types: ['address']
       };
 
-      service.getPlacePredictions(request, (predictions: any[], status: any) => {
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-          const formattedSuggestions = predictions.slice(0, 5).map(p => p.description);
+      // Use runtime types: predictions is an array of AutocompletePrediction-like objects
+      service.getPlacePredictions(request, (predictions: AutocompletePredictionLike[] | null, status: string) => {
+        // Use runtime access to global google to compare status
+  if (status === 'OK' && predictions) {
+          const formattedSuggestions = predictions.slice(0, 5).map((p) => (p && (p.description || '')));
           setSuggestions(formattedSuggestions);
         } else {
           setSuggestions([]);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DynamicSection as DynamicSectionType, DynamicSectionContent } from '../../services/dynamicSectionService';
 import { FileStorageService } from '../../services/fileStorageService';
 import InlineEditableCopy from '../InlineEditableCopy';
+import CopyIconButton from '../CopyIconButton';
 import { 
   Edit, 
   Trash2, 
@@ -436,8 +437,10 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   onChange={(e) => updateBasicParameter('financingPurpose', e.target.value)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Koupě nemovitosti, refinancování..."
+                  title="Účel financování"
+                  aria-label="Účel financování"
                 />
-                <InlineEditableCopy value={content.basicParameters?.financingPurpose || ''} onSave={(v) => updateContentField('basicParameters.financingPurpose', v)} />
+                <InlineEditableCopy value={content.basicParameters?.financingPurpose || ''} onSave={(v) => updateBasicParameter('financingPurpose', v)} />
               </div>
             </div>
 
@@ -446,26 +449,36 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 Požadovaná výše úvěru (Kč)
               </label>
               <div className="flex">
-                <FormattedNumberInput
-                  value={content.basicParameters?.requestedLoanAmount || ''}
-                  onChange={(value) => updateBasicParameter('requestedLoanAmount', parseFloat(value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="1 500 000"
-                />
-                <InlineEditableCopy value={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} />
+                <label className="sr-only">Požadovaná výše úvěru
+                  <FormattedNumberInput
+                    value={content.basicParameters?.requestedLoanAmount || ''}
+                    onChange={(value) => updateBasicParameter('requestedLoanAmount', parseFloat(value) || 0)}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="1 500 000"
+                  />
+                </label>
+                <div className="flex items-center">
+                  <span className="mr-2">{content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''}</span>
+                  <CopyIconButton value={content.basicParameters?.requestedLoanAmount ? formatNumber(content.basicParameters.requestedLoanAmount) : ''} toast={toast} />
+                </div>
               </div>
             </div>            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hodnota nemovitosti (Kč)
               </label>
               <div className="flex">
-                <FormattedNumberInput
-                  value={content.basicParameters?.propertyValue || ''}
-                  onChange={(value) => updateBasicParameter('propertyValue', parseFloat(value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="2 000 000"
-                />
-                <InlineEditableCopy value={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} />
+                <label className="sr-only">Hodnota nemovitosti
+                  <FormattedNumberInput
+                    value={content.basicParameters?.propertyValue || ''}
+                    onChange={(value) => updateBasicParameter('propertyValue', parseFloat(value) || 0)}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="2 000 000"
+                  />
+                </label>
+                <div className="flex items-center">
+                  <span className="mr-2">{content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''}</span>
+                  <CopyIconButton value={content.basicParameters?.propertyValue ? formatNumber(content.basicParameters.propertyValue) : ''} toast={toast} />
+                </div>
               </div>
             </div>
 
@@ -474,13 +487,18 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 Vlastní prostředky (Kč)
               </label>
               <div className="flex">
-                <FormattedNumberInput
-                  value={content.basicParameters?.vlastniProstredky || ''}
-                  onChange={(value) => updateBasicParameter('vlastniProstredky', parseFloat(value) || 0)}
-                  className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="500 000"
-                />
-                <InlineEditableCopy value={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} />
+                <label className="sr-only">Vlastní prostředky
+                  <FormattedNumberInput
+                    value={content.basicParameters?.vlastniProstredky || ''}
+                    onChange={(value) => updateBasicParameter('vlastniProstredky', parseFloat(value) || 0)}
+                    className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="500 000"
+                  />
+                </label>
+                <div className="flex items-center">
+                  <span className="mr-2">{content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''}</span>
+                  <CopyIconButton value={content.basicParameters?.vlastniProstredky ? String(formatNumber(content.basicParameters.vlastniProstredky)) : ''} toast={toast} />
+                </div>
               </div>
             </div>
 
@@ -495,10 +513,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   onChange={(e) => updateBasicParameter('maturityYears', parseInt(e.target.value) || 0)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="30"
+                  title="Splatnost v letech"
+                  aria-label="Splatnost v letech"
                   min="1"
                   max="50"
                 />
-                <InlineEditableCopy value={String(content.basicParameters?.maturityYears || '')} />
+                <div className="flex items-center">
+                  <span className="mr-2">{String(content.basicParameters?.maturityYears || '')}</span>
+                  <CopyIconButton value={String(content.basicParameters?.maturityYears || '')} toast={toast} />
+                </div>
               </div>
             </div>
 
@@ -513,10 +536,15 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                   onChange={(e) => updateBasicParameter('preferredFixationYears', parseInt(e.target.value) || 0)}
                   className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="5"
+                  title="Délka fixace preferovaná"
+                  aria-label="Délka fixace preferovaná"
                   min="1"
                   max="30"
                 />
-                <InlineEditableCopy value={String(content.basicParameters?.preferredFixationYears || '')} />
+                <div className="flex items-center">
+                  <span className="mr-2">{String(content.basicParameters?.preferredFixationYears || '')}</span>
+                  <CopyIconButton value={String(content.basicParameters?.preferredFixationYears || '')} toast={toast} />
+                </div>
               </div>
             </div>
           </div>
@@ -617,6 +645,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               onChange={(e) => setNewTaskTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') addTask(); }}
               placeholder="Nový úkol..."
+              title="Nový úkol"
+              aria-label="Nový úkol"
               className="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-emerald-500 focus:border-emerald-500"
             />
             <button
@@ -712,8 +742,13 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                               onChange={(e) => updateLink(link.id, 'url', e.target.value)}
                               className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                               placeholder="https://example.com"
+                              title={`URL odkazu ${link.title || ''}`}
+                              aria-label={`URL odkazu ${link.title || ''}`}
                             />
-                            <InlineEditableCopy value={link.url} />
+                            <div className="flex items-center">
+                              <span className="truncate mr-2">{link.url}</span>
+                              <CopyIconButton value={link.url} toast={toast} />
+                            </div>
                           </div>
                         </div>
                         <div>
@@ -726,6 +761,8 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                             onChange={(e) => updateLink(link.id, 'title', e.target.value)}
                             className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                             placeholder="Popis odkazu"
+                            title={`Popis odkazu ${link.url || ''}`}
+                            aria-label={`Popis odkazu ${link.url || ''}`}
                           />
                         </div>
                       </div>
@@ -862,6 +899,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                     disabled={isUploading}
                     className="hidden"
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                    aria-label="Nahrát soubory"
                   />
                 </label>
               </div>
@@ -954,11 +992,13 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onRename, onDelete })
                 onChange={(e) => handleNameChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={handleSave}
-                className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    className={`text-sm font-medium w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                   isValidName 
                     ? 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500' 
                     : 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500'
                 }`}
+                    title={`Přejmenovat soubor ${file.originalName}`}
+                    aria-label={`Přejmenovat soubor ${file.originalName}`}
                 autoFocus
               />
               {!isValidName && (

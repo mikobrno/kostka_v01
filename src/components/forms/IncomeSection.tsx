@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { DollarSign, Briefcase, TrendingUp, TrendingDown, Calculator, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, Briefcase, TrendingUp, TrendingDown, Calculator } from 'lucide-react';
 import InlineEditableCopy from '../InlineEditableCopy';
+import CopyIconButton from '../CopyIconButton';
 
 interface IncomeData {
   id: string;
@@ -78,7 +79,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
     other: 'Jiné'
   };
 
-  const updateIncomeData = (personType: 'applicant' | 'co_applicant', field: string, value: any) => {
+  const updateIncomeData = (personType: 'applicant' | 'co_applicant', field: string, value: string | number | null) => {
     const currentData = personType === 'applicant' ? applicantIncome : coApplicantIncome;
     const updatedData = {
       ...currentData,
@@ -170,11 +171,12 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                   value={currentIncomeData?.employment_type || ''}
                   onChange={(e) => updateIncomeData(activeTab, 'employment_type', e.target.value)}
                   className="block w-full border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+                  title="Typ zaměstnání"
                 >
                   <option value="">Vyberte typ</option>
                   {employmentTypes.map(type => (
                     <option key={type} value={type}>
-                      {employmentTypeLabels[type]}
+                      {employmentTypeLabels[type as keyof typeof employmentTypeLabels]}
                     </option>
                   ))}
                 </select>
@@ -205,8 +207,9 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     onChange={(e) => updateIncomeData(activeTab, 'employer_name', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                     placeholder="Název společnosti"
+                    title="Zaměstnavatel"
                   />
-                  <InlineEditableCopy value={currentIncomeData?.employer_name || ''} onSave={(v) => updateIncomeData(personType, 'employer_name', v)} />
+                  <InlineEditableCopy value={currentIncomeData?.employer_name || ''} onSave={(v) => updateIncomeData(activeTab, 'employer_name', v)} />
                 </div>
               </div>
 
@@ -222,7 +225,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
                     placeholder="Manažer, Programátor, ..."
                   />
-                  <InlineEditableCopy value={currentIncomeData?.position || ''} onSave={(v) => updateIncomeData(personType, 'position', v)} />
+                  <InlineEditableCopy value={currentIncomeData?.position || ''} onSave={(v) => updateIncomeData(activeTab, 'position', v)} />
                 </div>
               </div>
 
@@ -239,7 +242,10 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     placeholder="50000"
                     min="0"
                   />
-                  <InlineEditableCopy value={currentIncomeData?.gross_salary?.toString() || ''} />
+                  <div className="flex items-center">
+                    <span className="mr-2">{currentIncomeData?.gross_salary?.toString() || ''}</span>
+                    <CopyIconButton value={currentIncomeData?.gross_salary?.toString() || ''} />
+                  </div>
                 </div>
               </div>
 
@@ -256,7 +262,10 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                     placeholder="38000"
                     min="0"
                   />
-                  <InlineEditableCopy value={currentIncomeData?.net_salary?.toString() || ''} />
+                  <div className="flex items-center">
+                    <span className="mr-2">{currentIncomeData?.net_salary?.toString() || ''}</span>
+                    <CopyIconButton value={currentIncomeData?.net_salary?.toString() || ''} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -437,11 +446,12 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                   value={currentIncomeData?.income_proof_type || ''}
                   onChange={(e) => updateIncomeData(activeTab, 'income_proof_type', e.target.value)}
                   className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                  title="Typ dokladu o příjmech"
                 >
                   <option value="">Vyberte typ</option>
                   {incomeProofTypes.map(type => (
                     <option key={type} value={type}>
-                      {incomeProofLabels[type]}
+                      {incomeProofLabels[type as keyof typeof incomeProofLabels]}
                     </option>
                   ))}
                 </select>
@@ -456,6 +466,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                   value={currentIncomeData?.verification_date || ''}
                   onChange={(e) => updateIncomeData(activeTab, 'verification_date', e.target.value)}
                   className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                  title="Datum ověření"
                 />
               </div>
 
@@ -469,6 +480,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
                   onChange={(e) => updateIncomeData(activeTab, 'verified_by', e.target.value)}
                   className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                   placeholder="Jméno ověřovatele"
+                  title="Ověřil"
                 />
               </div>
 

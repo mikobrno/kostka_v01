@@ -4,7 +4,6 @@ import {
   Italic, 
   Underline, 
   Strikethrough, 
-  Type, 
   Plus, 
   Minus,
   AlignLeft,
@@ -36,7 +35,7 @@ interface RichTextEditorProps {
 interface FormatCommand {
   command: string;
   value?: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   label: string;
   shortcut?: string;
 }

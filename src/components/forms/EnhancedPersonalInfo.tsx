@@ -6,9 +6,92 @@ import { ChildrenManager } from '../ChildrenManager';
 import { DocumentManager } from './DocumentManager';
 import { Calendar, User, Globe } from 'lucide-react';
 
+// Defaults for admin lists
+const DEFAULT_CITIZENSHIPS = [
+  'Česká republika',
+  'Slovenská republika',
+  'Německo',
+  'Rakousko',
+  'Polsko',
+  'Maďarsko',
+  'Ukrajina',
+  'Rusko',
+  'Jiné'
+];
+
+const DEFAULT_EDUCATION_LEVELS = [
+  'Základní',
+  'Vyučen',
+  'Vyučen s maturitou',
+  'Středoškolské',
+  'Vyšší odborné',
+  'Vysokoškolské - bakalářské',
+  'Vysokoškolské - magisterské',
+  'Vysokoškolské - doktorské',
+  'Bez vzdělání'
+];
+
+type PersonalInfoData = Record<string, unknown> & {
+  title?: string;
+  maritalStatus?: string;
+  firstName?: string;
+  lastName?: string;
+  maidenName?: string;
+  citizenship?: string;
+  education?: string;
+  birthNumber?: string;
+  age?: number;
+  birthYear?: number;
+  permanentAddress?: string;
+  contactAddress?: string;
+  phone?: string;
+  email?: string;
+  bank?: string;
+  documents?: LocalDocument[];
+  children?: LocalChild[];
+};
+
+type AdminLists = {
+  titles: string[];
+  maritalStatuses: string[];
+  documentTypes: string[];
+  banks: string[];
+  citizenships: string[];
+  educationLevels: string[];
+};
+
+type AdminListRow = {
+  list_type?: string;
+  items?: string[];
+};
+
+// Local dynamic shapes — keep them minimal so we can avoid project-wide any
+type LocalDocument = {
+  id: string;
+  supabase_id?: string;
+  client_id?: string;
+  document_type: string;
+  document_number: string;
+  issue_date: string;
+  valid_until: string;
+  issuing_authority: string;
+  place_of_birth: string;
+  control_number: string;
+  is_primary: boolean;
+  [k: string]: unknown;
+};
+
+type LocalChild = {
+  id: number;
+  name: string;
+  birthDate: string;
+  age?: number;
+  [k: string]: unknown;
+};
+
 interface EnhancedPersonalInfoProps {
-  data: any;
-  onChange: (data: any) => void;
+  data: PersonalInfoData;
+  onChange: (data: PersonalInfoData) => void;
   prefix: string;
 }
 
@@ -19,75 +102,53 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
 }) => {
   const [hasChildren, setHasChildren] = useState(false);
 
-  const [adminLists, setAdminLists] = useState({
+  const [adminLists, setAdminLists] = useState<AdminLists>({
     titles: [],
     maritalStatuses: [],
     documentTypes: [],
     banks: [],
-    citizenships: [
-      'Česká republika',
-      'Slovenská republika',
-      'Německo',
-      'Rakousko',
-      'Polsko',
-      'Maďarsko',
-      'Ukrajina',
-      'Rusko',
-      'Jiné'
-    ],
-    educationLevels: [
-      'Základní',
-      'Vyučen',
-      'Vyučen s maturitou',
-      'Středoškolské',
-      'Vyšší odborné',
-      'Vysokoškolské - bakalářské',
-      'Vysokoškolské - magisterské',
-      'Vysokoškolské - doktorské',
-      'Bez vzdělání'
-    ]
+    citizenships: DEFAULT_CITIZENSHIPS,
+    educationLevels: DEFAULT_EDUCATION_LEVELS
   });
 
   // Load admin lists from Supabase
   React.useEffect(() => {
     const loadAdminLists = async () => {
       try {
-        const { data, error } = await AdminService.getAdminLists();
+  const res = await AdminService.getAdminLists();
+  const adminData = (res && (res.data as AdminListRow[] | undefined)) || undefined;
+  const error = res && (res.error as unknown);
         if (error) {
           console.error('Error loading admin lists:', error);
           return;
         }
 
-        if (data) {
-          const lists = {
+  if (adminData) {
+          const lists: AdminLists = {
             titles: [],
             maritalStatuses: [],
             documentTypes: [],
             banks: [],
-            citizenships: adminLists.citizenships, // Keep default citizenships
-            educationLevels: adminLists.educationLevels // Keep default education levels
+            citizenships: DEFAULT_CITIZENSHIPS,
+            educationLevels: DEFAULT_EDUCATION_LEVELS
           };
 
-          data.forEach(item => {
-            switch (item.list_type) {
-              case 'titles':
-                lists.titles = item.items;
-                break;
-              case 'marital_statuses':
-                lists.maritalStatuses = item.items;
-                break;
-              case 'document_types':
-                lists.documentTypes = item.items;
-                break;
-              case 'banks':
-                lists.banks = item.items;
-                break;
-              case 'education_levels':
-                lists.educationLevels = item.items;
-                break;
-            }
+          if (adminData && adminData.length) {
+            adminData.forEach((item: AdminListRow) => {
+            const lt = item.list_type;
+            const items = item.items;
+            if (!lt || !items) return;
+            if (lt === 'titles') lists.titles = items;
+            else if (lt === 'marital_statuses') lists.maritalStatuses = items;
+            else if (lt === 'document_types') lists.documentTypes = items;
+            else if (lt === 'banks') lists.banks = items;
+            else if (lt === 'education_levels') lists.educationLevels = items;
+            else if (lt === 'citizenships') lists.citizenships = items;
           });
 
+          }
+
+          // set parsed lists into state
           setAdminLists(lists);
         }
       } catch (error) {
@@ -120,11 +181,11 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
     return { age, birthYear: fullYear };
   };
 
-  const updateField = (field: string, value: any) => {
-    const updated = { ...data, [field]: value };
+  const updateField = (field: string, value: unknown) => {
+    const updated: PersonalInfoData = { ...data, [field]: value } as PersonalInfoData;
     
     // Auto-calculate age from birth number
-    if (field === 'birthNumber') {
+  if (field === 'birthNumber' && typeof value === 'string') {
       const ageData = calculateAgeFromBirthNumber(value);
       if (ageData) {
         updated.age = ageData.age;
@@ -152,6 +213,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 value={data.title || ''}
                 onChange={(e) => updateField('title', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                title="Titul"
+                aria-label="Titul"
               >
                 <option value="">Vyberte titul</option>
                 {adminLists.titles.map(title => (
@@ -171,6 +234,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 value={data.maritalStatus || ''}
                 onChange={(e) => updateField('maritalStatus', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                title="Rodinný stav"
+                aria-label="Rodinný stav"
               >
                 <option value="">Vyberte stav</option>
                 {adminLists.maritalStatuses.map(status => (
@@ -242,6 +307,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                   value={data.citizenship || 'Česká republika'}
                   onChange={(e) => updateField('citizenship', e.target.value)}
                   className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  title="Státní občanství"
+                  aria-label="Státní občanství"
                 >
                   {adminLists.citizenships.map(citizenship => (
                     <option key={citizenship} value={citizenship}>{citizenship}</option>
@@ -262,6 +329,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 value={data.education || ''}
                 onChange={(e) => updateField('education', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                title="Nejvyšší dosažené vzdělání"
+                aria-label="Nejvyšší dosažené vzdělání"
               >
                 <option value="">Vyberte vzdělání</option>
                 {adminLists.educationLevels.map(level => (
@@ -384,6 +453,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
                 value={data.bank || ''}
                 onChange={(e) => updateField('bank', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                title="Banka"
+                aria-label="Banka"
               >
                 <option value="">Vyberte banku</option>
                 {adminLists.banks.map(bank => (
@@ -398,12 +469,11 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
 
       {/* Document Management */}
       <div className="bg-white rounded-lg border p-6">
-        <DocumentManager
-          clientId={`${prefix}-documents`}
-          documents={data.documents || []}
-          onChange={(documents) => updateField('documents', documents)}
-          documentTypes={adminLists.documentTypes}
-        />
+          <DocumentManager
+            documents={(data.documents || []) as LocalDocument[]}
+            onChange={(documents) => updateField('documents', documents as LocalDocument[])}
+            documentTypes={adminLists.documentTypes}
+          />
       </div>
 
       {/* Children Management */}
@@ -421,12 +491,12 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
           </label>
         </div>
         
-        {hasChildren && (
-          <ChildrenManager
-            children={data.children || []}
-            onChange={(children) => updateField('children', children)}
-          />
-        )}
+          {hasChildren && (
+            <ChildrenManager
+              children={(data.children || []) as LocalChild[]}
+              onChange={(children) => updateField('children', children as LocalChild[])}
+            />
+          )}
       </div>
       </div>
     </div>

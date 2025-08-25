@@ -1,25 +1,28 @@
 import { supabase } from '../lib/supabase'
 import type { AdminList, AppSetting } from '../lib/supabase'
 
+type ServiceResult<T> = { data: T | null; error: unknown | null };
+
 export class AdminService {
-  static async getAdminLists(): Promise<{ data: AdminList[] | null; error: any }> {
+  static async getAdminLists(): Promise<ServiceResult<AdminList[]>> {
     try {
       const { data, error } = await supabase
         .from('admin_lists')
         .select('*')
-        .order('list_type')
+        .order('list_type');
 
-      return { data, error }
-    } catch (error) {
-      return { data: null, error }
+      return { data: data ?? null, error: error ?? null };
+    } catch (err) {
+      return { data: null, error: err ?? null };
     }
   }
 
-  static async updateAdminList(listType: string, items: string[]): Promise<{ data: AdminList | null; error: any }> {
+  static async updateAdminList(listType: string, items: string[]): Promise<ServiceResult<AdminList>> {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const { data: authData, error: userError } = await supabase.auth.getUser();
+      const user = (authData && (authData as any).user) || null;
       if (userError || !user) {
-        return { data: null, error: 'Uživatel není přihlášen' }
+        return { data: null, error: 'Uživatel není přihlášen' };
       }
 
       // Použijeme upsert s onConflict na list_type, aby se záznam vložil pokud neexistuje
@@ -34,31 +37,32 @@ export class AdminService {
           { onConflict: 'list_type' }
         )
         .select()
-        .single()
+        .single();
 
-      return { data, error }
-    } catch (error) {
-      return { data: null, error }
+      return { data: data ?? null, error: error ?? null };
+    } catch (err) {
+      return { data: null, error: err ?? null };
     }
   }
 
-  static async getAppSettings(): Promise<{ data: AppSetting[] | null; error: any }> {
+  static async getAppSettings(): Promise<ServiceResult<AppSetting[]>> {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('*')
+        .select('*');
 
-      return { data, error }
-    } catch (error) {
-      return { data: null, error }
+      return { data: data ?? null, error: error ?? null };
+    } catch (err) {
+      return { data: null, error: err ?? null };
     }
   }
 
-  static async updateAppSetting(key: string, value: any): Promise<{ data: AppSetting | null; error: any }> {
+  static async updateAppSetting(key: string, value: unknown): Promise<ServiceResult<AppSetting>> {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const { data: authData, error: userError } = await supabase.auth.getUser();
+      const user = (authData && (authData as any).user) || null;
       if (userError || !user) {
-        return { data: null, error: 'Uživatel není přihlášen' }
+        return { data: null, error: 'Uživatel není přihlášen' };
       }
 
       const { data, error } = await supabase
@@ -69,11 +73,11 @@ export class AdminService {
           updated_by: user.id
         })
         .select()
-        .single()
+        .single();
 
-      return { data, error }
-    } catch (error) {
-      return { data: null, error }
+      return { data: data ?? null, error: error ?? null };
+    } catch (err) {
+      return { data: null, error: err ?? null };
     }
   }
 }

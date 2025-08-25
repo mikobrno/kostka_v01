@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from 'lucide-react';
-import InlineEditableCopy from './InlineEditableCopy';
+import CopyIconButton from './CopyIconButton';
 
 interface FullNameCopyButtonProps {
   title?: string;
@@ -49,18 +49,15 @@ export const FullNameCopyButton: React.FC<FullNameCopyButtonProps> = ({
   // For icon variant, render a small InlineEditableCopy but visually as an icon button
   if (variant === 'icon') {
     return (
-      <InlineEditableCopy
-        value={fullName}
-        className={`p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 ${className}`}
-      />
+      <CopyIconButton value={fullName} className={`p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 ${className}`} />
     );
   }
 
   // Default: render a button-like InlineEditableCopy with user icon
   return (
     <div className={`inline-flex items-center ${className}`}>
-      <User className="w-4 h-4 mr-2 text-gray-500" />
-      <InlineEditableCopy value={fullName} className="" />
+  <User className="w-4 h-4 mr-2 text-gray-500" />
+  <CopyIconButton value={fullName} />
     </div>
   );
 };

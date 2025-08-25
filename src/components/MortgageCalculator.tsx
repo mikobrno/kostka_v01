@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Home, DollarSign, Percent, TrendingUp, Calendar } from 'lucide-react';
+import { Calculator, Home, Percent, TrendingUp, Calendar } from 'lucide-react';
 
 export const MortgageCalculator: React.FC = () => {
   const [purchasePrice, setPurchasePrice] = useState<string>('');

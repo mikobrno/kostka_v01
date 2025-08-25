@@ -17,7 +17,7 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
   const [results, setResults] = useState<SearchResult[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  // removed isSearching state — not used
   const inputRef = useRef<HTMLInputElement>(null);
   const originalScrollBehavior = useRef<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,7 +133,7 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
 
     searchTimeoutRef.current = setTimeout(() => {
       if (searchTerm.trim()) {
-        setIsSearching(true);
+  // starting search
         try {
           const searchResults = searchInDOM(searchTerm);
           setResults(searchResults);
@@ -146,13 +146,12 @@ export const FloatingSearch: React.FC<FloatingSearchProps> = ({ isVisible, onTog
           console.error('Search error:', error);
           setResults([]);
         } finally {
-          setIsSearching(false);
+          // search finished
         }
-      } else {
-        clearHighlights();
-        setResults([]);
-        setCurrentIndex(0);
-        setIsSearching(false);
+  } else {
+  clearHighlights();
+  setResults([]);
+  setCurrentIndex(0);
       }
     }, 500); // Increased debounce to 500ms
 

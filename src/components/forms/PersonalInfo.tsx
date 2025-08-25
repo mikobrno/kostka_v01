@@ -4,54 +4,76 @@ import { AresService } from '../../services/aresService';
 import { supabase } from '../../lib/supabase';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
-import InlineEditableCopy from '../InlineEditableCopy';
+import CopyIconButton from '../CopyIconButton';
 import { User, Plus, Trash2, Save, X, Edit, Building, Search, Check, Copy } from 'lucide-react';
 
+// Local domain types (minimal, extend as project-wide types are available)
+interface DocumentShape {
+  id: string | number;
+  supabase_id?: string | number | null;
+  documentType?: string | null;
+  documentNumber?: string | null;
+  documentIssueDate?: string | null;
+  documentValidUntil?: string | null;
+  issuingAuthority?: string | null;
+  placeOfBirth?: string | null;
+  controlNumber?: string | null;
+}
+
+interface BusinessShape {
+  id: string | number;
+  ico?: string | null;
+  companyName?: string | null;
+  companyAddress?: string | null;
+  businessStartDate?: string | null;
+}
+
+interface ChildShape {
+  id: number;
+  name: string;
+  birthDate: string;
+}
+
+interface ExtraFieldShape {
+  id: string | number;
+  label?: string;
+  value?: string;
+}
+
+
+interface PersonalData {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  birthNumber?: string;
+  birthDate?: string;
+  birthYear?: number | string | null;
+  age?: number | null;
+  documents?: DocumentShape[];
+  businesses?: BusinessShape[];
+  children?: ChildShape[];
+  extraFields?: ExtraFieldShape[];
+  title?: string;
+  maidenName?: string;
+  maritalStatus?: string;
+  citizenship?: string;
+  housingType?: string;
+  education?: string;
+  permanentAddress?: string;
+  contactAddress?: string;
+}
+
 interface PersonalInfoProps {
-  data: any;
-  onChange: (data: any) => void;
+  data: PersonalData;
+  onChange: (data: PersonalData) => void;
   prefix: string;
   clientId?: string | number;
-                {document.documentType === 'občanský průkaz' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kontrolní číslo OP</label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={document.controlNumber || ''}
-                      onChange={(e) => {
-                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
-                          d.id === document.id ? { ...d, controlNumber: e.target.value } : d
-                        );
-                        updateField('documents', updatedDocuments);
-                      }}
-                      className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="ABC123"
-                      title="Kontrolní číslo"
-                    />
-                    <div className="ml-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(document.controlNumber || '');
-                            toast?.showSuccess('Zkopírováno', 'Kontrolní číslo zkopírováno');
-                          } catch {
-                            /* ignore */
-                          }
-                        }}
-                        className="p-1 text-gray-500 hover:text-gray-700"
-                        title="Kopírovat kontrolní číslo"
-                        aria-label="Kopírovat kontrolní číslo"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                )}
-// Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
-export const formatDateDDMMYYYY = (dateStr?: string | null) => {
+  toast?: { showSuccess?: (t: string, m?: string) => void; showError?: (t: string, m?: string) => void } | null;
+}
+
+// Top-level helper used by multiple components in this file
+function formatDateDDMMYYYY(dateStr?: string | null) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
@@ -59,7 +81,9 @@ export const formatDateDDMMYYYY = (dateStr?: string | null) => {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${dd}.${mm}.${yyyy}`;
-};
+}
+
+// Note: helper formatDateDDMMYYYY is defined inside the component to avoid export-only-file Fast Refresh warning.
 
 // Card wrapper to standardize column appearance and padding
 function Card({ children }: { children: React.ReactNode }) {
@@ -70,11 +94,48 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Default admin lists (module-level so they're stable for hooks)
+const DEFAULT_CITIZENSHIPS = [
+  'Česká republika',
+  'Slovenská republika',
+  'Německo',
+  'Rakousko',
+  'Polsko',
+  'Maďarsko',
+  'Ukrajina',
+  'Rusko',
+  'Jiné'
+] as string[];
+
+const DEFAULT_EDUCATION_LEVELS = [
+  'Základní',
+  'Vyučen',
+  'Vyučen s maturitou',
+  'Středoškolské',
+  'Vyšší odborné',
+  'Vysokoškolské - bakalářské',
+  'Vysokoškolské - magisterské',
+  'Vysokoškolské - doktorské',
+  'Bez vzdělání'
+] as string[];
+
+const DEFAULT_HOUSING_TYPES = [
+  'vlastní byt',
+  'vlastní dům',
+  'nájemní byt',
+  'nájemní dům',
+  'družstevní byt',
+  'služební byt',
+  'u rodičů/příbuzných',
+  'jiné'
+] as string[];
+
 export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
   const [savedDocument, setSavedDocument] = useState<string | number | null>(null);
   
+  // Load admin lists once on mount. Module-level DEFAULT_* constants are stable.
   React.useEffect(() => {
     if (data.birthNumber && (!data.birthYear || !data.birthDate)) {
       const ageData = calculateAgeFromBirthNumber(data.birthNumber);
@@ -87,46 +148,27 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         });
       }
     }
-  }, []);
+  }, [data, onChange]);
   
   // admin lists stored in state so we can update them after loading
-  const [adminLists, setAdminLists] = useState({
+  interface AdminLists {
+    titles: string[];
+    maritalStatuses: string[];
+    documentTypes: string[];
+    banks: string[];
+    citizenships: string[];
+    educationLevels: string[];
+    housingTypes: string[];
+  }
+
+  const [adminLists, setAdminLists] = useState<AdminLists>({
     titles: [] as string[],
     maritalStatuses: [] as string[],
     documentTypes: [] as string[],
     banks: [] as string[],
-    citizenships: [
-      'Česká republika',
-      'Slovenská republika',
-      'Německo',
-      'Rakousko',
-      'Polsko',
-      'Maďarsko',
-      'Ukrajina',
-      'Rusko',
-      'Jiné'
-    ] as string[],
-    educationLevels: [
-      'Základní',
-      'Vyučen',
-      'Vyučen s maturitou',
-      'Středoškolské',
-      'Vyšší odborné',
-      'Vysokoškolské - bakalářské',
-      'Vysokoškolské - magisterské',
-      'Vysokoškolské - doktorské',
-      'Bez vzdělání'
-    ] as string[],
-    housingTypes: [
-      'vlastní byt',
-      'vlastní dům',
-      'nájemní byt',
-      'nájemní dům',
-      'družstevní byt',
-      'služební byt',
-      'u rodičů/příbuzných',
-      'jiné'
-    ] as string[]
+    citizenships: DEFAULT_CITIZENSHIPS,
+    educationLevels: DEFAULT_EDUCATION_LEVELS,
+    housingTypes: DEFAULT_HOUSING_TYPES
   });
 
   // Načtení admin seznamů ze Supabase
@@ -140,41 +182,51 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         }
 
           if (data) {
-          const lists = {
+          const lists: AdminLists = {
             titles: [],
             maritalStatuses: [],
             documentTypes: [],
             banks: [],
-            citizenships: adminLists.citizenships, // Keep default citizenships
-            housingTypes: adminLists.housingTypes,  // Keep default housing types
-            educationLevels: adminLists.educationLevels // Keep default education levels
+            citizenships: DEFAULT_CITIZENSHIPS, // Keep default citizenships
+            housingTypes: DEFAULT_HOUSING_TYPES,  // Keep default housing types
+            educationLevels: DEFAULT_EDUCATION_LEVELS // Keep default education levels
           };
 
-          data.forEach(item => {
-            switch (item.list_type) {
-              case 'titles':
-                lists.titles = item.items as string[];
-                break;
-              case 'marital_statuses':
-                lists.maritalStatuses = item.items as string[];
-                break;
-              case 'document_types':
-                lists.documentTypes = item.items as string[];
-                break;
-              case 'banks':
-                lists.banks = item.items as string[];
-                break;
-              case 'citizenships':
-                lists.citizenships = item.items as string[];
-                break;
-              case 'housing_types':
-                lists.housingTypes = item.items as string[];
-                break;
-              case 'education_levels':
-                lists.educationLevels = item.items as string[];
-                break;
-            }
-          });
+          interface AdminListItem {
+            list_type: 'titles' | 'marital_statuses' | 'document_types' | 'banks' | 'citizenships' | 'housing_types' | 'education_levels' | string;
+            items?: string[];
+          }
+
+          if (Array.isArray(data)) {
+            const arr = data as AdminListItem[];
+            arr.forEach((item) => {
+              switch (item.list_type) {
+                case 'titles':
+                  lists.titles = item.items ?? [];
+                  break;
+                case 'marital_statuses':
+                  lists.maritalStatuses = item.items ?? [];
+                  break;
+                case 'document_types':
+                  lists.documentTypes = item.items ?? [];
+                  break;
+                case 'banks':
+                  lists.banks = item.items ?? [];
+                  break;
+                case 'citizenships':
+                  lists.citizenships = item.items ?? lists.citizenships;
+                  break;
+                case 'housing_types':
+                  lists.housingTypes = item.items ?? lists.housingTypes;
+                  break;
+                case 'education_levels':
+                  lists.educationLevels = item.items ?? lists.educationLevels;
+                  break;
+                default:
+                  break;
+              }
+            });
+          }
 
           setAdminLists(lists);
         }
@@ -186,7 +238,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     loadAdminLists();
   }, []);
 
-  const calculateAgeFromBirthNumber = (birthNumber: string) => {
+  const calculateAgeFromBirthNumber = (birthNumber?: string | null) => {
     if (!birthNumber || birthNumber.length !== 10) return null;
 
     const year = parseInt(birthNumber.substring(0, 2), 10);
@@ -219,15 +271,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   };
 
   // Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
-  const formatDateDDMMYYYY = (dateStr?: string | null) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return '';
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}.${mm}.${yyyy}`;
-  };
+  // formatDateDDMMYYYY helper is declared at top-level to be reused.
 
   // Helper to display date as dd-mm-yyyy from ISO or other formats
   const formatDateDisplay = (isoOrAny?: string | null) => {
@@ -267,12 +311,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     return String(d.getFullYear());
   };
 
-  const updateField = (field: string, value: any) => {
-    const updated = { ...data, [field]: value };
-    
+  const updateField = (field: string, value: unknown) => {
+    const updated: PersonalData = { ...data, [field]: value } as PersonalData;
+
     // Auto-calculate age and birth date from birth number
     if (field === 'birthNumber') {
-      const ageData = calculateAgeFromBirthNumber(value);
+      const ageData = calculateAgeFromBirthNumber(String(value || ''));
       if (ageData) {
         updated.age = ageData.age;
         updated.birthYear = ageData.birthYear;
@@ -280,20 +324,10 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       } else {
         updated.age = null;
         updated.birthYear = null;
-        updated.birthDate = null; // Clear if invalid
+        updated.birthDate = undefined; // Clear if invalid
       }
     }
-    
-    // Auto-set document validity to +10 years, but only when not manually specified
-    if (field === 'documentIssueDate' && value) {
-      if (!updated.documentValidUntil) {
-        const issueDate = new Date(value);
-        const validityDate = new Date(issueDate);
-        validityDate.setFullYear(validityDate.getFullYear() + 10);
-        updated.documentValidUntil = validityDate.toISOString().split('T')[0];
-      }
-    }
-    
+
     onChange(updated);
   };
 
@@ -304,14 +338,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     
     if (!clientId) {
       console.error('❌ Chybí clientId pro uložení dokumentu.');
-      toast?.showError('Chyba', 'Není dostupné ID klienta pro uložení dokladu');
+  toast?.showError?.('Chyba', 'Není dostupné ID klienta pro uložení dokladu');
       return;
     }
 
     setSavingDocument(documentId);
     try {
       // Najdi specifický doklad
-      const document = (data.documents || []).find((doc: any) => doc.id == documentId);
+  const document = (data.documents || []).find((doc: DocumentShape) => doc.id == documentId);
       console.log('📄 Nalezený dokument:', document);
       if (!document) {
         throw new Error('Doklad nebyl nalezen');
@@ -380,7 +414,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
         console.log('📤 Supabase updated row:', updatedRow);
         // Aktualizuj lokální data podle vráceného řádku
-        const updatedDocuments = (data.documents || []).map((doc: any) => 
+        const updatedDocuments = (data.documents || []).map((doc: DocumentShape) => 
           doc.id == documentId
             ? {
                 ...doc,
@@ -413,7 +447,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         console.log('📤 Supabase inserted row:', newDocument);
 
         // Aktualizuj lokální data s celým vloženým záznamem
-        let updatedDocuments = (data.documents || []).map((doc: any) => 
+        let updatedDocuments = (data.documents || []).map((doc: DocumentShape) => 
           doc.id == documentId 
             ? {
                 ...doc,
@@ -431,7 +465,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
         // Odeber případné duplicitní lokální záznamy, které referencují stejné supabase_id
         const seen = new Set<string>();
-        updatedDocuments = updatedDocuments.filter((d: any) => {
+        updatedDocuments = updatedDocuments.filter((d: DocumentShape) => {
           const key = d.supabase_id ? String(d.supabase_id) : `local:${d.id}`;
           if (seen.has(key)) return false;
           seen.add(key);
@@ -441,8 +475,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         onChange({ ...data, documents: updatedDocuments });
       }
 
-      setSavedDocument(documentId);
-      toast?.showSuccess('Uloženo', `Doklad byl úspěšně uložen`);
+  setSavedDocument(documentId);
+  toast?.showSuccess?.('Uloženo', `Doklad byl úspěšně uložen`);
       
       // Skryj ikonku checkmarku po 2 sekundách
       setTimeout(() => {
@@ -450,22 +484,21 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       }, 2000);
     } catch (error) {
       console.error('Chyba při ukládání dokladu:', error);
-      toast?.showError('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit doklad');
+      toast?.showError?.('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit doklad');
     } finally {
       setSavingDocument(null);
     }
   };
 
   // Derived values for top summary
-  const derivedAge = calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '';
-  const derivedBirthYear = calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate);
+  // derived values are calculated inline where needed
 
   const CopyIconButton: React.FC<{ value?: string | number; label?: string }> = ({ value, label }) => {
     const [done, setDone] = React.useState(false);
     const handle = async () => {
       try {
-        await navigator.clipboard.writeText(String(value || ''));
-        toast?.showSuccess('Zkopírováno', label || 'Text zkopírován');
+  await navigator.clipboard.writeText(String(value || ''));
+  toast?.showSuccess?.('Zkopírováno', label || 'Text zkopírován');
         setDone(true);
         setTimeout(() => setDone(false), 1500);
       } catch {
@@ -510,6 +543,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="text"
                     title="Jméno"
                     placeholder="Jméno"
+                    aria-label="Jméno"
                     value={data.firstName || ''}
                     onChange={(e) => updateField('firstName', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -524,6 +558,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="text"
                     title="Telefon"
                     placeholder="Telefon"
+                    aria-label="Telefon"
                     value={data.phone || ''}
                     onChange={(e) => updateField('phone', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm"
@@ -538,6 +573,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="text"
                     title="Rodné číslo"
                     placeholder="Rodné číslo"
+                    aria-label="Rodné číslo"
                     value={data.birthNumber || ''}
                     onChange={(e) => updateField('birthNumber', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
@@ -555,6 +591,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="text"
                     title="Příjmení"
                     placeholder="Příjmení"
+                    aria-label="Příjmení"
                     value={data.lastName || ''}
                     onChange={(e) => updateField('lastName', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -569,6 +606,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="email"
                     title="Email"
                     placeholder="Email"
+                    aria-label="Email"
                     value={data.email || ''}
                     onChange={(e) => updateField('email', e.target.value)}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm"
@@ -583,6 +621,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     type="text"
                     title="Datum narození"
                     placeholder="dd-mm-rrrr"
+                    aria-label="Datum narození"
                     value={data.birthDate ? formatDateDisplay(data.birthDate) : ''}
                     onChange={(e) => updateField('birthDate', parseDisplayToISO(e.target.value))}
                     className="flex-1 block w-full rounded-l-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -597,14 +636,14 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
             <div className="py-1 flex items-center">
               <label className="text-sm text-gray-600 mr-2">Věk</label>
               <div className="flex items-center w-full">
-                <input type="text" readOnly value={String(calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '')} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm" />
+                <input type="text" readOnly aria-label="Věk" title="Věk" value={String(calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '')} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm" />
                 <CopyIconButton value={String(calculateAgeFromBirthNumber(data.birthNumber)?.age ?? '')} label="Kopírovat věk" />
               </div>
             </div>
             <div className="py-1 text-right flex items-center justify-end">
               <label className="text-sm text-gray-600 mr-2">Rok narození</label>
               <div className="flex items-center w-40">
-                <input type="text" readOnly value={String(calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate))} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm text-right" />
+                <input type="text" readOnly aria-label="Rok narození" title="Rok narození" value={String(calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate))} className="flex-1 block w-full rounded-l-md border border-gray-300 px-3 py-2 bg-white text-sm text-right" />
                 <CopyIconButton value={String(calculateAgeFromBirthNumber(data.birthNumber)?.birthYear ?? getBirthYearFromDate(data.birthDate))} label="Kopírovat rok narození" />
               </div>
             </div>
@@ -739,7 +778,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <AddressWithMapLinks
             value={data.permanentAddress || ''}
             onChange={(value) => updateField('permanentAddress', value)}
-            onCopy={() => toast?.showSuccess('Zkopírováno', 'Trvalé bydliště zkopírováno')}
+            onCopy={() => toast?.showSuccess?.('Zkopírováno', 'Trvalé bydliště zkopírováno')}
             placeholder="Začněte psát adresu..."
           />
         </div>
@@ -751,7 +790,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           <AddressWithMapLinks
             value={data.contactAddress || ''}
             onChange={(value) => updateField('contactAddress', value)}
-            onCopy={() => toast?.showSuccess('Zkopírováno', 'Kontaktní adresa zkopírována')}
+            onCopy={() => toast?.showSuccess?.('Zkopírováno', 'Kontaktní adresa zkopírována')}
             placeholder="Začněte psát adresu..."
           />
         </div>
@@ -843,7 +882,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.documentType || '');
-                            toast?.showSuccess('Zkopírováno', 'Typ dokladu zkopírován');
+                            toast?.showSuccess?.('Zkopírováno', 'Typ dokladu zkopírován');
                           } catch {
                             /* ignore */
                           }
@@ -880,7 +919,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.documentNumber || '');
-                            toast?.showSuccess('Zkopírováno', 'Číslo dokladu zkopírováno');
+                            toast?.showSuccess?.('Zkopírováno', 'Číslo dokladu zkopírováno');
                           } catch {
                             /* ignore */
                           }
@@ -916,7 +955,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.documentIssueDate || '');
-                            toast?.showSuccess('Zkopírováno', 'Datum vydání zkopírováno');
+                            toast?.showSuccess?.('Zkopírováno', 'Datum vydání zkopírováno');
                           } catch {
                             /* ignore */
                           }
@@ -953,7 +992,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.documentValidUntil || '');
-                            toast?.showSuccess('Zkopírováno', 'Platnost do zkopírována');
+                            toast?.showSuccess?.('Zkopírováno', 'Platnost do zkopírována');
                           } catch {
                             /* ignore */
                           }
@@ -990,7 +1029,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                          onClick={async () => {
                            try {
                              await navigator.clipboard.writeText(document.issuingAuthority || '');
-                             toast?.showSuccess('Zkopírováno', 'Doklad vydal - zkopírováno');
+                             toast?.showSuccess?.('Zkopírováno', 'Doklad vydal - zkopírováno');
                            } catch {
                              /* ignore */
                            }
@@ -1027,7 +1066,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.placeOfBirth || '');
-                            toast?.showSuccess('Zkopírováno', 'Místo narození zkopírováno');
+                            toast?.showSuccess?.('Zkopírováno', 'Místo narození zkopírováno');
                           } catch {
                             /* ignore */
                           }
@@ -1064,7 +1103,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         onClick={async () => {
                           try {
                             await navigator.clipboard.writeText(document.controlNumber || '');
-                            toast?.showSuccess('Zkopírováno', 'Kontrolní číslo zkopírováno');
+                            toast?.showSuccess?.('Zkopírováno', 'Kontrolní číslo zkopírováno');
                           } catch {
                             /* ignore */
                           }
@@ -1275,15 +1314,16 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
                     if (error) {
                       console.error('❌ Chyba při mazání dokumentu ze Supabase:', error);
-                      toast?.showError('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
+                      toast?.showError?.('Chyba', `Nepodařilo se smazat doklad z databáze: ${error.message}`);
                       // Zastavíme se, pokud smazání z DB selže
                       return; 
                     }
                     console.log('✅ Dokument úspěšně smazán ze Supabase.');
-                    toast?.showSuccess('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
-                  } catch (error) {
-                    console.error('❌ Došlo k výjimce při mazání:', error);
-                    toast?.showError('Chyba', String((error as any)?.message || error));
+                    toast?.showSuccess?.('Smazáno', 'Doklad byl úspěšně smazán z databáze.');
+                  } catch (errUnknown) {
+                    console.error('❌ Došlo k výjimce při mazání:', errUnknown);
+                    const message = errUnknown instanceof Error ? errUnknown.message : String(errUnknown);
+                    toast?.showError?.('Chyba', message);
                     return;
                   }
                 } else {
@@ -1477,11 +1517,8 @@ const ExtraFieldDisplay: React.FC<ExtraFieldDisplayProps> = ({ field, index, onU
           </div>
         </div>
         <div className="flex items-start space-x-2 w-full">
-          <InlineEditableCopy
-            value={field.value || ''}
-            className="flex-1 break-words leading-relaxed"
-            placeholder="Neuvedeno"
-          />
+          <div className="flex-1 break-words leading-relaxed"><span className="break-words">{field.value || ''}</span></div>
+          <CopyIconButton value={field.value || ''} />
         </div>
       </div>
     </div>
@@ -1497,15 +1534,15 @@ interface BusinessDisplayProps {
 }
 
 const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUpdate, onDelete }) => {
-  const [isEditing, setIsEditing] = useState(!business.ico || !business.companyName); // Auto-edit if empty
-  const [editData, setEditData] = useState(() => ({
+  const [isEditing, setIsEditing] = useState<boolean>(!business.ico || !business.companyName);
+  const [editData, setEditData] = useState<BusinessShape>(() => ({
     id: business.id,
     ico: business.ico || '',
     companyName: business.companyName || '',
     companyAddress: business.companyAddress || '',
     businessStartDate: business.businessStartDate || ''
   } as BusinessShape));
-  const [isLoadingAres, setIsLoadingAres] = useState(false);
+  const [isLoadingAres, setIsLoadingAres] = useState<boolean>(false);
 
   const handleSave = () => {
     if (!String(editData.ico || '').trim() || !String(editData.companyName || '').trim()) {
@@ -1523,25 +1560,18 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
 
   const fetchAresData = async (ico: string) => {
     if (ico.length !== 8) return;
-    
     setIsLoadingAres(true);
     try {
       const { data, error } = await AresService.searchByIco(ico);
-      
       if (error) {
         alert(`Chyba při načítání z ARES: ${error}`);
         return;
       }
-      
       if (data) {
-        setEditData(prev => ({
-          ...prev,
-          companyName: data.companyName,
-          companyAddress: data.address
-        }));
+        setEditData((prev: BusinessShape) => ({ ...prev, companyName: data.companyName, companyAddress: data.address }));
       }
-    } catch (error) {
-      console.error('Chyba při načítání dat z ARES:', error);
+    } catch (err) {
+      console.error('Chyba při načítání dat z ARES:', err);
       alert('Chyba při načítání dat z ARES');
     } finally {
       setIsLoadingAres(false);
@@ -1552,180 +1582,57 @@ const BusinessDisplay: React.FC<BusinessDisplayProps> = ({ business, index, onUp
     return (
       <div className="bg-purple-50 rounded-lg p-4 border border-purple-200 mb-4">
         <div className="flex justify-between items-center mb-3">
-          <h5 className="text-sm font-medium text-purple-900">
-            {business.ico ? 'Úprava podnikání' : `Nové podnikání #${index + 1}`}
-          </h5>
+          <h5 className="text-sm font-medium text-purple-900">{business.ico ? 'Úprava podnikání' : `Nové podnikání #${index + 1}`}</h5>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleSave}
-              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-            >
-              <Save className="w-3 h-3 mr-1" />
-              Uložit
-            </button>
-            <button
-              onClick={handleCancel}
-              className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <X className="w-3 h-3 mr-1" />
-              Zrušit
-            </button>
-            <button
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-800 transition-colors"
-              title="Smazat podnikání"
-              aria-label="Smazat podnikání"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <button onClick={handleSave} className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"><Save className="w-3 h-3 mr-1" />Uložit</button>
+            <button onClick={handleCancel} className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"><X className="w-3 h-3 mr-1" />Zrušit</button>
+            <button onClick={onDelete} className="text-red-600 hover:text-red-800 transition-colors" title="Smazat podnikání" aria-label="Smazat podnikání"><Trash2 className="w-4 h-4" /></button>
           </div>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              IČO *
-            </label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">IČO *</label>
             <div className="flex">
-              <input
-                type="text"
-                value={editData.ico || ''}
-                onChange={(e) => {
-                  const ico = e.target.value.replace(/\D/g, '').slice(0, 8);
-                  setEditData({ ...editData, ico });
-                  if (ico.length === 8) {
-                    // safe-call: fetchAresData expects string
-                    fetchAresData(String(ico));
-                  }
-                }}
-                className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm rounded-l-md"
-                placeholder="12345678"
-                maxLength={8}
-              />
-              <button
-                onClick={() => editData.ico && fetchAresData(String(editData.ico))}
-                disabled={isLoadingAres || !(editData.ico && editData.ico.length === 8)}
-                className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
-                title="Načíst data z ARES"
-                aria-label="Načíst data z ARES"
-              >
-                {isLoadingAres ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-              </button>
+              <input type="text" value={editData.ico || ''} onChange={(e) => { const ico = e.target.value.replace(/\D/g, '').slice(0,8); setEditData({ ...editData, ico }); if (ico.length===8) fetchAresData(ico); }} className="flex-1 block w-full border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm rounded-l-md" placeholder="12345678" maxLength={8} />
+              <button onClick={() => editData.ico && fetchAresData(String(editData.ico))} disabled={isLoadingAres || !(editData.ico && editData.ico.length === 8)} className="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md" title="Načíst data z ARES" aria-label="Načíst data z ARES">{isLoadingAres ? <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" /> : <Search className="w-4 h-4" />}</button>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Zadáním IČO se automaticky vyplní název a adresa firmy z ARES
-            </p>
+            <p className="mt-1 text-xs text-gray-500">Zadáním IČO se automaticky vyplní název a adresa firmy z ARES</p>
           </div>
-          
+
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Název firmy *
-            </label>
-            <input
-              type="text"
-              value={editData.companyName || ''}
-              onChange={(e) => setEditData({ ...editData, companyName: e.target.value })}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
-              placeholder="Název společnosti"
-            />
+            <label className="block text-xs font-medium text-gray-700 mb-1">Název firmy *</label>
+            <input type="text" value={editData.companyName || ''} onChange={(e) => setEditData({ ...editData, companyName: e.target.value })} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm" placeholder="Název společnosti" />
           </div>
-          
+
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Adresa firmy
-            </label>
-            <AddressWithMapLinks
-              value={editData.companyAddress || ''}
-              onChange={(value) => setEditData({ ...editData, companyAddress: value })}
-              placeholder="Adresa sídla společnosti"
-              className="text-sm"
-            />
+            <label className="block text-xs font-medium text-gray-700 mb-1">Adresa firmy</label>
+            <AddressWithMapLinks value={editData.companyAddress || ''} onChange={(value) => setEditData({ ...editData, companyAddress: value })} placeholder="Adresa sídla společnosti" className="text-sm" />
           </div>
-          
+
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Začátek podnikání
-            </label>
-            <input
-              type="date"
-              value={editData.businessStartDate || ''}
-              onChange={(e) => setEditData({ ...editData, businessStartDate: e.target.value })}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
-              title="Začátek podnikání"
-              placeholder="YYYY-MM-DD"
-            />
+            <label className="block text-xs font-medium text-gray-700 mb-1">Začátek podnikání</label>
+            <input type="date" value={editData.businessStartDate || ''} onChange={(e) => setEditData({ ...editData, businessStartDate: e.target.value })} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm" title="Začátek podnikání" placeholder="YYYY-MM-DD" />
           </div>
         </div>
       </div>
     );
   }
 
-  // Display mode
   return (
     <div className="bg-gray-50 rounded-lg p-4 border w-full mb-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Building className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {business.companyName || 'Název firmy'}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="text-blue-600 hover:text-blue-800 transition-colors"
-              title="Upravit podnikání"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-800 transition-colors"
-              title="Smazat podnikání"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          <div className="flex items-center space-x-2"><Building className="w-4 h-4 text-purple-600" /><span className="text-sm font-medium text-gray-900 dark:text-white">{business.companyName || 'Název firmy'}</span></div>
+          <div className="flex items-center space-x-2"><button onClick={() => setIsEditing(true)} className="text-blue-600 hover:text-blue-800 transition-colors" title="Upravit podnikání"><Edit className="w-4 h-4" /></button><button onClick={onDelete} className="text-red-600 hover:text-red-800 transition-colors" title="Smazat podnikání"><Trash2 className="w-4 h-4" /></button></div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">IČO:</span>
-            <div className="flex items-center space-x-2">
-              <InlineEditableCopy
-                value={business.ico || ''}
-                className="text-gray-900 dark:text-white"
-                placeholder="Neuvedeno"
-              />
-            </div>
-          </div>
-          <div>
-            <span className="text-gray-500">Adresa:</span>
-            <div className="flex items-center space-x-2">
-              <InlineEditableCopy
-                value={business.companyAddress || ''}
-                className="text-gray-900 truncate"
-                placeholder="Neuvedeno"
-              />
-            </div>
-          </div>
-          <div>
-            <span className="text-gray-500">Začátek podnikání:</span>
-            <div className="flex items-center space-x-2">
-              <InlineEditableCopy
-                value={business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''}
-                className="text-gray-900 dark:text-white"
-                placeholder="Neuvedeno"
-              />
-            </div>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div><span className="text-gray-500">IČO:</span><div className="flex items-center space-x-2"><span className="text-gray-900 dark:text-white">{business.ico || ''}</span><CopyIconButton value={business.ico || ''} /></div></div>
+          <div><span className="text-gray-500">Adresa:</span><div className="flex items-center space-x-2"><span className="text-gray-900 truncate">{business.companyAddress || ''}</span><CopyIconButton value={business.companyAddress || ''} /></div></div>
+          <div><span className="text-gray-500">Začátek podnikání:</span><div className="flex items-center space-x-2"><span className="text-gray-900 dark:text-white">{business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''}</span><CopyIconButton value={business.businessStartDate ? formatDateDDMMYYYY(business.businessStartDate) : ''} /></div></div>
         </div>
       </div>
     </div>
   );
 };
+

@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, ExternalLink, Copy } from 'lucide-react';
 import { useGoogleMapsLoader } from '../utils/googleMapsLoader';
 
-// Global type declarations for Google Maps API
+// Global type declarations for Google Maps API (external runtime shapes)
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
   interface Window {
     google: any;
   }
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface AddressWithMapLinksProps {
   value: string;
@@ -55,9 +57,11 @@ export const AddressWithMapLinks: React.FC<AddressWithMapLinksProps> = ({
         types: ['address']
       };
 
-      service.getPlacePredictions(request, (predictions: any[], status: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      service.getPlacePredictions(request, (predictions: any[] | null, status: any) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-          const formattedSuggestions = predictions.slice(0, 5).map(p => p.description);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const formattedSuggestions = (predictions as any[]).slice(0, 5).map((p: any) => p.description || '');
           setSuggestions(formattedSuggestions);
         } else {
           setSuggestions([]);

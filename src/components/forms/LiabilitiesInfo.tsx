@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AdminService } from '../../services/adminService';
 import { supabase } from '../../lib/supabase';
-import InlineEditableCopy from '../InlineEditableCopy';
+import CopyIconButton from '../CopyIconButton';
 import { FormattedNumberInput } from '../FormattedNumberInput';
 import { SimpleSearch } from '../SimpleSearch';
 import { formatNumber } from '../../utils/formatHelpers';
@@ -325,7 +325,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                         <option key={inst} value={inst}>{inst}</option>
                       ))}
                     </select>
-                    <InlineEditableCopy value={liability.institution || ''} className="ml-2" />
+                    <div className="flex items-center ml-2">
+                      <span className="mr-2">{liability.institution || ''}</span>
+                      <CopyIconButton value={liability.institution || ''} toast={toast} />
+                    </div>
                   </div>
                 </div>
 
@@ -345,7 +348,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
-                    <InlineEditableCopy value={liability.type || ''} className="ml-2" />
+                    <div className="flex items-center ml-2">
+                      <span className="mr-2">{liability.type || ''}</span>
+                      <CopyIconButton value={liability.type || ''} toast={toast} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -362,7 +368,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="500 000"
                     />
-                    <InlineEditableCopy value={liability.amount ? formatNumber(liability.amount) : ''} className="ml-2" />
+                    <div className="flex items-center ml-2">
+                      <span className="mr-2">{liability.amount ? formatNumber(liability.amount) : ''}</span>
+                      <CopyIconButton value={liability.amount ? formatNumber(liability.amount) : ''} toast={toast} />
+                    </div>
                   </div>
                 </div>
 
@@ -377,7 +386,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="5 000"
                     />
-                    <InlineEditableCopy value={liability.payment ? formatNumber(liability.payment) : ''} className="ml-2" />
+                    <div className="flex items-center ml-2">
+                      <span className="mr-2">{liability.payment ? formatNumber(liability.payment) : ''}</span>
+                      <CopyIconButton value={liability.payment ? formatNumber(liability.payment) : ''} toast={toast} />
+                    </div>
                   </div>
                 </div>
 
@@ -392,7 +404,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="450 000"
                     />
-                    <InlineEditableCopy value={liability.balance ? formatNumber(liability.balance) : ''} className="ml-2" />
+                    <div className="flex items-center ml-2">
+                      <span className="mr-2">{liability.balance ? formatNumber(liability.balance) : ''}</span>
+                      <CopyIconButton value={liability.balance ? formatNumber(liability.balance) : ''} toast={toast} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -409,7 +424,10 @@ export const LiabilitiesInfo: React.FC<LiabilitiesInfoProps> = ({ data = [], onC
                     placeholder="Poznámky k závazku..."
                     rows={3}
                   />
-                  <InlineEditableCopy value={liability.notes || ''} className="ml-2" />
+                  <div className="flex items-center ml-2">
+                    <span className="mr-2">{liability.notes || ''}</span>
+                    <CopyIconButton value={liability.notes || ''} toast={toast} />
+                  </div>
                 </div>
               </div>
             </div>

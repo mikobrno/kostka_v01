@@ -72,7 +72,7 @@ export const handler: Handler = async (event) => {
       `https://yacdn.org/proxy/https://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi${target}`
     ];
 
-    const makeRequest = async (url: string, attempt: number) => {
+  const makeRequest = async (url: string) => {
       const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 KostKa-ARES-Proxy/1.0';
       const res = await fetch(url, {
         method: 'GET',
@@ -100,7 +100,7 @@ export const handler: Handler = async (event) => {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           console.log(`🔗 ARES try ${i + 1}/${baseUrls.length} (attempt ${attempt}): ${url.substring(0, 120)}`);
-          const xmlData = await makeRequest(url, attempt);
+          const xmlData = await makeRequest(url);
           console.log(`✅ ARES OK (${xmlData.length} chars)`);
           return { statusCode: 200, headers, body: xmlData };
         } catch (e) {

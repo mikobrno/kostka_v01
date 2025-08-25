@@ -23,7 +23,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
       </div>
       <textarea
         value={value}
-        onChange={(e: any) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={8}
         className="w-full min-h-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 p-3 resize-vertical"

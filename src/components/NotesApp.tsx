@@ -11,9 +11,6 @@ import {
   StarOff,
   Calendar,
   Tag,
-  Filter,
-  SortAsc,
-  SortDesc,
   Grid,
   List as ListIcon,
   X,
@@ -36,6 +33,26 @@ interface NotesAppProps {
   clientId?: string; // Optional: associate notes with specific client
   onClose?: () => void;
 }
+
+const CATEGORIES = [
+  'all',
+  'personal',
+  'work',
+  'ideas',
+  'tasks',
+  'meetings',
+  'research'
+] as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  all: 'Všechny poznámky',
+  personal: 'Osobní',
+  work: 'Práce',
+  ideas: 'Nápady',
+  tasks: 'Úkoly',
+  meetings: 'Schůzky',
+  research: 'Výzkum'
+};
 
 /**
  * Enhanced Notes Application with Rich Text Editing
@@ -65,25 +82,7 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [editingContent, setEditingContent] = useState('');
 
-  const categories = [
-    'all',
-    'personal',
-    'work',
-    'ideas',
-    'tasks',
-    'meetings',
-    'research'
-  ];
-
-  const categoryLabels = {
-    all: 'Všechny poznámky',
-    personal: 'Osobní',
-    work: 'Práce',
-    ideas: 'Nápady',
-    tasks: 'Úkoly',
-    meetings: 'Schůzky',
-    research: 'Výzkum'
-  };
+  // use top-level CATEGORIES and CATEGORY_LABELS
 
   /**
    * Load notes from localStorage (in production, this would be from Supabase)
@@ -319,11 +318,13 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
+              title="Kategorie poznámek"
+              aria-label="Kategorie poznámek"
               className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{categoryLabels[cat]}</option>
-              ))}
+                {CATEGORIES.map((cat: string) => (
+                  <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
+                ))}
             </select>
             
             <button
@@ -346,10 +347,12 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
                   const [field, order] = e.target.value.split('-');
-                  setSortBy(field as any);
-                  setSortOrder(order as any);
+                  setSortBy(field as 'updated' | 'created' | 'title');
+                  setSortOrder(order as 'asc' | 'desc');
                 }}
                 className="text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                title="Třídit poznámky"
+                aria-label="Třídit poznámky"
               >
                 <option value="updated-desc">Nejnovější</option>
                 <option value="updated-asc">Nejstarší</option>
@@ -557,10 +560,12 @@ export const NotesApp: React.FC<NotesAppProps> = ({ clientId, onClose }) => {
                     value={selectedNote.category || 'personal'}
                     onChange={(e) => updateNote(selectedNote.id, { category: e.target.value })}
                     className="text-sm border-none bg-transparent focus:outline-none focus:ring-0 text-gray-500 dark:text-gray-400"
+                    title="Kategorie poznámky"
+                    aria-label="Kategorie poznámky"
                   >
-                    {categories.slice(1).map(cat => (
-                      <option key={cat} value={cat}>{categoryLabels[cat]}</option>
-                    ))}
+          {CATEGORIES.slice(1).map((cat: string) => (
+            <option key={cat} value={cat}>{CATEGORY_LABELS[cat]}</option>
+          ))}
                   </select>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -721,9 +726,20 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 e.stopPropagation();
                 onToggleFavorite();
               }}
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400"
+                className="p-1 text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400"
+                title={note.isFavorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
             >
               {note.isFavorite ? <Star className="w-3 h-3" /> : <StarOff className="w-3 h-3" />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="p-1 text-red-500 hover:text-red-700"
+              title="Smazat"
+            >
+              <Trash2 className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -764,8 +780,19 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 ? 'text-yellow-500 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30' 
                 : 'text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
             }`}
+            title={note.isFavorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
           >
             {note.isFavorite ? <Star className="w-4 h-4" /> : <StarOff className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="p-1 text-red-500 hover:text-red-700"
+            title="Smazat"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -778,7 +805,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
         <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
           <span>{formatDate(note.updatedAt)}</span>
           <span className="bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-            {categoryLabels[note.category] || 'Osobní'}
+            {CATEGORY_LABELS[note.category || 'personal']}
           </span>
         </div>
       </div>

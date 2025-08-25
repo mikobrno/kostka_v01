@@ -64,7 +64,7 @@ const CzechAddressAutocomplete: React.FC<CzechAddressAutocompleteProps> = ({
   // Refs and state
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const placesServiceRef = useRef<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputValue, setInputValue] = useState(initialValue);
   const [isApiLoaded, setIsApiLoaded] = useState(false);
@@ -201,14 +201,14 @@ const CzechAddressAutocomplete: React.FC<CzechAddressAutocompleteProps> = ({
    * @param placeId - Google Places place_id
    * @returns Promise with detailed place information
    */
-  const fetchPlaceDetails = useCallback((placeId: string): Promise<google.maps.places.PlaceResult> => {
+  const fetchPlaceDetails = useCallback((placeId: string): Promise<PlaceResultLike> => {
     return new Promise((resolve, reject) => {
       if (!placesServiceRef.current) {
         reject(new Error('Places service not initialized'));
         return;
       }
 
-      const request: google.maps.places.PlaceDetailsRequest = {
+      const request: any = {
         placeId: placeId,
         fields: [
           'formatted_address',
@@ -218,8 +218,8 @@ const CzechAddressAutocomplete: React.FC<CzechAddressAutocompleteProps> = ({
         ]
       };
 
-      placesServiceRef.current.getDetails(request, (place, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+      placesServiceRef.current.getDetails(request, (place: PlaceResultLike | null, status: string) => {
+        if (status === 'OK' && place) {
           resolve(place);
         } else {
           reject(new Error(`Places service failed with status: ${status}`));

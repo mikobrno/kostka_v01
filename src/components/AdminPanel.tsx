@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminService } from '../services/adminService';
-import { Plus, Edit, Trash2, Save, Settings, Globe, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface AdminPanelProps {
@@ -97,6 +97,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
         );
 
         const updatedLists: ManagedLists = { ...defaultLists };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data.forEach((item: any) => {
           const frontKey = dbToFrontend[item.list_type] || item.list_type;
           if (updatedLists[frontKey]) {
@@ -182,8 +183,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ toast }) => {
       toast?.showSuccess('Seznam uložen', `${managedLists[listKey].name} byl úspěšně aktualizován`);
     } catch (error) {
       console.error('Chyba při ukládání:', error);
-      const msg = (error as any)?.message || String(error);
-      toast?.showError('Chyba při ukládání', msg);
+  const msg = (error && (error as Error).message) ? (error as Error).message : String(error);
+  toast?.showError('Chyba při ukládání', msg);
     } finally {
       setLoading(false);
     }

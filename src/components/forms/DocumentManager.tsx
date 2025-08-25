@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, FileText, Calendar, MapPin, User, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, MapPin, Shield } from 'lucide-react';
 import InlineEditableCopy from '../InlineEditableCopy';
 
 interface Document {
@@ -15,14 +15,12 @@ interface Document {
 }
 
 interface DocumentManagerProps {
-  clientId: string;
   documents: Document[];
   onChange: (documents: Document[]) => void;
   documentTypes: string[];
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
-  clientId,
   documents = [],
   onChange,
   documentTypes = ['občanský průkaz', 'pas', 'řidičský průkaz']
@@ -47,13 +45,6 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
-  };
-
-  // Parse dd-mm-yyyy to ISO date
-  const parseDateFromDisplay = (displayDate: string): string => {
-    if (!displayDate) return '';
-    const [day, month, year] = displayDate.split('-');
-    return `${year}-${month}-${day}`;
   };
 
   const addNewDocument = () => {
@@ -139,7 +130,6 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               onDelete={() => deleteDocument(document.id)}
               onSetPrimary={() => setPrimaryDocument(document.id)}
               formatDateForDisplay={formatDateForDisplay}
-              parseDateFromDisplay={parseDateFromDisplay}
               calculateValidityDate={calculateValidityDate}
             />
           ))}
@@ -153,7 +143,6 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               onSave={(updatedDoc) => saveDocument(updatedDoc)}
               onCancel={() => setNewDocument(null)}
               formatDateForDisplay={formatDateForDisplay}
-              parseDateFromDisplay={parseDateFromDisplay}
               calculateValidityDate={calculateValidityDate}
               isNew={true}
             />
@@ -190,7 +179,6 @@ interface DocumentCardProps {
   onDelete?: () => void;
   onSetPrimary?: () => void;
   formatDateForDisplay: (date: string) => string;
-  parseDateFromDisplay: (date: string) => string;
   calculateValidityDate: (date: string) => string;
   isNew?: boolean;
 }
@@ -205,7 +193,6 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   onDelete,
   onSetPrimary,
   formatDateForDisplay,
-  parseDateFromDisplay,
   calculateValidityDate,
   isNew = false
 }) => {
@@ -271,6 +258,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
               value={editData.document_type || ''}
               onChange={(e) => handleFieldChange('document_type', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              title="Typ dokladu"
+              aria-label="Typ dokladu"
             >
               {documentTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -289,6 +278,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 onChange={(e) => handleFieldChange('document_number', e.target.value)}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="123456789"
+                title="Číslo dokladu"
+                aria-label="Číslo dokladu"
               />
               <InlineEditableCopy value={editData.document_number || ''} onSave={(v) => handleFieldChange('document_number', v)} />
             </div>
@@ -303,6 +294,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
               value={editData.issue_date || ''}
               onChange={(e) => handleFieldChange('issue_date', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              title="Datum vydání"
+              aria-label="Datum vydání"
             />
           </div>
 
@@ -315,6 +308,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
               value={editData.valid_until || calculateValidityDate(editData.issue_date || '')}
               onChange={(e) => handleFieldChange('valid_until', e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              title="Platnost do"
+              aria-label="Platnost do"
             />
           </div>
 
