@@ -344,6 +344,13 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
     setEditData(business);
   }, [business]);
 
+  // name-search states (local to editing card)
+  const [nameQuery, setNameQuery] = useState<string>('');
+  type AresResult = { ico?: string; companyName?: string; address?: string };
+  const [nameResults, setNameResults] = useState<AresResult[]>([]);
+  const [nameResultsVisible, setNameResultsVisible] = useState<boolean>(false);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+
   const handleFieldChange = (field: string, value: unknown) => {
     setEditData(prev => ({ ...prev, [field]: value }));
   };
@@ -420,15 +427,85 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Název firmy *
             </label>
-            <div className="flex">
+            <div className="relative">
               <input
                 type="text"
-                value={editData.company_name || ''}
-                onChange={(e) => handleFieldChange('company_name', e.target.value)}
+                value={nameQuery || editData.company_name || ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setNameQuery(v);
+                  setNameResultsVisible(Boolean(v));
+                  setActiveIndex(-1);
+                  // keep editData in sync
+                  setEditData({ ...editData, company_name: v });
+                  // trigger async search (debounce not implemented to keep changes minimal)
+                  if (v.trim().length > 2) {
+                    AresService.searchByName(v).then(res => {
+                      setNameResults(res.data || []);
+                    }).catch(() => {});
+                  } else {
+                    setNameResults([]);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (!nameResultsVisible) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setActiveIndex((i) => Math.min(i + 1, nameResults.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setActiveIndex((i) => Math.max(i - 1, 0));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (activeIndex >= 0 && activeIndex < nameResults.length) {
+                      const item = nameResults[activeIndex];
+                      setEditData((prev: Partial<BusinessData>) => ({ ...prev, company_name: item.companyName, business_address: item.address }));
+                      setNameQuery(item.companyName || '');
+                      setNameResultsVisible(false);
+                      setActiveIndex(-1);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setNameResultsVisible(false);
+                    setActiveIndex(-1);
+                  }
+                }}
                 className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 placeholder="Název společnosti"
+                aria-autocomplete="list"
+                aria-controls={"ares-name-results-" + String(business.id)}
               />
-              <InlineEditableCopy value={editData.company_name || ''} onSave={(v) => handleFieldChange('company_name', v)} />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <InlineEditableCopy value={editData.company_name || ''} onSave={(v) => handleFieldChange('company_name', v)} />
+              </div>
+
+              {nameResultsVisible && nameResults.length > 0 && (
+                <ul
+                  id={`ares-name-results-${String(business.id)}`}
+                  role="listbox"
+                  aria-label="Výsledky hledání ARES"
+                  className="absolute z-20 w-full mt-1 max-h-56 overflow-auto bg-white border border-gray-200 rounded-md shadow-lg"
+                >
+                  {nameResults.map((res, idx) => (
+                    <li
+                      key={`${res.ico || 'n'}-${idx}`}
+                      role="option"
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      onMouseDown={(e) => {
+                        // select on mousedown before blur
+                        e.preventDefault();
+                        setEditData((prev: Partial<BusinessData>) => ({ ...prev, company_name: res.companyName, business_address: res.address }));
+                        setNameQuery(res.companyName || '');
+                        setNameResultsVisible(false);
+                        setActiveIndex(-1);
+                      }}
+                      className={`px-3 py-2 cursor-pointer ${activeIndex === idx ? 'bg-blue-50' : ''}`}
+                    >
+                      <div className="text-sm font-medium text-gray-900">{res.companyName}</div>
+                      <div className="text-xs text-gray-500">{res.ico || ''} • {res.address || ''}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
