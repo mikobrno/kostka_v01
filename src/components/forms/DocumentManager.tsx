@@ -70,20 +70,39 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
         ...document,
         id: `doc-${Date.now()}`
       } as Document;
+
+      // ensure control_number is empty unless it's občanský průkaz
+      if (finalDoc.document_type !== 'občanský průkaz') {
+        finalDoc.control_number = '';
+      }
+
       // Remove any leftover temporary/blank documents before adding the final one
       const cleaned = documents.filter(d => {
-        // keep if not a temp placeholder OR has meaningful data
         if (!d.id) return true;
-        if (!String(d.id).startsWith('temp-')) return true;
-        const hasContent = Boolean(d.document_number || d.issuing_authority || d.place_of_birth || d.control_number);
-        return hasContent;
+        return !String(d.id).startsWith('temp-');
       });
-      onChange([...cleaned, finalDoc]);
+
+      // Deduplicate: if a document with same type+number exists, replace it
+      const existingIndex = cleaned.findIndex(d => d.document_type === finalDoc.document_type && d.document_number === finalDoc.document_number && finalDoc.document_number);
+      if (existingIndex >= 0) {
+        cleaned[existingIndex] = finalDoc;
+        onChange([...cleaned]);
+      } else {
+        onChange([...cleaned, finalDoc]);
+      }
     } else {
       // Update existing document
-      const updated = documents.map(doc => 
-        doc.id === document.id ? { ...doc, ...document } : doc
-      );
+      const updated = documents.map(doc => {
+        if (doc.id === document.id) {
+          const merged = { ...doc, ...document } as Document;
+          // clear control_number for non-občanský průkaz so it won't be stored/visible
+          if (merged.document_type !== 'občanský průkaz') {
+            merged.control_number = '';
+          }
+          return merged;
+        }
+        return doc;
+      });
       onChange(updated);
     }
     setNewDocument(null);
@@ -212,7 +231,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   }, [document]);
 
   const handleFieldChange = (field: string, value: string) => {
-    const updated = { ...editData, [field]: value };
+  const updated: any = { ...editData, [field]: value };
 
     // Auto-calculate validity when issue date changes, but don't overwrite manual value
     if (field === 'issue_date') {
@@ -221,7 +240,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       }
     }
 
-    setEditData(updated);
+    // If document type changed away from 'občanský průkaz', remove control_number entirely
+    if (field === 'document_type' && value !== 'občanský průkaz') {
+      delete updated.control_number;
+    }
+
+  setEditData(updated);
   };
 
   const handleSave = () => {
