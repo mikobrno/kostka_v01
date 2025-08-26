@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { AddressInput } from '../AddressInput';
 import { Search, Building, MapPin, Copy, Check } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 // Importujte AresService a AresCompanyData
 import { AresService, AresCompanyData } from '../../services/aresService'; // Zkontrolujte, zda je cesta správná
+import AresNameSearchDropdown from './AresNameSearchDropdown';
 
 type EmployerData = {
   ico?: string;
@@ -27,9 +28,6 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   const [isLoadingAres, setIsLoadingAres] = useState(false);
   const [aresError, setAresError] = useState<string | null>(null); // Nový stav pro chyby z ARES
   const [nameQuery, setNameQuery] = useState('');
-  const [nameResults, setNameResults] = useState<AresCompanyData[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number>(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const updateField = (field: keyof EmployerData, value: string) => {
@@ -132,33 +130,7 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
   };
 
   // Hledání podle názvu s debounce
-  useEffect(() => {
-    const handler = setTimeout(async () => {
-      const q = nameQuery.trim();
-      if (q.length < 3) { setNameResults([]); return; }
-      const { data, error } = await AresService.searchByName(q);
-      if (error) {
-        setAresError(error);
-        setNameResults([]);
-      } else {
-        setAresError(null);
-        setNameResults(data);
-        setShowDropdown(true);
-      }
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [nameQuery]);
-
-  // Klik mimo dropdown zavře
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, []);
+  // Name search is handled by AresNameSearchDropdown component (debounce, outside click, results)
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
@@ -213,70 +185,25 @@ export const EmployerInfo: React.FC<EmployerInfoProps> = ({ data, onChange }) =>
         <div className="flex">
           <div className="flex-1 relative" ref={dropdownRef}>
             <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
+            <AresNameSearchDropdown
               value={data.companyName || nameQuery}
-              onChange={(e) => {
-                const v = e.target.value;
+              onChange={(v) => {
                 updateField('companyName', v);
                 setNameQuery(v);
-                if (v.length >= 3) setShowDropdown(true);
               }}
-              onKeyDown={(e) => {
-                if (!showDropdown) return;
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.min(i + 1, nameResults.length - 1));
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.max(i - 1, 0));
-                } else if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (activeIndex >= 0 && nameResults[activeIndex]) {
-                    const item = nameResults[activeIndex];
-                    updateField('ico', item.ico);
-                    updateField('companyName', item.companyName);
-                    updateField('companyAddress', item.address);
-                    setNameQuery(item.companyName);
-                    setShowDropdown(false);
-                    setActiveIndex(-1);
-                  }
-                } else if (e.key === 'Escape') {
-                  setShowDropdown(false);
-                  setActiveIndex(-1);
-                }
+              onSelect={(item: AresCompanyData) => {
+                updateField('ico', item.ico);
+                updateField('companyName', item.companyName);
+                updateField('companyAddress', item.address);
+                setNameQuery(item.companyName);
               }}
-              className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               placeholder="Název společnosti (začněte psát pro vyhledávání)"
-              title="Název společnosti"
-              autoComplete="off"
-              aria-autocomplete="list"
-              aria-controls="ares-results-list"
+              inputProps={{
+                className: 'block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm',
+                title: 'Název společnosti',
+                autoComplete: 'off'
+              }}
             />
-            {showDropdown && nameResults.length > 0 && (
-              <div id="ares-results-list" role="listbox" aria-label="Výsledky hledání ARES" className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                {nameResults.map((item, idx) => (
-                  <button
-                    key={`${item.ico}-${item.companyName}`}
-                    type="button"
-                    onClick={() => {
-                      updateField('ico', item.ico);
-                      updateField('companyName', item.companyName);
-                      updateField('companyAddress', item.address);
-                      setNameQuery(item.companyName);
-                      setShowDropdown(false);
-                      setActiveIndex(-1);
-                    }}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${idx === activeIndex ? 'bg-blue-50' : ''}`}
-                    role="option"
-                  >
-                    <div className="text-sm font-medium text-gray-900">{item.companyName}</div>
-                    <div className="text-xs text-gray-600">IČO: {item.ico} • {item.address}</div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           <CopyIconButton value={data.companyName} label="Kopírovat název firmy" />
         </div>

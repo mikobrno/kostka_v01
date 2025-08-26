@@ -50,7 +50,8 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   const addNewDocument = () => {
     const newDoc: Partial<Document> = {
       id: `temp-${Date.now()}`,
-      document_type: documentTypes[0],
+  // leave type empty so user must explicitly choose; control number shows only for 'občanský průkaz'
+  document_type: '',
       document_number: '',
       issue_date: new Date().toISOString().split('T')[0],
       valid_until: calculateValidityDate(new Date().toISOString().split('T')[0]),
@@ -69,7 +70,15 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
         ...document,
         id: `doc-${Date.now()}`
       } as Document;
-      onChange([...documents, finalDoc]);
+      // Remove any leftover temporary/blank documents before adding the final one
+      const cleaned = documents.filter(d => {
+        // keep if not a temp placeholder OR has meaningful data
+        if (!d.id) return true;
+        if (!String(d.id).startsWith('temp-')) return true;
+        const hasContent = Boolean(d.document_number || d.issuing_authority || d.place_of_birth || d.control_number);
+        return hasContent;
+      });
+      onChange([...cleaned, finalDoc]);
     } else {
       // Update existing document
       const updated = documents.map(doc => 
@@ -217,9 +226,10 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
   const handleSave = () => {
     // Validate required fields
+    const requiresControl = editData.document_type === 'občanský průkaz';
     if (!editData.document_type || !editData.document_number || !editData.issue_date || 
-        !editData.issuing_authority || !editData.place_of_birth || !editData.control_number) {
-      alert('Všechna pole jsou povinná');
+        !editData.issuing_authority || !editData.place_of_birth || (requiresControl && !editData.control_number)) {
+      alert('Všechna povinná pole nejsou vyplněna');
       return;
     }
     
@@ -261,6 +271,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
               title="Typ dokladu"
               aria-label="Typ dokladu"
             >
+              <option value="" disabled hidden>-- Vyberte typ dokladu --</option>
               {documentTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
@@ -351,21 +362,23 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kontrolní číslo *
-            </label>
-            <div className="flex">
-              <input
-                type="text"
-                value={editData.control_number || ''}
-                onChange={(e) => handleFieldChange('control_number', e.target.value)}
-                className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="ABC123"
-              />
-              <InlineEditableCopy value={editData.control_number || ''} onSave={(v) => handleFieldChange('control_number', v)} />
+          {editData.document_type === 'občanský průkaz' && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kontrolní číslo *
+              </label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={editData.control_number || ''}
+                  onChange={(e) => handleFieldChange('control_number', e.target.value)}
+                  className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="ABC123"
+                />
+                <InlineEditableCopy value={editData.control_number || ''} onSave={(v) => handleFieldChange('control_number', v)} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );

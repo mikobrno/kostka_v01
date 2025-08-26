@@ -366,11 +366,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       console.log('💾 Data pro uložení do Supabase:', documentData);
 
 
-      // Rozhodni, zda aktualizovat existující záznam nebo vytvořit nový.
-      // Některé dokumenty načtené z backendu mají přímo `id` (DB id) a nemají pole `supabase_id`.
-      // Použijeme fallback: dbId = supabase_id || id.
-      let maybeId = document.supabase_id ?? document.id;
-      let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
+  // Rozhodni, zda aktualizovat existující záznam nebo vytvořit nový.
+  // Preferuj explicitní `supabase_id` (uložené ID z DB). Pokud není, zvaž `id` pouze pokud je to string (např. při načtení ze serveru)
+  // Tím zabráníme použití lokálních číselných ID (Date.now()) jako UUID při volání Supabase.
+  const isStringId = typeof document.id === 'string' && document.id.trim() !== '';
+  let maybeId = document.supabase_id ?? (isStringId ? document.id : undefined);
+  let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
 
       // Pokud nemáme žádné ID, zkontroluj na serveru, zda už neexistuje dokument se stejným číslem pro tohoto klienta
       // (jednoduchá deduplikace podle client_id + document_number + parent_type).
@@ -795,11 +796,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           />
         </div>
 
-        {/* Doklady totožnosti sekce - vloženo nad Podnikání */}
-        {prefix === 'applicant' && (
-          <span id="doklady" className="block -mt-20 pt-20" />
-        )}
-  <div className="mt-6 min-h-64">
+    {/* Doklady totožnosti sekce - vloženo nad Podnikání */}
+    {/* Anchor místo vkládáme přímo na sekci pomocí scroll-mt-20 - bezpečnější než negativní margin */}
+  <div id={prefix === 'applicant' ? 'doklady' : undefined} className="mt-6 min-h-64 scroll-mt-20">
             <div className="flex items-center space-x-3 mb-4">
             <h4 className="text-md font-medium text-gray-900 dark:text-white">Doklady totožnosti</h4>
             <button
@@ -1056,6 +1055,11 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         );
                         updateField('documents', updatedDocuments);
                       }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="Praha"
                       title="Místo narození"
@@ -1093,6 +1097,11 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                         );
                         updateField('documents', updatedDocuments);
                       }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
                       className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       placeholder="ABC123"
                       title="Kontrolní číslo"
@@ -1122,12 +1131,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           ))}
         </div>
 
-        <div className="flex flex-col gap-6 mt-4">
+          <div className="flex flex-col gap-6 mt-4">
           {/* Podnikání - samostatný blok (nad sebou) */}
-          {prefix === 'applicant' && (
-            <span id="podnikani" className="block -mt-20 pt-20" />
-          )}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64">
+          <div id={prefix === 'applicant' ? 'podnikani' : undefined} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64 scroll-mt-20">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <Building className="w-5 h-5 text-purple-600" />
@@ -1181,10 +1187,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           </div>
 
           {/* Sekce Děti - samostatný blok pod podnikáním */}
-          {prefix === 'applicant' && (
-            <span id="deti" className="block -mt-20 pt-20" />
-          )}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64">
+          <div id={prefix === 'applicant' ? 'deti' : undefined} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-full min-h-64 scroll-mt-20">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5 text-blue-600" />
