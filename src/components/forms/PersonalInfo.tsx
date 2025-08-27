@@ -134,6 +134,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
   const [savedDocument, setSavedDocument] = useState<string | number | null>(null);
+  const [hasChildren, setHasChildren] = useState(false);
+  
+  // Synchronize hasChildren state with data.children
+  React.useEffect(() => {
+    setHasChildren(!!(data.children && data.children.length > 0));
+  }, [data.children]);
   
   // Load admin lists once on mount. Module-level DEFAULT_* constants are stable.
   React.useEffect(() => {
@@ -380,8 +386,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   let maybeId = document.supabase_id ?? (isStringId ? document.id : undefined);
   let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
 
-      // Pokud nemáme žádné ID, zkontroluj na serveru, zda už neexistuje dokument se stejným číslem pro tohoto klienta
-      // (jednoduchá deduplikace podle client_id + document_number + parent_type).
+      // Deduplikační logika zakázána - umožňuje přidávání více dokumentů se stejným číslem
+      /*
       if (!dbId && document.documentNumber) {
         try {
           const { data: existing, error: selectErr } = await supabase
@@ -404,6 +410,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           console.warn('⚠️ Výjimka při kontrole duplicity dokumentu:', err);
         }
       }
+      */
 
       if (dbId) {
         console.log('🔄 Aktualizuji existující dokument v Supabase s ID:', dbId);
@@ -1219,12 +1226,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <input
                 type="checkbox"
                 id={`${prefix}-no-children`}
-                checked={!(data.children && data.children.length > 0)}
+                checked={!hasChildren}
                 onChange={(e) => {
-                  if (e.target.checked) {
+                  const noChildren = e.target.checked;
+                  setHasChildren(!noChildren);
+                  if (noChildren) {
                     updateField('children', []);
-                  } else {
-                    updateField('children', data.children || []);
                   }
                 }}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
@@ -1234,7 +1241,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               </label>
             </div>
 
-            {(data.children && data.children.length > 0) && (
+            {hasChildren && (
               <ChildrenManager
                 children={data.children || []}
                 onChange={(children: ChildShape[]) => updateField('children', children)}
