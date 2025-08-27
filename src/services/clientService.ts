@@ -441,7 +441,7 @@ export class ClientService {
       await supabase.from('properties').delete().eq('client_id', clientId)
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
-      await supabase.from('documents').delete().eq('client_id', clientId)
+      // await supabase.from('documents').delete().eq('client_id', clientId) // Commented out - PersonalInfo manages documents individually
       await supabase.from('liabilities').delete().eq('client_id', clientId)
       // Poznámka: loans se nemazou, budou se aktualizovat v upsertLoanWithColumnFallback      // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
@@ -611,7 +611,8 @@ export class ClientService {
           .eq('id', business.supabase_id);
       }
 
-      // Správa dokladů totožnosti - pouze nové dokumenty se vkládají, existující se aktualizují
+      // Správa dokladů totožnosti - DISABLED, PersonalInfo manages documents individually
+      /*
       const allDocuments = [
         ...(formData.applicant.documents || []).map((document: any) => ({
           ...document,
@@ -662,6 +663,7 @@ export class ClientService {
           .update(documentData)
           .eq('id', document.supabase_id);
       }
+      */
 
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
@@ -829,7 +831,17 @@ export class ClientService {
           citizenship: data.applicant_citizenship,
           children: data.children?.filter((child: any) => child.parent_type === 'applicant') || [],
           businesses: data.businesses?.filter((business: any) => business.parent_type === 'applicant') || [],
-          documents: data.documents?.filter((document: any) => document.parent_type === 'applicant') || []
+          documents: data.documents?.filter((document: any) => document.parent_type === 'applicant').map((doc: any) => ({
+            id: doc.id,
+            supabase_id: doc.id,
+            documentType: doc.document_type,
+            documentNumber: doc.document_number,
+            documentIssueDate: doc.document_issue_date,
+            documentValidUntil: doc.document_valid_until,
+            issuingAuthority: doc.issuing_authority,
+            placeOfBirth: doc.place_of_birth,
+            controlNumber: doc.control_number
+          })) || []
         },
         // Transformace údajů spolužadatele
         coApplicant: {
@@ -855,7 +867,17 @@ export class ClientService {
           citizenship: data.co_applicant_citizenship,
           children: data.children?.filter((child: any) => child.parent_type === 'co_applicant') || [],
           businesses: data.businesses?.filter((business: any) => business.parent_type === 'co_applicant') || [],
-          documents: data.documents?.filter((document: any) => document.parent_type === 'co_applicant') || []
+          documents: data.documents?.filter((document: any) => document.parent_type === 'co_applicant').map((doc: any) => ({
+            id: doc.id,
+            supabase_id: doc.id,
+            documentType: doc.document_type,
+            documentNumber: doc.document_number,
+            documentIssueDate: doc.document_issue_date,
+            documentValidUntil: doc.document_valid_until,
+            issuingAuthority: doc.issuing_authority,
+            placeOfBirth: doc.place_of_birth,
+            controlNumber: doc.control_number
+          })) || []
         }
       }
 

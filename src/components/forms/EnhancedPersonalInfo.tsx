@@ -93,12 +93,14 @@ interface EnhancedPersonalInfoProps {
   data: PersonalInfoData;
   onChange: (data: PersonalInfoData) => void;
   prefix: string;
+  clientId?: string;
 }
 
 export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({ 
   data, 
   onChange, 
-  prefix 
+  prefix,
+  clientId
 }) => {
   const [hasChildren, setHasChildren] = useState(false);
 
@@ -473,6 +475,8 @@ export const EnhancedPersonalInfo: React.FC<EnhancedPersonalInfoProps> = ({
             documents={(data.documents || []) as LocalDocument[]}
             onChange={(documents) => updateField('documents', documents as LocalDocument[])}
             documentTypes={adminLists.documentTypes}
+            clientId={clientId}
+            parentType={prefix === 'co_applicant' ? 'co_applicant' : 'applicant'}
           />
       </div>
 

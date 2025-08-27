@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, FileText, MapPin, Shield } from 'lucide-react';
 import InlineEditableCopy from '../InlineEditableCopy';
+import { supabase } from '../../lib/supabase';
 
 interface Document {
   id: string;
@@ -12,18 +13,24 @@ interface Document {
   place_of_birth: string;
   control_number: string;
   is_primary: boolean;
+  parent_type: 'applicant' | 'co_applicant'; // Added parent_type field
+  client_id: string; // Added client_id field
 }
 
 interface DocumentManagerProps {
   documents: Document[];
   onChange: (documents: Document[]) => void;
   documentTypes: string[];
+  clientId?: string;
+  parentType?: 'applicant' | 'co_applicant';
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
   documents = [],
   onChange,
-  documentTypes = ['občanský průkaz', 'pas', 'řidičský průkaz']
+  documentTypes = ['občanský průkaz', 'pas', 'řidičský průkaz'],
+  clientId,
+  parentType
 }) => {
   const [editingDocument, setEditingDocument] = useState<string | null>(null);
   const [newDocument, setNewDocument] = useState<Partial<Document> | null>(null);
@@ -51,7 +58,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     const newDoc: Partial<Document> = {
       id: `temp-${Date.now()}`,
   // leave type empty so user must explicitly choose; control number shows only for 'občanský průkaz'
-  document_type: '',
+      document_type: '',
       document_number: '',
       issue_date: new Date().toISOString().split('T')[0],
       valid_until: calculateValidityDate(new Date().toISOString().split('T')[0]),
@@ -63,66 +70,205 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     setNewDocument(newDoc);
   };
 
-  const saveDocument = (document: Partial<Document>) => {
+  const saveDocument = async (document: Partial<Document>) => {
+    if (!clientId || !parentType) {
+      console.error('Missing clientId or parentType for document save:', { clientId, parentType });
+      alert('Chyba: Není možné uložit dokument bez ID klienta');
+      return;
+    }
+    
     if (document.id?.startsWith('temp-')) {
       // New document
       const finalDoc = {
         ...document,
-        id: `doc-${Date.now()}`
+        id: `doc-${Date.now()}`,
+        parent_type: document.parent_type || parentType,
+        client_id: document.client_id || clientId
       } as Document;
 
-      // ensure control_number is empty unless it's občanský průkaz
+      // Ensure control_number is empty unless it's občanský průkaz
       if (finalDoc.document_type !== 'občanský průkaz') {
         finalDoc.control_number = '';
       }
 
-      // Remove any leftover temporary/blank documents before adding the final one
-      const cleaned = documents.filter(d => {
-        if (!d.id) return true;
-        return !String(d.id).startsWith('temp-');
-      });
+      try {
+        // Insert into Supabase if no valid UUID
+        const { data, error } = await supabase
+          .from('documents')
+          .insert([finalDoc])
+          .select('id')
+          .single();
 
-      // Deduplicate: if a document with same type+number exists, replace it
-      const existingIndex = cleaned.findIndex(d => d.document_type === finalDoc.document_type && d.document_number === finalDoc.document_number && finalDoc.document_number);
-      if (existingIndex >= 0) {
-        cleaned[existingIndex] = finalDoc;
-        onChange([...cleaned]);
-      } else {
+        if (error) {
+          console.error('Error inserting document:', error);
+          alert('Chyba při ukládání dokumentu.');
+          return;
+        }
+
+        // Update local state with Supabase ID
+        finalDoc.id = data.id;
+        const cleaned = documents.filter(d => !d.id?.startsWith('temp-'));
         onChange([...cleaned, finalDoc]);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Neočekávaná chyba při ukládání dokumentu.');
       }
     } else {
       // Update existing document
-      const updated = documents.map(doc => {
-        if (doc.id === document.id) {
-          const merged = { ...doc, ...document } as Document;
-          // clear control_number for non-občanský průkaz so it won't be stored/visible
-          if (merged.document_type !== 'občanský průkaz') {
-            merged.control_number = '';
-          }
-          return merged;
+      const documentToUpdate = { ...document } as Document;
+      if (documentToUpdate.document_type !== 'občanský průkaz') {
+        documentToUpdate.control_number = '';
+      }
+
+      try {
+        // Update in Supabase
+        console.log('Updating existing document in Supabase:', documentToUpdate.id);
+        const { error } = await supabase
+          .from('documents')
+          .update({
+            document_type: documentToUpdate.document_type,
+            document_number: documentToUpdate.document_number,
+            issue_date: documentToUpdate.issue_date,
+            valid_until: documentToUpdate.valid_until,
+            issuing_authority: documentToUpdate.issuing_authority,
+            place_of_birth: documentToUpdate.place_of_birth,
+            control_number: documentToUpdate.control_number,
+            is_primary: documentToUpdate.is_primary
+          })
+          .eq('id', documentToUpdate.id);
+
+        if (error) {
+          console.error('Error updating document in Supabase:', error);
+          alert('Chyba při aktualizaci dokumentu.');
+          return;
         }
-        return doc;
-      });
-      onChange(updated);
+
+        console.log('Document updated successfully in Supabase');
+        
+        // Update local state
+        const updated = documents.map(doc => {
+          if (doc.id === document.id) {
+            const merged = { ...doc, ...document } as Document;
+            if (merged.document_type !== 'občanský průkaz') {
+              merged.control_number = '';
+            }
+            return merged;
+          }
+          return doc;
+        });
+        onChange(updated);
+      } catch (err) {
+        console.error('Unexpected error updating document:', err);
+        alert('Neočekávaná chyba při aktualizaci dokumentu.');
+      }
     }
     setNewDocument(null);
     setEditingDocument(null);
   };
 
-  const deleteDocument = (documentId: string) => {
-    if (confirm('Opravdu chcete smazat tento doklad?')) {
-      const filtered = documents.filter(doc => doc.id !== documentId);
-      onChange(filtered);
+  const deleteDocument = async (documentId: string) => {
+    if (!confirm('Opravdu chcete smazat tento doklad?')) {
+      return;
+    }
+
+    // Don't try to delete temp documents from Supabase
+    if (!documentId.startsWith('temp-')) {
+      try {
+        console.log('Deleting document from Supabase:', documentId);
+        const { error } = await supabase
+          .from('documents')
+          .delete()
+          .eq('id', documentId);
+
+        if (error) {
+          console.error('Error deleting document from Supabase:', error);
+          alert('Chyba při mazání dokumentu.');
+          return;
+        }
+
+        console.log('Document deleted successfully from Supabase');
+      } catch (err) {
+        console.error('Unexpected error deleting document:', err);
+        alert('Neočekávaná chyba při mazání dokumentu.');
+        return;
+      }
+    }
+
+    // Update local state
+    const filtered = documents.filter(doc => doc.id !== documentId);
+    onChange(filtered);
+  };
+
+  const setPrimaryDocument = async (documentId: string) => {
+    try {
+      console.log('Setting primary document:', documentId);
+      
+      // Update all documents to set is_primary false, then set the selected one to true
+      const updates = documents.map(async (doc) => {
+        if (!doc.id.startsWith('temp-')) {
+          return supabase
+            .from('documents')
+            .update({ is_primary: doc.id === documentId })
+            .eq('id', doc.id);
+        }
+        return null;
+      });
+
+      const results = await Promise.all(updates);
+      
+      // Check for any errors
+      const errors = results.filter(result => result && result.error);
+      if (errors.length > 0) {
+        console.error('Error updating primary document status:', errors);
+        alert('Chyba při nastavování hlavního dokumentu.');
+        return;
+      }
+
+      console.log('Primary document status updated successfully');
+      
+      // Update local state
+      const updated = documents.map(doc => ({
+        ...doc,
+        is_primary: doc.id === documentId
+      }));
+      onChange(updated);
+    } catch (err) {
+      console.error('Unexpected error setting primary document:', err);
+      alert('Neočekávaná chyba při nastavování hlavního dokumentu.');
     }
   };
 
-  const setPrimaryDocument = (documentId: string) => {
-    const updated = documents.map(doc => ({
-      ...doc,
-      is_primary: doc.id === documentId
-    }));
-    onChange(updated);
-  };
+  useEffect(() => {
+    if (!clientId || !parentType) {
+      console.log('Skipping document fetch - missing clientId or parentType:', { clientId, parentType });
+      return;
+    }
+    
+    const fetchDocuments = async () => {
+      try {
+        console.log('Fetching documents for:', { clientId, parentType });
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('client_id', clientId)
+          .eq('parent_type', parentType);
+
+        if (error) {
+          console.error('Error fetching documents:', error);
+          alert('Chyba při načítání dokumentů.');
+          return;
+        }
+
+        console.log('Documents fetched successfully:', data?.length || 0, 'documents');
+        onChange(data || []);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Neočekávaná chyba při načítání dokumentů.');
+      }
+    };
+
+    fetchDocuments();
+  }, [clientId, parentType, onChange]);
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
@@ -230,12 +376,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     setEditData(document);
   }, [document]);
 
-  const handleFieldChange = (field: string, value: string) => {
-  const updated: any = { ...editData, [field]: value };
+  const handleFieldChange = (field: keyof Document, value: string) => {
+    const updated = { ...editData, [field]: value } as Partial<Document>;
 
     // Auto-calculate validity when issue date changes, but don't overwrite manual value
     if (field === 'issue_date') {
-      if (!editData.valid_until) {
+      if (!editData?.valid_until) {
         updated.valid_until = calculateValidityDate(value);
       }
     }
@@ -245,7 +391,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       delete updated.control_number;
     }
 
-  setEditData(updated);
+    setEditData(updated);
   };
 
   const handleSave = () => {
