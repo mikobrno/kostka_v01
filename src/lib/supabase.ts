@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { ClientStatus } from '../types/clientStatus'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -16,6 +17,7 @@ export interface Client {
   updated_at: string
   user_id: string
   avatar_url?: string
+  status: ClientStatus
   
   // Žadatel
   applicant_title?: string

@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase'
 import type { Client } from '../lib/supabase'
+import { ClientStatus } from '../types/clientStatus'
 
 export interface ClientFormData {
+  status?: ClientStatus
   applicant: any
   coApplicant: any
   employer: {
@@ -83,7 +85,9 @@ export class ClientService {
       return { error }
     }
     return { error: new Error('Failed to upsert loan after multiple attempts') }
-  }  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
+  }
+  
+  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('clients')
@@ -94,6 +98,30 @@ export class ClientService {
 
       return { data, error };
     } catch (error) {
+      return { data: null, error };
+    }
+  }
+  
+  static async updateClientStatus(clientId: string, status: ClientStatus): Promise<{ data: Client | null; error: any }> {
+    try {
+      console.log(`Aktualizuji status klienta ${clientId} na ${status}`);
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ status })
+        .eq('id', clientId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error při aktualizaci statusu:', error);
+        return { data: null, error };
+      }
+
+      console.log('Status úspěšně aktualizován:', data);
+      return { data, error: null };
+    } catch (error) {
+      console.error('Chyba při aktualizaci statusu:', error);
       return { data: null, error };
     }
   }
@@ -143,6 +171,7 @@ export class ClientService {
       // Vytvoření klienta
       const clientData = {
   user_id: _user.id,
+        status: formData.status || 'inquiry',
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,
@@ -380,6 +409,7 @@ export class ClientService {
     try {
       // Aktualizace klienta
       const clientData = {
+        status: formData.status || 'inquiry',
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,

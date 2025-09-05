@@ -134,12 +134,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
   const [savedDocument, setSavedDocument] = useState<string | number | null>(null);
-  const [hasChildren, setHasChildren] = useState(false);
-  
-  // Synchronize hasChildren state with data.children
-  React.useEffect(() => {
-    setHasChildren(!!(data.children && data.children.length > 0));
-  }, [data.children]);
   
   // Load admin lists once on mount. Module-level DEFAULT_* constants are stable.
   React.useEffect(() => {
@@ -348,12 +342,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       return;
     }
 
-    if (!prefix) {
-      console.error('❌ Chybí prefix (parent_type) pro uložení dokumentu.');
-      toast?.showError?.('Chyba', 'Není dostupný typ rodiče pro uložení dokladu');
-      return;
-    }
-
     setSavingDocument(documentId);
     try {
       // Najdi specifický doklad
@@ -366,7 +354,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       // Připrav data pro Supabase (bez lokálního ID)
       const documentData = {
         client_id: String(clientId),
-        parent_type: prefix,
         document_type: document.documentType || null,
         document_number: document.documentNumber || null,
         document_issue_date: document.documentIssueDate || null,
@@ -386,8 +373,8 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   let maybeId = document.supabase_id ?? (isStringId ? document.id : undefined);
   let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
 
-      // Deduplikační logika zakázána - umožňuje přidávání více dokumentů se stejným číslem
-      /*
+      // Pokud nemáme žádné ID, zkontroluj na serveru, zda už neexistuje dokument se stejným číslem pro tohoto klienta
+      // (jednoduchá deduplikace podle client_id + document_number + parent_type).
       if (!dbId && document.documentNumber) {
         try {
           const { data: existing, error: selectErr } = await supabase
@@ -410,7 +397,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           console.warn('⚠️ Výjimka při kontrole duplicity dokumentu:', err);
         }
       }
-      */
 
       if (dbId) {
         console.log('🔄 Aktualizuji existující dokument v Supabase s ID:', dbId);
@@ -876,18 +862,9 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                     <select
                       value={document.documentType || ''}
                       onChange={(e) => {
-                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => {
-                          if (d.id === document.id) {
-                            const updatedDoc = { ...d, documentType: e.target.value };
-                            // Vymaž controlNumber a placeOfBirth pokud typ není občanský průkaz
-                            if (e.target.value !== 'občanský průkaz') {
-                              updatedDoc.controlNumber = '';
-                              updatedDoc.placeOfBirth = '';
-                            }
-                            return updatedDoc;
-                          }
-                          return d;
-                        });
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, documentType: e.target.value } : d
+                        );
                         updateField('documents', updatedDocuments);
                       }}
                       className="flex-1 block w-full border-gray-300 dark:border-gray-600 rounded-l-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -1066,93 +1043,89 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
                   </div>
                 </div>
 
-                {document.documentType === 'občanský průkaz' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Místo narození</label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={document.placeOfBirth || ''}
-                        onChange={(e) => {
-                          const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
-                            d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
-                          );
-                          updateField('documents', updatedDocuments);
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Místo narození</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.placeOfBirth || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, placeOfBirth: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="Praha"
+                      title="Místo narození"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.placeOfBirth || '');
+                            toast?.showSuccess?.('Zkopírováno', 'Místo narození zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
                         }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                        onFocus={(e) => e.stopPropagation()}
-                        className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                        placeholder="Praha"
-                        title="Místo narození"
-                      />
-                      <div className="ml-2">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(document.placeOfBirth || '');
-                              toast?.showSuccess?.('Zkopírováno', 'Místo narození zkopírováno');
-                            } catch {
-                              /* ignore */
-                            }
-                          }}
-                          className="p-1 text-gray-500 hover:text-gray-700"
-                          title="Kopírovat místo narození"
-                          aria-label="Kopírovat místo narození"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat místo narození"
+                        aria-label="Kopírovat místo narození"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {document.documentType === 'občanský průkaz' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Kontrolní číslo OP</label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={document.controlNumber || ''}
-                        onChange={(e) => {
-                          const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
-                            d.id === document.id ? { ...d, controlNumber: e.target.value } : d
-                          );
-                          updateField('documents', updatedDocuments);
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kontrolní číslo OP</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={document.controlNumber || ''}
+                      onChange={(e) => {
+                        const updatedDocuments = (data.documents || []).map((d: DocumentShape) => 
+                          d.id === document.id ? { ...d, controlNumber: e.target.value } : d
+                        );
+                        updateField('documents', updatedDocuments);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
+                      className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      placeholder="ABC123"
+                      title="Kontrolní číslo"
+                    />
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(document.controlNumber || '');
+                            toast?.showSuccess?.('Zkopírováno', 'Kontrolní číslo zkopírováno');
+                          } catch {
+                            /* ignore */
+                          }
                         }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                        onFocus={(e) => e.stopPropagation()}
-                        className="flex-1 block w-full rounded-l-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                        placeholder="ABC123"
-                        title="Kontrolní číslo"
-                      />
-                      <div className="ml-2">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(document.controlNumber || '');
-                              toast?.showSuccess?.('Zkopírováno', 'Kontrolní číslo zkopírováno');
-                            } catch {
-                              /* ignore */
-                            }
-                          }}
-                          className="p-1 text-gray-500 hover:text-gray-700"
-                          title="Kopírovat kontrolní číslo"
-                          aria-label="Kopírovat kontrolní číslo"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Kopírovat kontrolní číslo"
+                        aria-label="Kopírovat kontrolní číslo"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -1226,12 +1199,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <input
                 type="checkbox"
                 id={`${prefix}-no-children`}
-                checked={!hasChildren}
+                checked={!(data.children && data.children.length > 0)}
                 onChange={(e) => {
-                  const noChildren = e.target.checked;
-                  setHasChildren(!noChildren);
-                  if (noChildren) {
+                  if (e.target.checked) {
                     updateField('children', []);
+                  } else {
+                    updateField('children', data.children || []);
                   }
                 }}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
@@ -1241,7 +1214,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               </label>
             </div>
 
-            {hasChildren && (
+            {(data.children && data.children.length > 0) && (
               <ChildrenManager
                 children={data.children || []}
                 onChange={(children: ChildShape[]) => updateField('children', children)}

@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ClientService } from '../services/clientService';
 import { Users, Search, Eye, Edit, Trash2, RefreshCw, Calendar, Phone, Mail, X, MapPin, Building, CreditCard, User, FileDown, Copy, Download } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { FileStorageService } from '../services/fileStorageService';
 import type { Client, Employer, Property, Liability } from '../lib/supabase';
+import { ClientStatus } from '../types/clientStatus';
+import ClientStatusBadge from './ClientStatusBadge';
 
 // Minimální typ klienta používaný v tomto seznamu (včetně vztahů)
 type UIClient = Client & {
+  status?: ClientStatus;
   avatar_url?: string;
   employers?: Employer[];
   properties?: Property[];
@@ -48,9 +51,10 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showClientPreview, setShowClientPreview] = useState<UIClient | null>(null);
+  const [selectedStatuses, setSelectedStatuses] = useState<ClientStatus[]>(['waiting', 'inquiry', 'offer', 'completion', 'signing', 'drawdown', 'completed', 'archived']);
   const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -78,7 +82,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
       console.log('✅ Načítání dokončeno');
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Kontrola připojení k Supabase
@@ -87,17 +91,21 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
       return;
     }
     loadClients();
-  }, [refreshKey]);
+  }, [refreshKey, loadClients]);
 
   const filteredClients = clients.filter(client => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       client.applicant_first_name?.toLowerCase().includes(searchLower) ||
       client.applicant_last_name?.toLowerCase().includes(searchLower) ||
       client.applicant_email?.toLowerCase().includes(searchLower) ||
       client.applicant_phone?.includes(searchTerm) ||
       client.properties?.[0]?.address?.toLowerCase().includes(searchLower)
     );
+    
+    const matchesStatus = selectedStatuses.includes((client.status as ClientStatus) || 'inquiry');
+    
+    return matchesSearch && matchesStatus;
   });
 
   const formatDate = (dateString: string) => {
@@ -497,7 +505,7 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
         />
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">        
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="relative flex-1 max-w-md">
@@ -512,17 +520,57 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
             </div>
             
             <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-500 dark:text-gray-300">
+              {/* Status Filter Pills */}
+              <div className="flex items-center space-x-2 mr-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Filtr:</span>
+                <button
+                  onClick={() => setSelectedStatuses(['waiting', 'inquiry', 'offer', 'completion', 'signing', 'drawdown', 'completed', 'archived'])}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    selectedStatuses.length === 8
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Vše ({clients.length})
+                </button>
+                {[
+                  { id: 'waiting', label: 'Čekání', bgColor: 'bg-gray-100 dark:bg-gray-700', textColor: 'text-gray-700 dark:text-gray-300', count: clients.filter(c => c.status === 'waiting').length },
+                  { id: 'inquiry', label: 'Poptávka', bgColor: 'bg-blue-100 dark:bg-blue-900', textColor: 'text-blue-700 dark:text-blue-300', count: clients.filter(c => c.status === 'inquiry').length },
+                  { id: 'offer', label: 'Nabídka', bgColor: 'bg-purple-100 dark:bg-purple-900', textColor: 'text-purple-700 dark:text-purple-300', count: clients.filter(c => c.status === 'offer').length },
+                  { id: 'completion', label: 'Kompletace', bgColor: 'bg-orange-100 dark:bg-orange-900', textColor: 'text-orange-700 dark:text-orange-300', count: clients.filter(c => c.status === 'completion').length },
+                  { id: 'signing', label: 'Podepisování', bgColor: 'bg-yellow-100 dark:bg-yellow-900', textColor: 'text-yellow-700 dark:text-yellow-300', count: clients.filter(c => c.status === 'signing').length },
+                  { id: 'drawdown', label: 'Čerpání', bgColor: 'bg-indigo-100 dark:bg-indigo-900', textColor: 'text-indigo-700 dark:text-indigo-300', count: clients.filter(c => c.status === 'drawdown').length },
+                  { id: 'completed', label: 'Dokončeno', bgColor: 'bg-green-100 dark:bg-green-900', textColor: 'text-green-700 dark:text-green-300', count: clients.filter(c => c.status === 'completed').length },
+                  { id: 'archived', label: 'Archiv', bgColor: 'bg-slate-100 dark:bg-slate-800', textColor: 'text-slate-700 dark:text-slate-300', count: clients.filter(c => c.status === 'archived').length }
+                ].map(status => (
+                  <button
+                    key={status.id}
+                    onClick={() => {
+                      const statusId = status.id as ClientStatus;
+                      // Pokud je už vybraný pouze tento status, zrušíme filtr (zobrazí vše)
+                      if (selectedStatuses.length === 1 && selectedStatuses.includes(statusId)) {
+                        setSelectedStatuses(['waiting', 'inquiry', 'offer', 'completion', 'signing', 'drawdown', 'completed']);
+                      } else {
+                        // Jinak vybereme pouze tento status
+                        setSelectedStatuses([statusId]);
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                      selectedStatuses.length === 1 && selectedStatuses.includes(status.id as ClientStatus)
+                        ? `${status.bgColor} ${status.textColor} ring-2 ring-blue-500 dark:ring-blue-400 shadow-md font-semibold`
+                        : selectedStatuses.length === 8
+                        ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 opacity-60'
+                    }`}
+                  >
+                    {status.label} ({status.count})
+                  </button>
+                ))}
+              </div>
+            
+              <span className="text-sm text-gray-500 dark:text-gray-300">
                 Celkem: {filteredClients.length} klientů
               </span>
-              <button
-                onClick={loadClients}
-                disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Obnovit
-              </button>
             </div>
           </div>
         </div>
@@ -570,6 +618,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                       <User className="w-4 h-4 mr-2" />
                       Klient
                     </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Stav
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     <div className="flex items-center">
@@ -666,6 +717,9 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
+                      <ClientStatusBadge status={client.status || 'waiting'} />
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white space-y-1">
                         <div className="flex items-center">
                           <Phone className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
@@ -748,12 +802,12 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                           <Download className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => onSelectClient?.(client)}
+                          onClick={() => setShowClientPreview(client)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 rounded p-1"
-                          title="Zobrazit detail"
-                          aria-label={`Zobrazit detail klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
+                          title="Zobrazit náhled"
+                          aria-label={`Zobrazit náhled klienta ${client.applicant_first_name} ${client.applicant_last_name}`}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => onSelectClient?.(client)}
@@ -1010,7 +1064,7 @@ const ClientPreviewModal: React.FC<ClientPreviewModalProps> = ({ client, onClose
                 </div>
                 <div>
                   <span className="text-sm font-medium text-orange-700">Kupní cena:</span>
-                  <p className="text-orange-900 font-bold text-xl text-green-600">
+                  <p className="font-bold text-xl text-green-600">
                     {client.properties[0]?.price ? formatPrice(client.properties[0].price) : 'Neuvedeno'}
                   </p>
                 </div>

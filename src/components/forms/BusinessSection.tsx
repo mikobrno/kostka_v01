@@ -660,7 +660,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
             </button>
           )}
           {onRefresh && (
-            <button onClick={onRefresh} title="Aktualizovat" className="p-2 text-gray-600 hover:text-gray-800">
+            <button onClick={onRefresh} title="Uložit" className="p-2 text-gray-600 hover:text-gray-800">
               <RefreshCw className="w-4 h-4" />
             </button>
           )}
