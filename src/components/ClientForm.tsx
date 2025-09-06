@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
 import { DynamicSectionManager } from './forms/DynamicSectionManager';
+import { PdfUpload } from './forms/PdfUpload';
 import { PersonalInfo } from './forms/PersonalInfo';
 import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
@@ -10,7 +11,7 @@ import { LoanSection } from './forms/LoanSection';
 import { SimpleSearch } from './SimpleSearch';
 import ClientStatusProgress from './ClientStatusProgress';
 import { ClientStatus } from '../types/clientStatus';
-import { Save, Plus, Eye, X, FileText, User, Layers, FileDown, Download } from 'lucide-react';
+import { Save, Plus, Eye, X, FileText, User, Layers, FileDown, Download, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
@@ -18,9 +19,10 @@ interface ClientFormProps {
   onClientSaved?: (updatedClient?: any) => void;
   onClose?: () => void;
   toast?: ReturnType<typeof useToast>;
+  initialTab?: 'basic' | 'dynamic' | 'pdf'; // přidán prop
 }
 
-export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClientSaved, onClose, toast }) => {
+export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClientSaved, onClose, toast, initialTab = 'basic' }) => {
   // Volnější typování formuláře – zabrání chybám s never[] a {} při postupném vyplňování
   const [formData, setFormData] = useState<any>({
     applicant: {},
@@ -36,7 +38,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentClient, setCurrentClient] = useState(selectedClient);
-  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic'>('basic');
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic' | 'pdf'>(initialTab);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
 
   // Načtení dat vybraného klienta do formuláře
@@ -806,6 +808,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               <span className="text-xs text-gray-400">(nejprve uložte klienta)</span>
             )}
           </button>
+          <button
+            onClick={() => setActiveFormTab('pdf')}
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeFormTab === 'pdf'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            <span>Vložit PDF</span>
+          </button>
         </nav>
       </div>
       {/* Tab Content */}
@@ -991,6 +1004,70 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* PDF Upload Tab */}
+      {activeFormTab === 'pdf' && (
+        <div className="space-y-8">
+          <PdfUpload
+            onDataExtracted={(data) => {
+              // Aplikuj extrahovaná data do formuláře
+      if (data.applicant) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  applicant: {
+                    ...prev.applicant,
+        ...data.applicant,
+        birthNumber: data.applicant?.birthNumber || prev.applicant.birthNumber,
+        netIncome3m: data.applicant?.netIncome3m || prev.applicant.netIncome3m,
+  netIncome12m: data.applicant?.netIncome12m || prev.applicant.netIncome12m,
+  children: data.applicant?.children?.length ? data.applicant.children : prev.applicant.children
+                  }
+                }));
+              }
+              if (data.coApplicant) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  coApplicant: {
+                    ...prev.coApplicant,
+        ...data.coApplicant,
+        birthNumber: data.coApplicant?.birthNumber || prev.coApplicant.birthNumber,
+        netIncome3m: data.coApplicant?.netIncome3m || prev.coApplicant.netIncome3m,
+  netIncome12m: data.coApplicant?.netIncome12m || prev.coApplicant.netIncome12m
+                  }
+                }));
+              }
+              if (data.loan) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  loan: {
+                    ...prev.loan,
+        ...data.loan,
+        loanAmount: data.loan?.amount || prev.loan.loanAmount,
+        propertyValue: data.loan?.propertyValue || prev.loan.propertyValue,
+        purpose: data.loan?.purpose || prev.loan.purpose,
+        bank: data.loan?.bank || prev.loan.bank
+                  }
+                }));
+              }
+              if (data.property) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  applicantProperty: {
+                    ...prev.applicantProperty,
+                    address: data.property?.address || prev.applicantProperty.address,
+                    price: data.property?.price || prev.applicantProperty.price
+                  },
+                  // Pokud už žadatel má nemovitost a chceme druhou, lze upravit logiku – zatím primárně applicantProperty
+                }));
+              }
+              toast?.showSuccess('Data extrahována', 'Data z PDF byla úspěšně načtena do formuláře');
+            }}
+            onError={(error) => {
+              toast?.showError('Chyba při zpracování PDF', error);
+            }}
+          />
         </div>
       )}
     </div>
@@ -1407,7 +1484,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Kupní cena:</span>
-                    <p className="text-gray-900 text-lg font-semibold text-green-600">
+                    <p className="text-lg font-semibold text-green-600">
                       {formData.applicantProperty.price ? formatPrice(formData.applicantProperty.price) : 'Neuvedeno'}
                     </p>
                   </div>
@@ -1423,7 +1500,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Kupní cena:</span>
-                    <p className="text-gray-900 text-lg font-semibold text-green-600">
+                    <p className="text-lg font-semibold text-green-600">
                       {formData.coApplicantProperty.price ? formatPrice(formData.coApplicantProperty.price) : 'Neuvedeno'}
                     </p>
                   </div>
@@ -1452,7 +1529,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Výše úvěru:</span>
-                <p className="text-gray-900 text-lg font-semibold text-green-600">
+                <p className="text-lg font-semibold text-green-600">
                   {formData.loan.loanAmount ? formatPrice(formData.loan.loanAmount) : 'Neuvedeno'}
                 </p>
               </div>

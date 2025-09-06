@@ -518,7 +518,6 @@ export const ClientList: React.FC<ClientListProps> = ({ onSelectClient, toast, r
                 placeholder="Hledat podle jména, emailu, telefonu..."
               />
             </div>
-            
             <div className="flex items-center space-x-3">
               {/* Status Filter Pills */}
               <div className="flex items-center space-x-2 mr-4">

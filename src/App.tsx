@@ -229,8 +229,12 @@ function App() {
           <ClientForm 
             selectedClient={selectedClient} 
             onClientSaved={handleClientSaved}
-            onClose={handleCloseClientForm}
+            onClose={() => {
+              handleCloseClientForm();
+              sessionStorage.removeItem('openClientFormInitialTab');
+            }}
             toast={toast}
+            initialTab={(sessionStorage.getItem('openClientFormInitialTab') as 'basic' | 'dynamic' | 'pdf') || 'basic'}
           />
         ) : (
           <>
