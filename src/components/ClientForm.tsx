@@ -2,13 +2,16 @@
 import React, { useState } from 'react';
 import { ClientService } from '../services/clientService';
 import { DynamicSectionManager } from './forms/DynamicSectionManager';
+import { PdfUpload } from './forms/PdfUpload';
 import { PersonalInfo } from './forms/PersonalInfo';
 import { EmployerInfo } from './forms/EmployerInfo';
 import { LiabilitiesInfo } from './forms/LiabilitiesInfo';
 import { PropertyInfo } from './forms/PropertyInfo';
 import { LoanSection } from './forms/LoanSection';
 import { SimpleSearch } from './SimpleSearch';
-import { Save, Plus, Eye, X, FileText, User, Layers, FileDown, Download } from 'lucide-react';
+import ClientStatusProgress from './ClientStatusProgress';
+import { ClientStatus } from '../types/clientStatus';
+import { Save, Plus, Eye, X, FileText, User, Layers, FileDown, Download, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
 interface ClientFormProps {
@@ -16,9 +19,10 @@ interface ClientFormProps {
   onClientSaved?: (updatedClient?: any) => void;
   onClose?: () => void;
   toast?: ReturnType<typeof useToast>;
+  initialTab?: 'basic' | 'dynamic' | 'pdf'; // přidán prop
 }
 
-export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClientSaved, onClose, toast }) => {
+export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClientSaved, onClose, toast, initialTab = 'basic' }) => {
   // Volnější typování formuláře – zabrání chybám s never[] a {} při postupném vyplňování
   const [formData, setFormData] = useState<any>({
     applicant: {},
@@ -28,12 +32,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
     liabilities: [] as any[],
     applicantProperty: {},
     coApplicantProperty: {},
-    loan: {}
+    loan: {},
+    status: 'inquiry' as ClientStatus
   });
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentClient, setCurrentClient] = useState(selectedClient);
-  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic'>('basic');
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'dynamic' | 'pdf'>(initialTab);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
 
   // Načtení dat vybraného klienta do formuláře
@@ -41,6 +46,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
     if (selectedClient || currentClient) {
       const client = selectedClient || currentClient;
       setFormData({
+        status: client.status || 'inquiry',
         applicant: {
           title: client.applicant_title || '',
           firstName: client.applicant_first_name || '',
@@ -214,6 +220,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
       toast?.showError('Chyba při ukládání', err?.message || 'Neznámá chyba');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Automatické ukládání při zavření
+  const handleClose = async () => {
+    if (saving) return; // Pokud už se ukládá, neprovádej další akci
+    
+    try {
+      await handleSave(); // Automaticky ulož před zavřením
+    } catch (error) {
+      console.error('Automatické ukládání před zavřením selhalo:', error);
+      // I když se nepodaří uložit, zavři dialog - uživatel může uložit ručně později
+    }
+    
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -643,33 +665,35 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
         })()}
       </div>
 
-      {/* Vyhledávání a tlačítka */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
-        {/* Globální vyhledávání */}
-        {(selectedClient || currentClient) && (
-          <div className="flex flex-col flex-1 max-w-md">
-            <SimpleSearch 
-              onSearchChange={setGlobalSearchTerm}
-              placeholder="Hledat v profilu klienta..."
-              className="w-full"
-            />
-            {globalSearchTerm && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
-              </p>
-            )}
-          </div>
-        )}
-        
-        {/* Tlačítka */}
-        <div className="flex items-center space-x-3 flex-shrink-0">
+      {/* Vyhledávání a tlačítka - sticky */}
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 py-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+          {/* Globální vyhledávání */}
+          {(selectedClient || currentClient) && (
+            <div className="flex flex-col flex-1 max-w-md">
+              <SimpleSearch 
+                onSearchChange={setGlobalSearchTerm}
+                placeholder="Hledat v profilu klienta..."
+                className="w-full"
+              />
+              {globalSearchTerm && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  🔍 Zobrazují se pouze sekce obsahující: "{globalSearchTerm}"
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Tlačítka */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
             {onClose && (
               <button
-                onClick={onClose}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={handleClose}
+                disabled={saving}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
                 <X className="w-4 h-4 mr-2" />
-                Zavřít
+                {saving ? 'Ukládám...' : 'Zavřít'}
               </button>
             )}
             
@@ -703,7 +727,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              {saving ? 'Ukládám...' : (selectedClient || currentClient ? 'Aktualizovat' : 'Uložit')}
+              {saving ? 'Ukládám...' : 'Uložit'}
             </button>
             
             <button
@@ -723,11 +747,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               <Download className="w-4 h-4 mr-2" />
               Stáhnout odkaz
             </button>
+          </div>
         </div>
       </div>
 
-      {/* Rychlé odkazy na sekce */}
-      <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-3 sticky top-0 z-10">
+      {/* Rychlé odkazy na sekce - sticky */}
+      <div className="sticky top-[88px] z-30 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-3 mb-6 shadow-sm">
         <nav className="flex flex-wrap gap-3 text-sm">
           {[
             { id: 'doklady', label: 'Doklady' },
@@ -746,7 +771,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                 const el = document.getElementById(link.id);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+              className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             >
               {link.label}
             </a>
@@ -783,11 +808,33 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               <span className="text-xs text-gray-400">(nejprve uložte klienta)</span>
             )}
           </button>
+          <button
+            onClick={() => setActiveFormTab('pdf')}
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeFormTab === 'pdf'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            <span>Vložit PDF</span>
+          </button>
         </nav>
       </div>
       {/* Tab Content */}
       {activeFormTab === 'basic' && (
         <div className="space-y-8">
+          {/* Status Progress Bar */}
+          {(selectedClient || currentClient) && (
+            <ClientStatusProgress
+              currentStatus={formData.status}
+              onChange={(newStatus: ClientStatus) => {
+                setFormData({ ...formData, status: newStatus });
+              }}
+              className="mb-6"
+            />
+          )}
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Žadatel */}
             {matchesApplicant && (
@@ -957,6 +1004,70 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* PDF Upload Tab */}
+      {activeFormTab === 'pdf' && (
+        <div className="space-y-8">
+          <PdfUpload
+            onDataExtracted={(data) => {
+              // Aplikuj extrahovaná data do formuláře
+      if (data.applicant) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  applicant: {
+                    ...prev.applicant,
+        ...data.applicant,
+        birthNumber: data.applicant?.birthNumber || prev.applicant.birthNumber,
+        netIncome3m: data.applicant?.netIncome3m || prev.applicant.netIncome3m,
+  netIncome12m: data.applicant?.netIncome12m || prev.applicant.netIncome12m,
+  children: data.applicant?.children?.length ? data.applicant.children : prev.applicant.children
+                  }
+                }));
+              }
+              if (data.coApplicant) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  coApplicant: {
+                    ...prev.coApplicant,
+        ...data.coApplicant,
+        birthNumber: data.coApplicant?.birthNumber || prev.coApplicant.birthNumber,
+        netIncome3m: data.coApplicant?.netIncome3m || prev.coApplicant.netIncome3m,
+  netIncome12m: data.coApplicant?.netIncome12m || prev.coApplicant.netIncome12m
+                  }
+                }));
+              }
+              if (data.loan) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  loan: {
+                    ...prev.loan,
+        ...data.loan,
+        loanAmount: data.loan?.amount || prev.loan.loanAmount,
+        propertyValue: data.loan?.propertyValue || prev.loan.propertyValue,
+        purpose: data.loan?.purpose || prev.loan.purpose,
+        bank: data.loan?.bank || prev.loan.bank
+                  }
+                }));
+              }
+              if (data.property) {
+                setFormData((prev: typeof formData) => ({
+                  ...prev,
+                  applicantProperty: {
+                    ...prev.applicantProperty,
+                    address: data.property?.address || prev.applicantProperty.address,
+                    price: data.property?.price || prev.applicantProperty.price
+                  },
+                  // Pokud už žadatel má nemovitost a chceme druhou, lze upravit logiku – zatím primárně applicantProperty
+                }));
+              }
+              toast?.showSuccess('Data extrahována', 'Data z PDF byla úspěšně načtena do formuláře');
+            }}
+            onError={(error) => {
+              toast?.showError('Chyba při zpracování PDF', error);
+            }}
+          />
         </div>
       )}
     </div>
@@ -1373,7 +1484,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Kupní cena:</span>
-                    <p className="text-gray-900 text-lg font-semibold text-green-600">
+                    <p className="text-lg font-semibold text-green-600">
                       {formData.applicantProperty.price ? formatPrice(formData.applicantProperty.price) : 'Neuvedeno'}
                     </p>
                   </div>
@@ -1389,7 +1500,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Kupní cena:</span>
-                    <p className="text-gray-900 text-lg font-semibold text-green-600">
+                    <p className="text-lg font-semibold text-green-600">
                       {formData.coApplicantProperty.price ? formatPrice(formData.coApplicantProperty.price) : 'Neuvedeno'}
                     </p>
                   </div>
@@ -1418,7 +1529,7 @@ const ClientPreview: React.FC<ClientPreviewProps> = ({
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Výše úvěru:</span>
-                <p className="text-gray-900 text-lg font-semibold text-green-600">
+                <p className="text-lg font-semibold text-green-600">
                   {formData.loan.loanAmount ? formatPrice(formData.loan.loanAmount) : 'Neuvedeno'}
                 </p>
               </div>

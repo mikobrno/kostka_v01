@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../lib/supabase'
 import type { Client } from '../lib/supabase'
+import { ClientStatus } from '../types/clientStatus'
 
 export interface ClientFormData {
+  status?: ClientStatus
   applicant: any
   coApplicant: any
   employer: {
@@ -83,7 +85,9 @@ export class ClientService {
       return { error }
     }
     return { error: new Error('Failed to upsert loan after multiple attempts') }
-  }  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
+  }
+  
+  static async updateClientAvatar(clientId: string, avatarUrl: string): Promise<{ data: Client | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('clients')
@@ -94,6 +98,30 @@ export class ClientService {
 
       return { data, error };
     } catch (error) {
+      return { data: null, error };
+    }
+  }
+  
+  static async updateClientStatus(clientId: string, status: ClientStatus): Promise<{ data: Client | null; error: any }> {
+    try {
+      console.log(`Aktualizuji status klienta ${clientId} na ${status}`);
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ status })
+        .eq('id', clientId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error při aktualizaci statusu:', error);
+        return { data: null, error };
+      }
+
+      console.log('Status úspěšně aktualizován:', data);
+      return { data, error: null };
+    } catch (error) {
+      console.error('Chyba při aktualizaci statusu:', error);
       return { data: null, error };
     }
   }
@@ -143,6 +171,7 @@ export class ClientService {
       // Vytvoření klienta
       const clientData = {
   user_id: _user.id,
+        status: formData.status || 'inquiry',
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,
@@ -380,6 +409,7 @@ export class ClientService {
     try {
       // Aktualizace klienta
       const clientData = {
+        status: formData.status || 'inquiry',
         // Žadatel
         applicant_title: formData.applicant.title || null,
         applicant_first_name: formData.applicant.firstName || null,
@@ -441,7 +471,7 @@ export class ClientService {
       await supabase.from('properties').delete().eq('client_id', clientId)
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
-      await supabase.from('documents').delete().eq('client_id', clientId)
+      // await supabase.from('documents').delete().eq('client_id', clientId) // Commented out - PersonalInfo manages documents individually
       await supabase.from('liabilities').delete().eq('client_id', clientId)
       // Poznámka: loans se nemazou, budou se aktualizovat v upsertLoanWithColumnFallback      // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
@@ -611,7 +641,8 @@ export class ClientService {
           .eq('id', business.supabase_id);
       }
 
-      // Správa dokladů totožnosti - pouze nové dokumenty se vkládají, existující se aktualizují
+      // Správa dokladů totožnosti - DISABLED, PersonalInfo manages documents individually
+      /*
       const allDocuments = [
         ...(formData.applicant.documents || []).map((document: any) => ({
           ...document,
@@ -662,6 +693,7 @@ export class ClientService {
           .update(documentData)
           .eq('id', document.supabase_id);
       }
+      */
 
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({
@@ -829,7 +861,17 @@ export class ClientService {
           citizenship: data.applicant_citizenship,
           children: data.children?.filter((child: any) => child.parent_type === 'applicant') || [],
           businesses: data.businesses?.filter((business: any) => business.parent_type === 'applicant') || [],
-          documents: data.documents?.filter((document: any) => document.parent_type === 'applicant') || []
+          documents: data.documents?.filter((document: any) => document.parent_type === 'applicant').map((doc: any) => ({
+            id: doc.id,
+            supabase_id: doc.id,
+            documentType: doc.document_type,
+            documentNumber: doc.document_number,
+            documentIssueDate: doc.document_issue_date,
+            documentValidUntil: doc.document_valid_until,
+            issuingAuthority: doc.issuing_authority,
+            placeOfBirth: doc.place_of_birth,
+            controlNumber: doc.control_number
+          })) || []
         },
         // Transformace údajů spolužadatele
         coApplicant: {
@@ -855,7 +897,17 @@ export class ClientService {
           citizenship: data.co_applicant_citizenship,
           children: data.children?.filter((child: any) => child.parent_type === 'co_applicant') || [],
           businesses: data.businesses?.filter((business: any) => business.parent_type === 'co_applicant') || [],
-          documents: data.documents?.filter((document: any) => document.parent_type === 'co_applicant') || []
+          documents: data.documents?.filter((document: any) => document.parent_type === 'co_applicant').map((doc: any) => ({
+            id: doc.id,
+            supabase_id: doc.id,
+            documentType: doc.document_type,
+            documentNumber: doc.document_number,
+            documentIssueDate: doc.document_issue_date,
+            documentValidUntil: doc.document_valid_until,
+            issuingAuthority: doc.issuing_authority,
+            placeOfBirth: doc.place_of_birth,
+            controlNumber: doc.control_number
+          })) || []
         }
       }
 

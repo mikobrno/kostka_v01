@@ -142,3 +142,68 @@ kbd {
 .form-grid-layout {
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
 }
+
+/* Quill Editor Styles */
+.notes-quill-editor .ql-editor {
+  min-height: 200px !important;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notes-quill-editor .ql-toolbar {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  border-color: #d1d5db;
+}
+
+.notes-quill-editor .ql-container {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  border-color: #d1d5db;
+}
+
+/* Dark mode styles for Quill */
+.dark .notes-quill-editor .ql-editor {
+  background-color: rgb(31 41 55) !important;
+  color: white !important;
+}
+
+.dark .notes-quill-editor .ql-toolbar {
+  background-color: rgb(55 65 81) !important;
+  border-color: rgb(75 85 99) !important;
+}
+
+.dark .notes-quill-editor .ql-container {
+  border-color: rgb(75 85 99) !important;
+}
+
+.dark .notes-quill-editor .ql-toolbar .ql-stroke {
+  stroke: white !important;
+}
+
+.dark .notes-quill-editor .ql-toolbar .ql-fill {
+  fill: white !important;
+}
+
+.dark .notes-quill-editor .ql-toolbar button:hover {
+  background-color: rgb(75 85 99) !important;
+}
+
+/* Preserve line breaks and formatting in display */
+.notes-display {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.notes-display p {
+  margin-bottom: 0.5rem;
+}
+
+.notes-display ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.notes-display li {
+  margin-bottom: 0.25rem;
+}

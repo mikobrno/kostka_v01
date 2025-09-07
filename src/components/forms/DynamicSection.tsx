@@ -613,7 +613,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
               />
             ) : content.notes ? (
               <div 
-                className="p-4 min-h-[100px]"
+                className="p-4 min-h-[100px] notes-display"
                 dangerouslySetInnerHTML={{ __html: content.notes }}
               />
             ) : (

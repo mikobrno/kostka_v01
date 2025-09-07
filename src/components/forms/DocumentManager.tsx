@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, FileText, MapPin, Shield } from 'lucide-react';
 import InlineEditableCopy from '../InlineEditableCopy';
+import { supabase } from '../../lib/supabase';
 
 interface Document {
   id: string;
@@ -12,6 +13,8 @@ interface Document {
   place_of_birth: string;
   control_number: string;
   is_primary: boolean;
+  parent_type: 'applicant' | 'co_applicant'; // Added parent_type field
+  client_id: string; // Added client_id field
 }
 
 interface DocumentManagerProps {
@@ -51,7 +54,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     const newDoc: Partial<Document> = {
       id: `temp-${Date.now()}`,
   // leave type empty so user must explicitly choose; control number shows only for 'občanský průkaz'
-  document_type: '',
+      document_type: '',
       document_number: '',
       issue_date: new Date().toISOString().split('T')[0],
       valid_until: calculateValidityDate(new Date().toISOString().split('T')[0]),
@@ -63,39 +66,48 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     setNewDocument(newDoc);
   };
 
-  const saveDocument = (document: Partial<Document>) => {
+  const saveDocument = async (document: Partial<Document>) => {
     if (document.id?.startsWith('temp-')) {
       // New document
       const finalDoc = {
         ...document,
-        id: `doc-${Date.now()}`
+        id: `doc-${Date.now()}`,
+        parent_type: document.parent_type || 'applicant', // Default to 'applicant' if not provided
+        client_id: document.client_id || 'default-client-id' // Replace with actual client_id logic
       } as Document;
 
-      // ensure control_number is empty unless it's občanský průkaz
+      // Ensure control_number is empty unless it's občanský průkaz
       if (finalDoc.document_type !== 'občanský průkaz') {
         finalDoc.control_number = '';
       }
 
-      // Remove any leftover temporary/blank documents before adding the final one
-      const cleaned = documents.filter(d => {
-        if (!d.id) return true;
-        return !String(d.id).startsWith('temp-');
-      });
+      try {
+        // Insert into Supabase if no valid UUID
+        const { data, error } = await supabase
+          .from('documents')
+          .insert([finalDoc])
+          .select('id')
+          .single();
 
-      // Deduplicate: if a document with same type+number exists, replace it
-      const existingIndex = cleaned.findIndex(d => d.document_type === finalDoc.document_type && d.document_number === finalDoc.document_number && finalDoc.document_number);
-      if (existingIndex >= 0) {
-        cleaned[existingIndex] = finalDoc;
-        onChange([...cleaned]);
-      } else {
+        if (error) {
+          console.error('Error inserting document:', error);
+          alert('Chyba při ukládání dokumentu.');
+          return;
+        }
+
+        // Update local state with Supabase ID
+        finalDoc.id = data.id;
+        const cleaned = documents.filter(d => !d.id?.startsWith('temp-'));
         onChange([...cleaned, finalDoc]);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Neočekávaná chyba při ukládání dokumentu.');
       }
     } else {
       // Update existing document
       const updated = documents.map(doc => {
         if (doc.id === document.id) {
           const merged = { ...doc, ...document } as Document;
-          // clear control_number for non-občanský průkaz so it won't be stored/visible
           if (merged.document_type !== 'občanský průkaz') {
             merged.control_number = '';
           }
@@ -123,6 +135,31 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     }));
     onChange(updated);
   };
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('client_id', 'default-client-id') // Replace with actual client_id logic
+          .eq('parent_type', 'applicant'); // Replace with dynamic parent_type if needed
+
+        if (error) {
+          console.error('Error fetching documents:', error);
+          alert('Chyba při načítání dokumentů.');
+          return;
+        }
+
+        onChange(data || []);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        alert('Neočekávaná chyba při načítání dokumentů.');
+      }
+    };
+
+    fetchDocuments();
+  }, [onChange]);
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
@@ -230,12 +267,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
     setEditData(document);
   }, [document]);
 
-  const handleFieldChange = (field: string, value: string) => {
-  const updated: any = { ...editData, [field]: value };
+  const handleFieldChange = (field: keyof Document, value: string) => {
+    const updated = { ...editData, [field]: value } as Partial<Document>;
 
     // Auto-calculate validity when issue date changes, but don't overwrite manual value
     if (field === 'issue_date') {
-      if (!editData.valid_until) {
+      if (!editData?.valid_until) {
         updated.valid_until = calculateValidityDate(value);
       }
     }
@@ -245,7 +282,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
       delete updated.control_number;
     }
 
-  setEditData(updated);
+    setEditData(updated);
   };
 
   const handleSave = () => {
