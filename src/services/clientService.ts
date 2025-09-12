@@ -471,7 +471,7 @@ export class ClientService {
       await supabase.from('properties').delete().eq('client_id', clientId)
       await supabase.from('children').delete().eq('client_id', clientId)
       await supabase.from('businesses').delete().eq('client_id', clientId)
-      // await supabase.from('documents').delete().eq('client_id', clientId) // Commented out - PersonalInfo manages documents individually
+      // await supabase.from('documents').delete().eq('client_id', clientId) // Use upsert logic like children/businesses
       await supabase.from('liabilities').delete().eq('client_id', clientId)
       // Poznámka: loans se nemazou, budou se aktualizovat v upsertLoanWithColumnFallback      // Znovu vytvoření dat (stejný kód jako v createClient)
       if (formData.employer?.applicant && Object.keys(formData.employer.applicant).length > 0) {
@@ -641,8 +641,7 @@ export class ClientService {
           .eq('id', business.supabase_id);
       }
 
-      // Správa dokladů totožnosti - DISABLED, PersonalInfo manages documents individually
-      /*
+      // Správa dokladů totožnosti – ukládané společně s klientem (horní tlačítko "Uložit")
       const allDocuments = [
         ...(formData.applicant.documents || []).map((document: any) => ({
           ...document,
@@ -654,9 +653,14 @@ export class ClientService {
         }))
       ]
 
-      // Zpracuj dokumenty - rozděl na nové a existující
+      console.log('🔍 All documents before processing:', allDocuments);
+
+      // Zpracuj dokumenty - rozděl na nové a existující podle supabase_id
       const newDocuments = allDocuments.filter((doc: any) => !doc.supabase_id);
       const existingDocuments = allDocuments.filter((doc: any) => doc.supabase_id);
+
+      console.log('➕ New documents to insert:', newDocuments);
+      console.log('🔄 Existing documents to update:', existingDocuments);
 
       // Vlož pouze nové dokumenty
       if (newDocuments.length > 0) {
@@ -671,6 +675,7 @@ export class ClientService {
           place_of_birth: document.placeOfBirth || null,
           control_number: document.controlNumber || null,
         }))
+        console.log('📤 Inserting documents data:', documentsData);
         await supabase.from('documents').insert(documentsData)
       }
 
@@ -688,12 +693,12 @@ export class ClientService {
           control_number: document.controlNumber || null,
         }
         
+        console.log(`🔄 Updating document ${document.supabase_id}:`, documentData);
         await supabase
           .from('documents')
           .update(documentData)
           .eq('id', document.supabase_id);
       }
-      */
 
       if (formData.liabilities && formData.liabilities.length > 0) {
         const liabilitiesData = formData.liabilities.map((liability: any) => ({

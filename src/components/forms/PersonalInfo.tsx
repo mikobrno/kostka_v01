@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { AddressWithMapLinks } from '../AddressWithMapLinks';
 import { ChildrenManager } from '../ChildrenManager';
 import CopyIconButton from '../CopyIconButton';
-import { User, Plus, Trash2, Save, X, Edit, Building, Search, Check, Copy } from 'lucide-react';
+import { User, Plus, Trash2, Save, X, Edit, Building, Search, Copy } from 'lucide-react';
 
 // Local domain types (minimal, extend as project-wide types are available)
 interface DocumentShape {
@@ -68,7 +68,6 @@ interface PersonalInfoProps {
   data: PersonalData;
   onChange: (data: PersonalData) => void;
   prefix: string;
-  clientId?: string | number;
   toast?: { showSuccess?: (t: string, m?: string) => void; showError?: (t: string, m?: string) => void } | null;
 }
 
@@ -130,10 +129,9 @@ const DEFAULT_HOUSING_TYPES = [
   'jiné'
 ] as string[];
 
-export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, clientId, toast }) => {
+export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, prefix, toast }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [savingDocument, setSavingDocument] = useState<string | number | null>(null);
-  const [savedDocument, setSavedDocument] = useState<string | number | null>(null);
+  // per-doklad ukládání je odstraněno – vše se ukládá přes horní tlačítko "Uložit"
   
   // Load admin lists once on mount. Module-level DEFAULT_* constants are stable.
   React.useEffect(() => {
@@ -149,7 +147,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
       }
     }
   }, [data, onChange]);
-  
+
   // admin lists stored in state so we can update them after loading
   interface AdminLists {
     titles: string[];
@@ -181,15 +179,15 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
           return;
         }
 
-          if (data) {
+        if (data) {
           const lists: AdminLists = {
             titles: [],
             maritalStatuses: [],
             documentTypes: [],
             banks: [],
-            citizenships: DEFAULT_CITIZENSHIPS, // Keep default citizenships
-            housingTypes: DEFAULT_HOUSING_TYPES,  // Keep default housing types
-            educationLevels: DEFAULT_EDUCATION_LEVELS // Keep default education levels
+            citizenships: DEFAULT_CITIZENSHIPS,
+            housingTypes: DEFAULT_HOUSING_TYPES,
+            educationLevels: DEFAULT_EDUCATION_LEVELS
           };
 
           interface AdminListItem {
@@ -245,15 +243,12 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     let month = parseInt(birthNumber.substring(2, 4), 10);
     const day = parseInt(birthNumber.substring(4, 6), 10);
 
-    // Adjust month for women (month - 50)
     if (month > 50) month -= 50;
 
-    // Determine century (simple heuristic: 00- currentYear%100 => 2000s else 1900s)
     const currentYearFull = new Date().getFullYear();
     const century = year <= (currentYearFull % 100) ? 2000 : 1900;
     const fullYear = century + year;
 
-    // Basic validation for month and day
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
     const birthDateObj = new Date(fullYear, month - 1, day);
@@ -270,27 +265,21 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
     return { age, birthYear: fullYear, birthDate: formattedBirthDate };
   };
 
-  // Formátovat datum jako DD.MM.YYYY (s leading zero pro den a měsíc)
-  // formatDateDDMMYYYY helper is declared at top-level to be reused.
-
-  // Helper to display date as dd-mm-yyyy from ISO or other formats
   const formatDateDisplay = (isoOrAny?: string | null) => {
     if (!isoOrAny) return '';
     const d = new Date(isoOrAny);
-    if (Number.isNaN(d.getTime())) return isoOrAny; // fallback to raw
+    if (Number.isNaN(d.getTime())) return isoOrAny;
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  // Parse display format dd-mm-yyyy to ISO yyyy-mm-dd. If parsing fails, return original string.
   const parseDisplayToISO = (display?: string | null) => {
     if (!display) return '';
     const parts = display.split('-');
     if (parts.length === 3) {
       const [dd, mm, yyyy] = parts;
-      // basic validation
       const day = parseInt(dd, 10);
       const month = parseInt(mm, 10);
       const year = parseInt(yyyy, 10);
@@ -298,7 +287,6 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
         return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       }
     }
-    // try Date parse fallback
     const d = new Date(display);
     if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
     return display;
@@ -314,210 +302,26 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
   const updateField = (field: string, value: unknown) => {
     const updated: PersonalData = { ...data, [field]: value } as PersonalData;
 
-    // Auto-calculate age and birth date from birth number
     if (field === 'birthNumber') {
       const ageData = calculateAgeFromBirthNumber(String(value || ''));
       if (ageData) {
         updated.age = ageData.age;
         updated.birthYear = ageData.birthYear;
-        updated.birthDate = ageData.birthDate; // Store birth date
+        updated.birthDate = ageData.birthDate;
       } else {
         updated.age = null;
         updated.birthYear = null;
-        updated.birthDate = undefined; // Clear if invalid
+        updated.birthDate = undefined;
       }
     }
 
     onChange(updated);
   };
 
-  const saveDocument = async (documentId: string | number) => {
-    console.log('🔍 Pokus o uložení dokumentu s lokálním ID:', documentId);
-    console.log('📝 ClientId:', clientId);
-    console.log('📋 Data dokumentů:', data.documents);
-    
-    if (!clientId) {
-      console.error('❌ Chybí clientId pro uložení dokumentu.');
-  toast?.showError?.('Chyba', 'Není dostupné ID klienta pro uložení dokladu');
-      return;
-    }
-
-    setSavingDocument(documentId);
-    try {
-      // Najdi specifický doklad
-  const document = (data.documents || []).find((doc: DocumentShape) => doc.id == documentId);
-      console.log('📄 Nalezený dokument:', document);
-      if (!document) {
-        throw new Error('Doklad nebyl nalezen');
-      }
-
-      // Připrav data pro Supabase (bez lokálního ID)
-      const documentData = {
-        client_id: String(clientId),
-        document_type: document.documentType || null,
-        document_number: document.documentNumber || null,
-        document_issue_date: document.documentIssueDate || null,
-        document_valid_until: document.documentValidUntil || null,
-        issuing_authority: document.issuingAuthority || null,
-        place_of_birth: document.placeOfBirth || null,
-        control_number: document.controlNumber || null
-      };
-      
-      console.log('💾 Data pro uložení do Supabase:', documentData);
-
-
-  // Rozhodni, zda aktualizovat existující záznam nebo vytvořit nový.
-  // Preferuj explicitní `supabase_id` (uložené ID z DB). Pokud není, zvaž `id` pouze pokud je to string (např. při načtení ze serveru)
-  // Tím zabráníme použití lokálních číselných ID (Date.now()) jako UUID při volání Supabase.
-  const isStringId = typeof document.id === 'string' && document.id.trim() !== '';
-  let maybeId = document.supabase_id ?? (isStringId ? document.id : undefined);
-  let dbId = (maybeId !== undefined && maybeId !== null && String(maybeId) !== '') ? maybeId : null;
-
-      // Pokud nemáme žádné ID, zkontroluj na serveru, zda už neexistuje dokument se stejným číslem pro tohoto klienta
-      // (jednoduchá deduplikace podle client_id + document_number + parent_type).
-      if (!dbId && document.documentNumber) {
-        try {
-          const { data: existing, error: selectErr } = await supabase
-            .from('documents')
-            .select('id')
-            .eq('client_id', String(clientId))
-            .eq('document_number', document.documentNumber)
-            .eq('parent_type', prefix)
-            .limit(1)
-            .maybeSingle();
-
-          if (selectErr) {
-            console.warn('⚠️ Chyba při kontrole duplicity dokumentu:', selectErr);
-          } else if (existing && existing.id) {
-            console.log('ℹ️ Nalezen existující dokument na serveru se stejným číslem. Použiju jeho ID pro update:', existing.id);
-            dbId = existing.id;
-            maybeId = existing.id;
-          }
-        } catch (err) {
-          console.warn('⚠️ Výjimka při kontrole duplicity dokumentu:', err);
-        }
-      }
-
-      if (dbId) {
-        console.log('🔄 Aktualizuji existující dokument v Supabase s ID:', dbId);
-        // Po aktualizaci požádej o vrácení upraveného záznamu a aktualizuj lokální položku
-        const { data: updatedRow, error } = await supabase
-          .from('documents')
-          .update(documentData)
-          .eq('id', dbId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ Chyba při aktualizaci dokumentu v Supabase:', error);
-          throw new Error(error.message || 'Chyba při aktualizaci dokladu');
-        }
-
-        console.log('📤 Supabase updated row:', updatedRow);
-        // Aktualizuj lokální data podle vráceného řádku
-        const updatedDocuments = (data.documents || []).map((doc: DocumentShape) => 
-          doc.id == documentId
-            ? {
-                ...doc,
-                supabase_id: updatedRow.id,
-                documentType: updatedRow.document_type ?? document.documentType,
-                documentNumber: updatedRow.document_number ?? document.documentNumber,
-                documentIssueDate: updatedRow.document_issue_date ?? document.documentIssueDate,
-                documentValidUntil: updatedRow.document_valid_until ?? document.documentValidUntil,
-                issuingAuthority: updatedRow.issuing_authority ?? document.issuingAuthority,
-                placeOfBirth: updatedRow.place_of_birth ?? document.placeOfBirth,
-                controlNumber: updatedRow.control_number ?? document.controlNumber
-              }
-            : doc
-        );
-        onChange({ ...data, documents: updatedDocuments });
-        console.log('✅ Dokument úspěšně aktualizován v Supabase.');
-      } else {
-        // Jinak vytvoř nový záznam
-        console.log('➕ Vytvářím nový záznam dokumentu v Supabase.');
-        const { data: newDocument, error } = await supabase
-          .from('documents')
-          .insert(documentData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ Chyba při vkládání nového dokumentu do Supabase:', error);
-          throw new Error(error.message || 'Chyba při vytváření dokladu');
-        }
-        console.log('📤 Supabase inserted row:', newDocument);
-
-        // Aktualizuj lokální data s celým vloženým záznamem
-        let updatedDocuments = (data.documents || []).map((doc: DocumentShape) => 
-          doc.id == documentId 
-            ? {
-                ...doc,
-                supabase_id: newDocument.id,
-                documentType: newDocument.document_type ?? doc.documentType,
-                documentNumber: newDocument.document_number ?? doc.documentNumber,
-                documentIssueDate: newDocument.document_issue_date ?? doc.documentIssueDate,
-                documentValidUntil: newDocument.document_valid_until ?? doc.documentValidUntil,
-                issuingAuthority: newDocument.issuing_authority ?? doc.issuingAuthority,
-                placeOfBirth: newDocument.place_of_birth ?? doc.placeOfBirth,
-                controlNumber: newDocument.control_number ?? doc.controlNumber
-              }
-            : doc
-        );
-
-        // Odeber případné duplicitní lokální záznamy, které referencují stejné supabase_id
-        const seen = new Set<string>();
-        updatedDocuments = updatedDocuments.filter((d: DocumentShape) => {
-          const key = d.supabase_id ? String(d.supabase_id) : `local:${d.id}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        onChange({ ...data, documents: updatedDocuments });
-      }
-
-  setSavedDocument(documentId);
-  toast?.showSuccess?.('Uloženo', `Doklad byl úspěšně uložen`);
-      
-      // Skryj ikonku checkmarku po 2 sekundách
-      setTimeout(() => {
-        setSavedDocument(null);
-      }, 2000);
-    } catch (error) {
-      console.error('Chyba při ukládání dokladu:', error);
-      toast?.showError?.('Chyba', error instanceof Error ? error.message : 'Nepodařilo se uložit doklad');
-    } finally {
-      setSavingDocument(null);
-    }
-  };
-
   // Derived values for top summary
   // derived values are calculated inline where needed
 
-  const CopyIconButton: React.FC<{ value?: string | number; label?: string }> = ({ value, label }) => {
-    const [done, setDone] = React.useState(false);
-    const handle = async () => {
-      try {
-  await navigator.clipboard.writeText(String(value || ''));
-  toast?.showSuccess?.('Zkopírováno', label || 'Text zkopírován');
-        setDone(true);
-        setTimeout(() => setDone(false), 1500);
-      } catch {
-        // ignore
-      }
-    };
-    return (
-      <button
-        type="button"
-        onClick={handle}
-        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
-        title={label || 'Kopírovat'}
-        aria-label={label || 'Kopírovat'}
-      >
-        {done ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-      </button>
-    );
-  };
+  // Použijeme sdílenou komponentu CopyIconButton z ../CopyIconButton
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
@@ -829,31 +633,13 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
               <div className="flex justify-between items-center mb-4">
                 <h5 className="text-sm font-medium text-gray-900 dark:text-white">Doklad #{index + 1}</h5>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => saveDocument(document.id)}
-                    disabled={savingDocument === document.id}
-                    className="p-1 text-blue-600 hover:text-blue-800 disabled:text-blue-400 transition-colors"
-                    title="Uložit doklad"
-                    aria-label={`Uložit doklad ${index + 1}`}
-                  >
-                    {savingDocument === document.id ? (
-                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    ) : savedDocument === document.id ? (
-                      <Check className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(`document-${document.id.toString()}`)}
-                    className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                    title="Smazat doklad"
-                    aria-label={`Smazat doklad ${index + 1}`}
-                  >
+                  <button onClick={() => setShowDeleteConfirm(`document-${document.id.toString()}`)} className="p-1 text-red-600 hover:text-red-800 transition-colors" title="Smazat doklad" aria-label={`Smazat doklad ${index + 1}`}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
+
+              <p className="text-xs text-gray-500 mb-2">Doklady se uloží až po kliknutí na tlačítko "Uložit" nahoře.</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1335,7 +1121,7 @@ export const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onChange, pref
 
                 // Smaž doklad z lokálního stavu
                 console.log('🔄 Aktualizuji lokální stav.');
-                const updatedDocuments = (data.documents || []).filter((d: { id: string | number }) => d.id !== documentId);
+                const updatedDocuments = (data.documents || []).filter((d: { id: string | number }) => String(d.id) !== documentId);
                 updateField('documents', updatedDocuments);
                 setShowDeleteConfirm(null);
               }}

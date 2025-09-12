@@ -71,7 +71,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           citizenship: client.applicant_citizenship || '',
           children: client.children?.filter((c: any) => c.parent_type === 'applicant') || [],
           businesses: client.businesses?.filter((b: any) => b.parent_type === 'applicant') || [],
-          documents: client.documents?.filter((d: any) => d.parent_type === 'applicant') || []
+          // Použij transformované dokumenty s `supabase_id` (viz ClientService.getClient)
+          documents: client.applicant?.documents || client.documents?.filter((d: any) => d.parent_type === 'applicant') || []
         },
         coApplicant: {
           title: client.co_applicant_title || '',
@@ -96,7 +97,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
           citizenship: client.co_applicant_citizenship || '',
           children: client.children?.filter((c: any) => c.parent_type === 'co_applicant') || [],
           businesses: client.businesses?.filter((b: any) => b.parent_type === 'co_applicant') || [],
-          documents: client.documents?.filter((d: any) => d.parent_type === 'co_applicant') || []
+          // Použij transformované dokumenty s `supabase_id` (viz ClientService.getClient)
+          documents: client.coApplicant?.documents || client.documents?.filter((d: any) => d.parent_type === 'co_applicant') || []
         },
         applicantEmployer: {
           ico: client.employers?.find((e: any) => e.employer_type === 'applicant')?.ico || '',
@@ -847,7 +849,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                     data={formData.applicant}
                     onChange={(data) => setFormData((prev: any) => ({ ...prev, applicant: data }))}
                     prefix="applicant"
-                    clientId={selectedClient?.id || currentClient?.id}
                     toast={toast}
                   />
                 </div>
@@ -865,7 +866,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ selectedClient, onClient
                     data={formData.coApplicant}
                     onChange={(data) => setFormData((prev: any) => ({ ...prev, coApplicant: data }))}
                     prefix="co_applicant"
-                    clientId={selectedClient?.id || currentClient?.id}
                     toast={toast}
                   />
                 </div>
