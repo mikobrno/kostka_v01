@@ -287,13 +287,19 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
   const handleSave = () => {
     // Validate required fields
-    const requiresControl = editData.document_type === 'občanský průkaz';
-    if (!editData.document_type || !editData.document_number || !editData.issue_date || 
-        !editData.issuing_authority || !editData.place_of_birth || (requiresControl && !editData.control_number)) {
+    const isOP = editData.document_type === 'občanský průkaz';
+    if (
+      !editData.document_type ||
+      !editData.document_number ||
+      !editData.issue_date ||
+      !editData.issuing_authority ||
+      (isOP && !editData.place_of_birth) ||
+      (isOP && !editData.control_number)
+    ) {
       alert('Všechna povinná pole nejsou vyplněna');
       return;
     }
-    
+
     onSave(editData);
   };
 
@@ -404,24 +410,26 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Místo narození *
-            </label>
-            <div className="flex">
-              <div className="flex-1 relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={editData.place_of_birth || ''}
-                  onChange={(e) => handleFieldChange('place_of_birth', e.target.value)}
-                  className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Praha"
-                />
+          {editData.document_type === 'občanský průkaz' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Místo narození *
+              </label>
+              <div className="flex">
+                <div className="flex-1 relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={editData.place_of_birth || ''}
+                    onChange={(e) => handleFieldChange('place_of_birth', e.target.value)}
+                    className="block w-full pl-10 rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="Praha"
+                  />
+                </div>
+                <InlineEditableCopy value={editData.place_of_birth || ''} onSave={(v) => handleFieldChange('place_of_birth', v)} />
               </div>
-              <InlineEditableCopy value={editData.place_of_birth || ''} onSave={(v) => handleFieldChange('place_of_birth', v)} />
             </div>
-          </div>
+          )}
 
           {editData.document_type === 'občanský průkaz' && (
             <div className="md:col-span-2">
@@ -514,10 +522,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
           <span className="text-gray-500">Vydal:</span>
           <p className="font-medium">{document.issuing_authority}</p>
         </div>
-        <div>
-          <span className="text-gray-500">Místo narození:</span>
-          <p className="font-medium">{document.place_of_birth}</p>
-        </div>
+        {document.document_type === 'občanský průkaz' && (
+          <div>
+            <span className="text-gray-500">Místo narození:</span>
+            <p className="font-medium">{document.place_of_birth}</p>
+          </div>
+        )}
       </div>
     </div>
   );

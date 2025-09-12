@@ -656,8 +656,47 @@ export class ClientService {
       console.log('🔍 All documents before processing:', allDocuments);
 
       // Zpracuj dokumenty - rozděl na nové a existující podle supabase_id
-      const newDocuments = allDocuments.filter((doc: any) => !doc.supabase_id);
-      const existingDocuments = allDocuments.filter((doc: any) => doc.supabase_id);
+      let newDocuments = allDocuments.filter((doc: any) => !doc.supabase_id);
+      let existingDocuments = allDocuments.filter((doc: any) => doc.supabase_id);
+
+      // Server-side deduplikace: pokud už u klienta existuje doklad se stejným parent_type + type + number,
+      // nebudeme vkládat nový, ale aktualizujeme existující.
+      if (newDocuments.length > 0) {
+        const { data: existingDocsForClient, error: fetchDocsError } = await supabase
+          .from('documents')
+          .select('id, parent_type, document_type, document_number')
+          .eq('client_id', clientId);
+
+        if (!fetchDocsError && Array.isArray(existingDocsForClient)) {
+          const normalize = (v: string | null | undefined) => (v || '').toString().trim().toLowerCase();
+          const makeKey = (parentType: string, type: string | null, number: string | null) => `${normalize(parentType)}|${normalize(type)}|${normalize(number)}`;
+          const existingByKey = new Map<string, string>();
+          for (const d of existingDocsForClient) {
+            existingByKey.set(makeKey(d.parent_type as string, d.document_type as string, d.document_number as string), d.id as string);
+          }
+
+          const promotedToExisting: any[] = [];
+          const trulyNew: any[] = [];
+          for (const doc of newDocuments) {
+            const key = makeKey(doc.parent_type, doc.documentType, doc.documentNumber);
+            // Pokud chybí documentNumber, nededupujeme (ponecháme jako nový)
+            if (!normalize(doc.documentNumber)) {
+              trulyNew.push(doc);
+              continue;
+            }
+            const matchId = existingByKey.get(key);
+            if (matchId) {
+              promotedToExisting.push({ ...doc, supabase_id: matchId });
+            } else {
+              trulyNew.push(doc);
+            }
+          }
+          if (promotedToExisting.length > 0) {
+            existingDocuments = existingDocuments.concat(promotedToExisting);
+          }
+          newDocuments = trulyNew;
+        }
+      }
 
       console.log('➕ New documents to insert:', newDocuments);
       console.log('🔄 Existing documents to update:', existingDocuments);
